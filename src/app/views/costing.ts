@@ -8,9 +8,9 @@ import {
   ROWS_PER_PAGE,
 } from '../config/economy';
 import { rackPackCount } from '../core/calculations';
-import { clamp, compact, number } from '../core/format';
+import { clamp, compact, escapeHtml, number } from '../core/format';
 import { store } from '../core/state';
-import { intro, pageStack, panel, table } from '../ui/components';
+import { intro, pageStack, panel } from '../ui/components';
 
 interface ReferenceRows {
   coolant: string[];
@@ -18,6 +18,29 @@ interface ReferenceRows {
   rackCount: number;
   pages: number;
   start: number;
+}
+
+function referenceTable(
+  headers: string[],
+  rows: string[],
+  rowSlots: number,
+  viewportClass: string,
+  emptyMessage: string,
+): string {
+  const body = rows.length
+    ? [...rows]
+    : [`<tr class="reference-empty-row"><td colspan="${headers.length}">${escapeHtml(emptyMessage)}</td></tr>`];
+
+  while (body.length < rowSlots) {
+    body.push(`<tr class="reference-placeholder" aria-hidden="true"><td colspan="${headers.length}">&nbsp;</td></tr>`);
+  }
+
+  return `<div class="reference-table-scroll ${viewportClass}">
+    <table class="interactive-ref-table">
+      <thead><tr>${headers.map((header) => `<th>${header}</th>`).join('')}</tr></thead>
+      <tbody>${body.join('')}</tbody>
+    </table>
+  </div>`;
 }
 
 function referenceRows(): ReferenceRows {
@@ -65,26 +88,58 @@ function referenceRows(): ReferenceRows {
   };
 }
 
+function coolantStepper(coolant: number): string {
+  return `<div class="reference-stepper">
+    <span class="reference-stepper-label">CURRENT</span>
+    <div class="reference-stepper-control">
+      <button type="button" class="reference-step-action" data-cost-ref="cool:-1" ${coolant <= 0 ? 'disabled' : ''} aria-label="Decrease coolant level">−</button>
+      <strong>${coolant ? `LEVEL ${coolant} · +${coolant * 10}%` : 'OFF'}</strong>
+      <button type="button" class="reference-step-action" data-cost-ref="cool:1" ${coolant >= 10 ? 'disabled' : ''} aria-label="Increase coolant level">+</button>
+    </div>
+    <button type="button" class="reference-reset" data-cost-ref="cool:reset">RESET</button>
+  </div>`;
+}
+
+function rackStepper(rackSlots: number): string {
+  return `<div class="reference-stepper">
+    <span class="reference-stepper-label">CURRENT</span>
+    <div class="reference-stepper-control">
+      <button type="button" class="reference-step-action wide" data-cost-ref="rack:-1" ${rackSlots <= RACK_BASE_SLOTS ? 'disabled' : ''} aria-label="Remove six rack slots">−6</button>
+      <strong>${rackSlots} SLOTS</strong>
+      <button type="button" class="reference-step-action wide" data-cost-ref="rack:1" ${rackSlots >= RACK_DISPLAY_LIMIT ? 'disabled' : ''} aria-label="Add six rack slots">+6</button>
+    </div>
+    <button type="button" class="reference-reset" data-cost-ref="rack:reset">BASE</button>
+  </div>`;
+}
+
 export function renderCostingView(): string {
   const rows = referenceRows();
   const coolant = store.costingReference.coolantLevel;
   const rackSlots = store.costingReference.rackSlots;
 
-  const coolantControls = `<div class="stepper">
-    <span>CURRENT</span>
-    <button data-cost-ref="cool:-1" ${coolant <= 0 ? 'disabled' : ''}>−</button>
-    <strong>${coolant ? `LEVEL ${coolant} · +${coolant * 10}%` : 'OFF'}</strong>
-    <button data-cost-ref="cool:1" ${coolant >= 10 ? 'disabled' : ''}>+</button>
-    <button data-cost-ref="cool:reset">RESET</button>
-  </div>`;
+  const coolantTable = referenceTable(
+    ['LEVEL', 'PRICE', 'CUMULATIVE FROM CURRENT'],
+    rows.coolant,
+    10,
+    'coolant-reference-table',
+    'All coolant levels are already included.',
+  );
 
-  const rackControls = `<div class="stepper">
-    <span>CURRENT</span>
-    <button data-cost-ref="rack:-1" ${rackSlots <= RACK_BASE_SLOTS ? 'disabled' : ''}>−6</button>
-    <strong>${rackSlots} SLOTS</strong>
-    <button data-cost-ref="rack:1" ${rackSlots >= RACK_DISPLAY_LIMIT ? 'disabled' : ''}>+6</button>
-    <button data-cost-ref="rack:reset">BASE</button>
-  </div>`;
+  const rackTable = referenceTable(
+    ['UPGRADE', 'CAPACITY', 'PRICE', 'CUMULATIVE FROM CURRENT'],
+    rows.rack,
+    ROWS_PER_PAGE,
+    'rack-reference-table',
+    'No additional rack-slot upgrades remain in the reference range.',
+  );
+
+  const forgeTable = referenceTable(
+    ['FORGE', 'PRICE', 'NOTE'],
+    FORGE_ROWS.map(([name, cost, note]) => `<tr><th>${name}</th><td>${compact(cost)} $GRIND</td><td>${note}</td></tr>`),
+    FORGE_ROWS.length,
+    'forge-reference-table',
+    'No forge references configured.',
+  );
 
   return pageStack(
     intro(
@@ -94,28 +149,26 @@ export function renderCostingView(): string {
     panel(
       'COOLANT',
       'Only levels above your current selection are shown.',
-      `${coolantControls}${table(['LEVEL', 'PRICE', 'CUMULATIVE FROM CURRENT'], rows.coolant, 'reference-table')}`,
+      `${coolantStepper(coolant)}${coolantTable}`,
     ),
     panel(
       'RACK SLOT EXPANSION',
       '12 base slots; every upgrade adds +6. The reference extends through the last valid step below 350: 348 slots.',
-      `${rackControls}
-      ${table(['UPGRADE', 'CAPACITY', 'PRICE', 'CUMULATIVE FROM CURRENT'], rows.rack, 'reference-table')}
-      ${rows.pages > 1 ? `<div class="pagination">
-        <button data-rack-page="${store.ui.rackPage - 1}" ${store.ui.rackPage <= 1 ? 'disabled' : ''}>PREVIOUS</button>
-        <span>PAGE <b>${store.ui.rackPage}</b> / ${rows.pages}</span>
-        <button data-rack-page="${store.ui.rackPage + 1}" ${store.ui.rackPage >= rows.pages ? 'disabled' : ''}>NEXT</button>
-        <small>ROWS ${rows.start + 1}–${Math.min(rows.start + ROWS_PER_PAGE, rows.rackCount)} OF ${rows.rackCount}</small>
+      `${rackStepper(rackSlots)}
+      ${rackTable}
+      ${rows.pages > 1 ? `<div class="reference-pagination">
+        <span class="reference-page-range">ROWS ${rows.start + 1}–${Math.min(rows.start + ROWS_PER_PAGE, rows.rackCount)} OF ${rows.rackCount}</span>
+        <div class="reference-page-actions">
+          <button type="button" data-rack-page="${store.ui.rackPage - 1}" ${store.ui.rackPage <= 1 ? 'disabled' : ''}>PREVIOUS</button>
+          <strong>PAGE ${store.ui.rackPage} / ${rows.pages}</strong>
+          <button type="button" data-rack-page="${store.ui.rackPage + 1}" ${store.ui.rackPage >= rows.pages ? 'disabled' : ''}>NEXT</button>
+        </div>
       </div>` : ''}`,
     ),
     panel(
       'FORGE',
       'Known forge fees used by planner costing.',
-      table(
-        ['FORGE', 'PRICE', 'NOTE'],
-        FORGE_ROWS.map(([name, cost, note]) => `<tr><th>${name}</th><td>${compact(cost)} $GRIND</td><td>${note}</td></tr>`),
-        'reference-table',
-      ),
+      forgeTable,
     ),
   );
 }
