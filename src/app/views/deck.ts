@@ -154,7 +154,7 @@ function setupPanels(scenario: DeckScenario): string {
     `<div class="current-grid">
       ${field('deck.qns', 'CURRENT QUANTUM NODES', store.deck.qns)}
       ${field('deck.baseline.currentGrit', 'CURRENT GRIT BALANCE', store.deck.baseline.currentGrit)}
-      ${field('deck.baseline.currentDeckSlots', 'CURRENT DECK SLOT CAPACITY', store.deck.baseline.currentDeckSlots)}
+      ${field('deck.baseline.currentDeckSlots', 'TOTAL DECK SLOT', store.deck.baseline.currentDeckSlots)}
     </div>
     <div class="optimizer-rig">
       <div class="optimizer-copy">
