@@ -291,9 +291,37 @@ button:disabled{opacity:.4;cursor:not-allowed;filter:grayscale(.4)}
 .grit-balance-help{margin:0 0 10px;line-height:1.5}
 .grit-balance-help b{color:#b8c2b9}
 
+.cost-badges{
+  gap:12px !important;
+  margin-bottom:16px !important;
+}
+.cost-badges>div{
+  padding:14px 16px !important;
+}
+.cost-badges strong.negative{
+  color:var(--red) !important;
+}
+
+.panelbody>.funding-grid{
+  margin-bottom:16px;
+}
+.cost-badges + .cost-table-scroll,
+.funding-grid + .cost-table-scroll{
+  margin-top:16px;
+}
+
+.cost-table-scroll{
+  overflow:auto;
+  border:1px solid #2a382e;
+  border-radius:8px;
+  background:#080d09;
+}
+
 .cost-table{
   table-layout:fixed;
   min-width:760px !important;
+  border-collapse:separate;
+  border-spacing:0;
 }
 .cost-table th:nth-child(1){width:17%}
 .cost-table th:nth-child(2){width:23%}
@@ -302,18 +330,44 @@ button:disabled{opacity:.4;cursor:not-allowed;filter:grayscale(.4)}
 .cost-table th:nth-child(5){width:32%}
 .cost-table th,
 .cost-table td{
+  padding:12px 14px;
   overflow-wrap:anywhere;
   word-break:normal;
   white-space:normal !important;
+  border-bottom:1px solid #29372e;
 }
-.cost-table thead th{color:#7d8a7e !important}
+.cost-table tbody tr:last-child th,
+.cost-table tbody tr:last-child td{
+  border-bottom:0;
+}
+.cost-table thead th{
+  color:#7d8a7e !important;
+  background:#101711;
+}
 .cost-table tbody th{color:#aeb8ae !important}
 .cost-table td{color:#b8c2b9 !important}
-.cost-table td:nth-child(3),
-.cost-table td:nth-child(4){color:#c2ccc2 !important;font-weight:800}
-.cost-table tr.total th,
-.cost-table tr.total td{color:#c7d0c8 !important}
+.cost-table td:nth-child(3):not(.negative):not(.irrelevant),
+.cost-table td:nth-child(4):not(.negative):not(.irrelevant){
+  color:#c2ccc2 !important;
+  font-weight:800;
+}
 .cost-table .note{color:#788277 !important;line-height:1.45}
+.cost-table tr.total th,
+.cost-table tr.total td{
+  background:rgba(245,197,66,.025);
+  color:#c7d0c8 !important;
+  font-weight:800;
+}
+.cost-table td.negative,
+.cost-table tr.total td.negative{
+  color:var(--red) !important;
+  font-weight:900;
+}
+.cost-table td.irrelevant,
+.cost-table tr.total td.irrelevant{
+  color:#657066 !important;
+  font-weight:750;
+}
 
 @media(max-width:760px){
   .page-intro{align-items:flex-start;flex-direction:column;gap:4px}
@@ -325,4 +379,5 @@ button:disabled{opacity:.4;cursor:not-allowed;filter:grayscale(.4)}
   .simple-price-table td{padding:10px 11px}
   .compare-table,
   .cost-table{min-width:720px !important}
+  .cost-badges{gap:9px !important}
 }
