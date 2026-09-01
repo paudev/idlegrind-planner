@@ -146,9 +146,32 @@ export function resolveInputPath(path: string): [Record<string, unknown>, string
   return [store.state as unknown as Record<string, unknown>, path];
 }
 
+function normalizedInputValue(path: string, value: number): number {
+  switch (path) {
+    case 'deck.qns':
+    case 'deck.addedQns':
+      return Math.max(0, Math.floor(value));
+    case 'deck.baseline.currentDeckSlots':
+      return Math.max(RACK_BASE_SLOTS, Math.floor(value));
+    case 'deck.baseline.currentGrit':
+    case 'deck.currentOverclockHours':
+      return Math.max(0, value);
+    case 'deck.currentOverclockMinutes':
+      return clamp(value, 0, 59);
+    case 'state.settings.refineRate':
+    case 'state.settings.maxRackSlots':
+    case 'state.target.grindPerDay':
+    case 'state.reset.finalRate':
+    case 'state.planner.targetGrindPerDay':
+      return Math.max(0, value);
+    default:
+      return value;
+  }
+}
+
 export function updateInputPath(path: string, value: number): void {
   const [root, relativePath] = resolveInputPath(path);
-  setPath(root, relativePath, value);
+  setPath(root, relativePath, normalizedInputValue(path, value));
 }
 
 export function getQuantumNodePreset(): RigPreset {
