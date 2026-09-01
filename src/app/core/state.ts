@@ -40,6 +40,14 @@ function defaultBuffs(): BuffState {
   };
 }
 
+function normalizeBuffs(buffs: BuffState): void {
+  buffs.coolantLevel = clamp(Math.floor(number(buffs.coolantLevel)), 0, 10);
+  buffs.prestigePct = Math.max(0, number(buffs.prestigePct));
+  buffs.auraPct = Math.max(0, number(buffs.auraPct));
+  buffs.corePct = Math.max(0, number(buffs.corePct));
+  buffs.otherMult = Math.max(0, number(buffs.otherMult));
+}
+
 export function createDefaultState(): ApplicationStore['state'] {
   return {
     activeTab: 'target',
@@ -67,7 +75,7 @@ export function createDefaultDeck(): DeckState {
     rigs: [],
     view: 'output',
     baseline: {
-      currentDeckSlots: 0,
+      currentDeckSlots: RACK_BASE_SLOTS,
       currentGrit: 0,
       includeVialCost: true,
     },
@@ -85,6 +93,24 @@ function loadStore(): ApplicationStore {
   state.activeTab = ACTIVE_TABS.includes(state.activeTab) ? state.activeTab : 'target';
   state.planner.view = PLANNER_VIEWS.includes(state.planner.view) ? state.planner.view : 'output';
   deck.view = DECK_VIEWS.includes(deck.view) ? deck.view : 'output';
+
+  if (number(state.settings.refineRate) <= 0) state.settings.refineRate = DEFAULT_SETTINGS.refineRate;
+  state.settings.maxRackSlots = Math.max(0, Math.floor(number(state.settings.maxRackSlots)));
+  state.reset.vialHours = clamp(number(state.reset.vialHours), 0, 24);
+  state.planner.vialHours = clamp(number(state.planner.vialHours), 0, 24);
+  normalizeBuffs(state.planner.buffs);
+
+  deck.qns = Math.max(0, Math.floor(number(deck.qns)));
+  deck.addedQns = Math.max(0, Math.floor(number(deck.addedQns)));
+  deck.currentOverclockHours = Math.max(0, number(deck.currentOverclockHours));
+  deck.currentOverclockMinutes = clamp(number(deck.currentOverclockMinutes), 0, 59);
+  deck.vialHours = clamp(number(deck.vialHours), 0, 24);
+  deck.baseline.currentDeckSlots = Math.max(
+    RACK_BASE_SLOTS,
+    Math.floor(number(deck.baseline.currentDeckSlots, RACK_BASE_SLOTS)),
+  );
+  deck.baseline.currentGrit = Math.max(0, number(deck.baseline.currentGrit));
+  normalizeBuffs(deck.buffs);
 
   const market = loadPositiveDefaults(STORAGE_KEYS.market, MARKET_DEFAULTS);
   const vials = loadPositiveDefaults(STORAGE_KEYS.vials, VIAL_DEFAULTS, { repairZero: true });
