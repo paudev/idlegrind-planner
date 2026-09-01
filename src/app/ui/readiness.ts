@@ -1,5 +1,5 @@
 import { QN_BASE_PRICE, QN_PRICE_GROWTH, ROWS_PER_PAGE } from '../config/economy';
-import { deviceTimezone, formatLocalTime } from '../core/cashout';
+import { formatLocalTime } from '../core/cashout';
 import { clamp, compact, duration, number } from '../core/format';
 import { store } from '../core/state';
 import type { FundingRow, Scope } from '../types';
@@ -96,12 +96,12 @@ export function renderQnReadiness(options: ReadinessOptions): string {
   const visible = groups.slice(start, start + ROWS_PER_PAGE);
 
   const rows = visible.map((group) => `<tr>
-    <th>${group.first === group.last ? `QN ${group.first}` : `QN ${group.first}–${group.last}`}<small>${group.count} QN${group.count === 1 ? '' : 's'}</small></th>
-    <td class="negative">−${compact(group.cost)} GRIT<small>Σ ${compact(group.totalCost)}</small></td>
-    <td>${duration(group.wait)}</td>
-    <td>${duration(group.time)}</td>
-    <td>${formatLocalTime(Date.now() + group.time * 1000, false)}<small>${deviceTimezone()}</small></td>
-    <td>${compact(group.rate)}/s<small>${group.overclock ? `2× ${compact(group.rate * 2)}/s active` : 'normal rate'}</small></td>
+    <th>${group.first === group.last ? `QN ${group.first}` : `QN ${group.first}–${group.last}`}<small>${group.count} QN${group.count === 1 ? '' : 's'} in this row</small></th>
+    <td class="negative">−${compact(group.cost)} GRIT<small>Total to here: ${compact(group.totalCost)} GRIT</small></td>
+    <td>${duration(group.wait)}<small>Since previous purchase group</small></td>
+    <td>${duration(group.time)}<small>Total wait from now</small></td>
+    <td>${formatLocalTime(Date.now() + group.time * 1000, false)}<small>Estimated local ready time</small></td>
+    <td>${compact(group.rate)}/s<small>${group.overclock ? `2× ${compact(group.rate * 2)}/s while active` : 'Normal rate after purchase'}</small></td>
   </tr>`);
 
   const buyableNow = options.timeline.filter((row) => !row.unreachable && row.time <= 0.5).length;
