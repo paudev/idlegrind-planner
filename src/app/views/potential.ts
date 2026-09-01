@@ -8,7 +8,7 @@ import {
   nextCashoutAt,
 } from '../core/cashout';
 import { production } from '../core/calculations';
-import { compact, duration, number } from '../core/format';
+import { clamp, compact, duration, number } from '../core/format';
 import { store } from '../core/state';
 import { chip, choiceRow, field, intro, metric, pageStack, panel } from '../ui/components';
 
@@ -18,7 +18,7 @@ export function renderPotentialView(): string {
   const remaining = cashoutRemainingSeconds(cycle);
   const ready = remaining !== null && remaining <= 0;
   const rate = Math.max(0, number(store.state.reset.finalRate));
-  const vialHours = Math.max(0, number(store.state.reset.vialHours));
+  const vialHours = clamp(number(store.state.reset.vialHours), 0, 24);
   const refine = Math.max(0, number(store.state.settings.refineRate));
   const windowProjection = remaining !== null
     ? production(rate, remaining, vialHours * HOUR)
