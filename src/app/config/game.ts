@@ -1,7 +1,7 @@
 import type { SettingsState } from '../types';
 
 export const DEFAULT_SETTINGS: SettingsState = {
-  refineRate: 0,
+  refineRate: 96_000,
   maxRackSlots: 0,
   rigPresets: {
     quantum_node: { name: 'QUANTUM NODE', rate: 1400, synergy: 0, slots: 1, accent: 'green', optimizerFill: true },
