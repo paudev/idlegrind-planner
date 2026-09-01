@@ -158,7 +158,7 @@ function setupPanels(): string {
 
 function outputView(result: BuildResult): string {
   if (!result.computable || result.qns === null || !result.stats) {
-    return panel('4 // OPTIMIZED BUILD', 'Minimum QNs and setup time for the selected target.', `<div class="warning">${escapeHtml(result.reason)}</div>`);
+    return panel('4 // MINIMUM BUILD', 'Minimum QNs and setup time for the selected target.', `<div class="warning">${escapeHtml(result.reason)}</div>`);
   }
 
   const funding = buildFunding(result);
@@ -166,22 +166,24 @@ function outputView(result: BuildResult): string {
   const normalHours = 24 - vialHours;
   const qn = getQuantumNodePreset();
   const qnCost = qnTotalCost(0, result.qns);
+  const totalGrit = result.average * DAY;
+  const overclockExtraGrit = result.normal * vialHours * HOUR;
   const setupNote = Number.isFinite(funding.time)
     ? `Starts from 0 QNs and 0 GRIT. Selected fixed rigs fund QNs sequentially${vialHours ? `; the ${vialHours}H vial accelerates funding while active` : ''}.`
     : 'Setup time is unreachable from 0 GRIT with the current references. Add a producing fixed rig so QN 1 can be funded.';
 
   return `${panel(
-    '4 // OPTIMIZED BUILD',
-    'Minimum QNs required and the estimated time to bring the full build online.',
+    '4 // MINIMUM BUILD',
+    'Minimum Quantum Nodes required and the estimated time to bring that build online.',
     `${!result.ok ? `<div class="warning">${escapeHtml(result.reason)}</div>` : ''}
     <div class="result-hero-pair optimized-build-heroes">
       <div class="result-hero current">
-        <small>MINIMUM QNs</small>
+        <small>MINIMUM QNs REQUIRED</small>
         <strong>${result.qns.toLocaleString()}</strong>
         <p>${compact(result.stats.slots)} total slots · ${compact(result.stats.fixedSlots)} fixed-rig slots</p>
       </div>
       <div class="result-hero ready">
-        <small>BUILD READY IN</small>
+        <small>MINIMUM BUILD READY IN</small>
         <strong>${duration(funding.time)}</strong>
         <p>${setupNote}</p>
       </div>
@@ -191,37 +193,37 @@ function outputView(result: BuildResult): string {
       ${metric('REQUIRED DECK SLOTS', compact(result.stats.slots))}
       ${metric('QN SLOTS', compact(result.qns * Math.max(0, number(qn.slots, 1))))}
       ${metric('FIXED RIG SLOTS', compact(result.stats.fixedSlots))}
-      ${metric('QN GRIT COST', qnCost > 0 ? `−${compact(qnCost)} GRIT` : '0 GRIT', qnCost > 0 ? 'negative' : '')}
+      ${metric('QN GRIT COST', qnCost > 0 ? `−${compact(qnCost)} GRIT` : '—', qnCost > 0 ? 'negative' : '')}
     </div>`,
     `${result.qns.toLocaleString()} QNs`,
   )}${panel(
     '5 // FINAL BUILD PERFORMANCE',
-    'Statistics for the completed Build Planner configuration.',
+    'Total 24H output and supporting rates for the completed minimum build.',
     `<div class="final-performance">
-      <div class="result-hero-pair">
-        <div class="result-hero current">
-          <small>NORMAL RATE</small>
-          <strong>${compact(result.normal)}<em>/s</em></strong>
-          <p>Full optimized build at standard production.</p>
+      <div class="result-hero-pair final-output-heroes">
+        <div class="result-hero simulated">
+          <small>TOTAL 24H OUTPUT</small>
+          <strong>${compact(totalGrit)}<em> GRIT</em></strong>
+          <p>${compact(result.grind)} $GRIND after refining at the configured rate.</p>
         </div>
-        <div class="result-hero over">
-          <small>2× OVERCLOCK RATE</small>
-          <strong>${compact(result.overclock)}<em>/s</em></strong>
-          <p>+${compact(result.normal)}/s · +100% versus normal</p>
+        <div class="result-hero current">
+          <small>EFFECTIVE 24H RATE</small>
+          <strong>${compact(result.average)}<em>/s</em></strong>
+          <p>${normalHours}h normal · ${vialHours}h at 2× overclock.</p>
         </div>
       </div>
-      <div class="metric-grid">
-        ${metric('EFFECTIVE 24H RATE', `${compact(result.average)}/s`)}
-        ${metric('EST. $GRIND / 24H', `${compact(result.grind)} $GRIND`, 'gold')}
-        ${metric('EST. GRIT / 24H', `${compact(result.average * DAY)} GRIT`)}
-        ${metric('2× RATE GAIN', `+${compact(result.normal)}/s`, 'orange', '+100% over normal')}
+      <div class="metric-grid final-performance-metrics">
+        ${metric('NORMAL RATE', `${compact(result.normal)}/s`)}
+        ${metric('2× OVERCLOCK RATE', `${compact(result.overclock)}/s`, 'orange')}
+        ${metric('OVERCLOCK EXTRA OUTPUT', vialHours ? `+${compact(overclockExtraGrit)} GRIT` : '—', vialHours ? 'green' : '', vialHours ? `Extra GRIT contributed by ${vialHours}h at 2×.` : 'No vial selected.')}
+        ${metric('TOTAL $GRIND / 24H', `${compact(result.grind)} $GRIND`, 'gold')}
       </div>
       <div class="schedule">
-        <span><b>${normalHours}h</b> normal</span>
-        <span class="orange"><b>${vialHours}h</b> overclock</span>
+        <span><b>${normalHours}h</b> normal production</span>
+        <span class="orange"><b>${vialHours}h</b> 2× overclock</span>
       </div>
     </div>`,
-    `${compact(result.average)}/s`,
+    `${compact(totalGrit)} GRIT / 24H`,
   )}`;
 }
 
@@ -234,7 +236,7 @@ function readinessView(result: BuildResult): string {
       startingRate: 0,
       timeline: [],
       fullBuildTime: Number.POSITIVE_INFINITY,
-      subtitle: 'Sequential QN readiness for the optimized Build Planner configuration.',
+      subtitle: 'Sequential QN readiness for the minimum Build Planner configuration.',
       introText: 'This view uses only Build Planner target, buff, vial and fixed-rig references. It never reads Deck Simulator state.',
       issues: [{ label: 'BUILD TARGET', message: result.reason || 'Set a valid Build Planner target first.' }],
     });
@@ -256,7 +258,7 @@ function readinessView(result: BuildResult): string {
   const vialHours = clamp(number(store.state.planner.vialHours), 0, 24);
   return `${intro(
     'BUILD PLANNER',
-    'QN readiness for the optimized build. This timeline is calculated from the Build Planner references only.',
+    'QN readiness for the minimum build. This timeline is calculated from the Build Planner references only.',
   )}${renderQnReadiness({
     scope: 'planner',
     requestedQns: result.qns,
@@ -264,7 +266,7 @@ function readinessView(result: BuildResult): string {
     startingRate: funding.startingRate,
     timeline: funding.timeline,
     fullBuildTime: funding.time,
-    subtitle: 'When each required Quantum Node becomes affordable while assembling the optimized build from scratch.',
+    subtitle: 'When each required Quantum Node becomes affordable while assembling the minimum build from scratch.',
     introText: 'Starts from 0 QNs and 0 GRIT. Selected fixed rigs are available as the starting mining source; Deck Simulator values are not used.',
     rateLabel: 'STARTING FIXED-RIG RATE',
     issues,
@@ -299,7 +301,7 @@ function marketRigCost(): { total: number; rows: CostRow[] } {
 
 function costingView(result: BuildResult): string {
   if (!result.computable || result.qns === null || !result.stats) {
-    return panel('4 // COSTING', 'Known investment for the optimized build.', `<div class="warning">${escapeHtml(result.reason || 'Set a valid target and build setup first.')}</div>`);
+    return panel('4 // COSTING', 'Known investment for the minimum build.', `<div class="warning">${escapeHtml(result.reason || 'Set a valid target and build setup first.')}</div>`);
   }
 
   const qnCost = qnTotalCost(0, result.qns);
@@ -337,7 +339,7 @@ function costingView(result: BuildResult): string {
 
   return panel(
     '4 // COSTING',
-    'Known investment for the optimized build from scratch. No Deck Simulator ownership data is deducted.',
+    'Known investment for the minimum build from scratch. No Deck Simulator ownership data is deducted.',
     `<div class="cost-badges">
       <div><small>$GRIND</small><strong class="${total ? 'negative' : ''}">${total ? `−${compact(total)}` : '0'}</strong></div>
       <div><small>GRIT</small><strong class="${qnCost ? 'negative' : ''}">${qnCost ? `−${compact(qnCost)}` : '0'}</strong></div>
