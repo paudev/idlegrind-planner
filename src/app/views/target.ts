@@ -6,7 +6,9 @@ import { field, intro, metric, pageStack, panel } from '../ui/components';
 export function renderTargetView(): string {
   const target = Math.max(0, number(store.state.target.grindPerDay));
   const refine = Math.max(0, number(store.state.settings.refineRate));
-  const rate = target > 0 && refine > 0 ? target * refine / DAY : 0;
+  const validRefine = refine >= 1000;
+  const rate = target > 0 && validRefine ? target * refine / DAY : 0;
+  const gritPerDay = validRefine ? target * refine : null;
 
   return pageStack(
     intro(
@@ -20,14 +22,14 @@ export function renderTargetView(): string {
         ${field('state.target.grindPerDay', '$GRIND / 24H TARGET', target)}
         <div class="hero-output">
           <small>REQUIRED FINAL RATE</small>
-          <strong>${target > 0 && refine < 1000 ? 'SET REFINE RATE' : `${compact(rate)}<em>/s</em>`}</strong>
-          <p>${refine >= 1000 ? `At ${compact(refine, 1)} GRIT = 1 $GRIND` : 'Set refinery rate under Settings.'}</p>
+          <strong>${target > 0 && !validRefine ? 'SET REFINE RATE' : `${compact(rate)}<em>/s</em>`}</strong>
+          <p>${validRefine ? `At ${compact(refine, 1)} GRIT = 1 $GRIND` : 'Set a valid refinery rate under Settings.'}</p>
         </div>
       </div>
       <div class="metric-grid">
-        ${metric('GRIT / 24H', compact(target * refine), 'gold')}
-        ${metric('GRIT / HOUR', compact(target * refine / 24))}
-        ${metric('GRIT / MINUTE', compact(target * refine / 1440))}
+        ${metric('GRIT / 24H', gritPerDay !== null ? compact(gritPerDay) : '—', 'gold')}
+        ${metric('GRIT / HOUR', gritPerDay !== null ? compact(gritPerDay / 24) : '—')}
+        ${metric('GRIT / MINUTE', gritPerDay !== null ? compact(gritPerDay / 1440) : '—')}
         ${metric('$GRIND / 24H', compact(target), 'green')}
       </div>`,
     ),
