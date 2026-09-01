@@ -1,0 +1,41 @@
+.simulator-schedule-clear{
+  display:flex !important;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:10px !important;
+}
+.simulator-schedule-clear > span{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  min-height:36px;
+  padding:0 10px;
+  border:1px solid #2d3a31;
+  border-radius:5px;
+  background:#0a0f0b;
+  color:#8f9a92;
+  font-variant-numeric:tabular-nums;
+}
+.simulator-schedule-clear > span b{
+  color:#c9d0c9;
+  font-size:10.5px;
+  letter-spacing:.035em;
+}
+.simulator-schedule-clear .schedule-reset{
+  min-width:188px;
+}
+.simulator-schedule-clear .stable-countdown{
+  display:inline-block;
+  min-width:88px;
+  color:#c9d0c9;
+  font-variant-numeric:tabular-nums;
+}
+
+@media(max-width:760px){
+  .simulator-schedule-clear > span{
+    flex:1 1 160px;
+  }
+  .simulator-schedule-clear .schedule-reset{
+    min-width:0;
+  }
+}

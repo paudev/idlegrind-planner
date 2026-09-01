@@ -1,0 +1,87 @@
+/* OUTPUT-only page description sits with the output view, not above the view selector. */
+.output-description{
+  margin:0 0 14px !important;
+}
+
+/* Keep the simulator footer as one stable bottom row. */
+.simulator-footer-badges{
+  display:flex !important;
+  align-items:stretch !important;
+  flex-wrap:wrap !important;
+  gap:10px !important;
+  margin-top:18px !important;
+  padding-top:0 !important;
+}
+.simulator-footer-badges .sim-footer-badge{
+  display:grid !important;
+  grid-template-columns:auto auto;
+  align-items:center;
+  justify-content:start;
+  gap:8px;
+  min-height:38px;
+  padding:0 11px;
+  border:1px solid #2d3a31;
+  border-radius:5px;
+  background:#0a0f0b;
+  color:#8f9a92;
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+}
+.simulator-footer-badges .sim-footer-badge b{
+  color:#89958c;
+  font:800 10px Inter,Arial,sans-serif;
+  letter-spacing:.055em;
+}
+.simulator-footer-badges .sim-footer-badge strong{
+  min-width:42px;
+  color:#c2cbc3;
+  font:800 11.5px Inter,Arial,sans-serif;
+  font-variant-numeric:tabular-nums;
+}
+.simulator-footer-badges .reset-badge{
+  min-width:196px;
+  border-color:#344139;
+}
+.simulator-footer-badges .reset-badge .stable-countdown{
+  min-width:92px;
+  color:#d0d5cf;
+}
+.simulator-footer-badges .current-overclock-badge.is-active{
+  border-color:#31513f;
+  background:rgba(24,241,154,.04);
+}
+.simulator-footer-badges .current-overclock-badge.is-active b,
+.simulator-footer-badges .current-overclock-badge.is-active strong{
+  color:#18f19a;
+}
+.simulator-footer-badges .simulated-overclock-badge.has-added-vial{
+  border-color:#5f4b23;
+  background:rgba(245,197,66,.04);
+}
+.simulator-footer-badges .simulated-overclock-badge.has-added-vial b,
+.simulator-footer-badges .simulated-overclock-badge.has-added-vial strong{
+  color:#f5c542;
+}
+.simulator-footer-badges .simulated-overclock-badge.is-active{
+  border-color:#31513f;
+}
+.simulator-footer-badges .is-off strong{
+  color:#788277;
+}
+
+/* Give the result panel enough breathing room above its footer and keep reset at the bottom with the rest. */
+.output-table-scroll{
+  margin-bottom:0 !important;
+}
+
+@media(max-width:760px){
+  .simulator-footer-badges{
+    display:grid !important;
+    grid-template-columns:1fr !important;
+  }
+  .simulator-footer-badges .sim-footer-badge,
+  .simulator-footer-badges .reset-badge{
+    width:100%;
+    min-width:0;
+  }
+}

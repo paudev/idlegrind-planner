@@ -1,0 +1,97 @@
+.v14-three-hero{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  align-items:stretch;
+}
+.v14-three-hero .result-hero{
+  min-width:0;
+  height:100%;
+}
+.v14-deck-ready-hero{
+  border-color:#39453d;
+  background:linear-gradient(180deg,rgba(18,26,20,.9),rgba(9,14,10,.96));
+}
+.v14-deck-ready-hero strong,
+.v14-planner-ready-hero strong{
+  color:#d9d4c7;
+}
+.v14-deck-ready-hero span{
+  display:block;
+  margin-top:7px;
+  color:#7e8a80;
+  font-size:10px;
+  font-weight:600;
+  line-height:1.45;
+}
+
+.v14-build-composition-heroes{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+.v14-planner-ready-hero{
+  border-color:#39453d;
+  background:linear-gradient(180deg,rgba(16,23,18,.92),rgba(9,14,10,.98));
+}
+.v14-composition-grid{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+}
+.v14-composition-grid .metric{
+  min-width:0;
+}
+
+.v14-final-performance{
+  border-color:#2c3d31;
+}
+.v14-final-performance .panelhead{
+  background:linear-gradient(180deg,rgba(18,26,20,.82),rgba(12,18,13,.72));
+}
+.v14-performance-heroes{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+.v14-performance-heroes .result-hero{
+  min-height:126px;
+}
+.v14-daily-hero{
+  border-color:#66582a;
+  background:linear-gradient(180deg,rgba(31,29,16,.68),rgba(11,15,10,.97));
+}
+.v14-daily-hero strong{
+  color:#f5c542;
+}
+.v14-performance-grid{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+}
+.v14-performance-grid .metric{
+  min-width:0;
+}
+.v14-metric-note{
+  display:block;
+  margin-top:5px;
+  color:#788277;
+  font-size:9px;
+  font-weight:600;
+  line-height:1.35;
+}
+
+@media(max-width:980px){
+  .v14-three-hero{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .v14-three-hero .v14-deck-ready-hero{
+    grid-column:1 / -1;
+  }
+  .v14-performance-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:760px){
+  .v14-three-hero,
+  .v14-build-composition-heroes,
+  .v14-performance-heroes,
+  .v14-composition-grid,
+  .v14-performance-grid{
+    grid-template-columns:1fr;
+  }
+  .v14-three-hero .v14-deck-ready-hero{
+    grid-column:auto;
+  }
+}

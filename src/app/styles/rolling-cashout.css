@@ -1,0 +1,69 @@
+.v16-cashout-head{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+  padding-left:12px;
+  border-left:1px solid #27352c;
+}
+.v16-cashout-fact{display:grid;gap:1px;min-width:145px}
+.v16-cashout-fact small{color:#788277;font-size:8px;font-weight:900;letter-spacing:.09em}
+.v16-cashout-fact strong{color:#d9d4c7;font-size:12px;font-weight:900;font-variant-numeric:tabular-nums;white-space:nowrap}
+.v16-cashout-fact span{color:#657168;font-size:8.5px;font-weight:650;white-space:nowrap}
+.v16-cashout-head.is-ready .v16-cashout-fact strong{color:#18f19a}
+.v16-cashout-head.is-unset .v16-cashout-fact strong{color:#8c968e}
+.v16-cashout-actions{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.v16-cashout-actions button,.v16-editor-actions button,.v16-settings-actions button{
+  min-height:28px;padding:0 8px;border:1px solid #35503f;border-radius:5px;background:#0a100b;color:#b8c2ba;
+  font:800 9px Inter,Arial,sans-serif;letter-spacing:.035em;cursor:pointer;white-space:nowrap
+}
+.v16-cashout-actions button:hover,.v16-editor-actions button:hover,.v16-settings-actions button:hover{border-color:#18f19a;color:#18f19a;background:rgba(24,241,154,.04)}
+.v16-cashout-actions .quiet,.v16-editor-actions .quiet{border-color:#303a33;color:#748078}
+
+.v16-cashout-editor{
+  margin:0 0 12px;padding:12px 14px;display:grid;grid-template-columns:minmax(240px,.9fr) minmax(260px,1.2fr) auto;align-items:end;gap:12px;
+  border:1px solid #2e4034;border-radius:7px;background:linear-gradient(180deg,#0d140f,#090d0a);box-shadow:0 10px 28px rgba(0,0,0,.22)
+}
+.v16-cashout-editor>div{min-width:0}
+.v16-cashout-editor small{display:block;margin-bottom:6px;color:#77837a;font-size:9px;font-weight:900;letter-spacing:.08em}
+.v16-cashout-editor input{width:100%;height:36px;padding:0 10px;border:1px solid #344139;border-radius:5px;background:#080c09;color:#d5d0c4;font:750 12px Inter,Arial,sans-serif;color-scheme:dark}
+.v16-timezone-readout strong{display:block;color:#cbd3cc;font-size:12px;overflow-wrap:anywhere}
+.v16-timezone-readout span{display:block;margin-top:4px;color:#69756d;font-size:9.5px;line-height:1.35}
+.v16-editor-actions{display:flex;gap:6px;justify-content:flex-end}
+
+.v16-potential-stack{display:grid;gap:14px}
+.v16-cashout-heroes{grid-template-columns:repeat(2,minmax(0,1fr))}
+.v16-cashout-page-actions,.v16-settings-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+.v16-ready-badge{color:#18f19a!important;border-color:#2a694b!important;background:rgba(24,241,154,.045)!important}
+.v16-potential-stats{grid-template-columns:repeat(4,minmax(0,1fr))}
+.v16-potential-stats .metric{min-width:0}
+
+.v16-cashout-footer{position:relative;grid-template-columns:repeat(3,minmax(0,1fr))!important;padding-bottom:22px}
+.v16-cashout-footer .is-ready strong{color:#18f19a!important}
+.v16-eligible-at{position:absolute;left:0;bottom:2px;color:#667269!important;font-size:8.5px!important;letter-spacing:.02em!important}
+
+.v16-cashout-milestone span{display:block;margin-top:5px;color:#788277;font-size:9px;font-weight:600;line-height:1.35}
+.v16-settings-cashout-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.v16-settings-cashout-grid .metric{min-width:0}
+.v16-settings-cashout-grid strong{font-size:13px;overflow-wrap:anywhere}
+
+/* Keep the frequently edited market references visually ahead of destructive local-data controls. */
+.settings-market-reference{margin-bottom:14px!important}
+.v16-settings-cashout{margin-top:0}
+
+@media(max-width:1040px){
+  .topfacts{flex-wrap:wrap;justify-content:flex-end}
+  .v16-cashout-head{width:100%;justify-content:flex-end;border-left:0;border-top:1px solid #27352c;padding:7px 0 0}
+  .v16-cashout-editor{grid-template-columns:1fr 1fr}
+  .v16-editor-actions{grid-column:1/-1;justify-content:flex-start}
+  .v16-potential-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:760px){
+  .v16-cashout-head{align-items:flex-start;justify-content:space-between;gap:8px}
+  .v16-cashout-fact{min-width:0}
+  .v16-cashout-fact span{white-space:normal}
+  .v16-cashout-actions{justify-content:flex-end}
+  .v16-cashout-editor,.v16-cashout-heroes,.v16-potential-stats,.v16-settings-cashout-grid,.v16-cashout-footer{grid-template-columns:1fr!important}
+  .v16-cashout-footer{padding-bottom:28px}
+  .v16-eligible-at{bottom:3px;white-space:normal}
+}

@@ -1,0 +1,89 @@
+.market-reference-panel .panelbody{
+  display:grid;
+  gap:10px;
+}
+.settings-market-reference{
+  grid-column:1 / -1;
+}
+.market-reference-table{
+  min-width:0 !important;
+}
+.market-reference-table th:first-child{
+  width:38%;
+}
+.market-price-input{
+  display:flex;
+  align-items:center;
+  width:min(320px,100%);
+  height:38px;
+  border:1px solid #344139;
+  border-radius:5px;
+  overflow:hidden;
+  background:#080b08;
+}
+.market-price-input:focus-within{
+  border-color:#49725c;
+  box-shadow:0 0 0 2px rgba(24,241,154,.045);
+}
+.market-price-input input{
+  flex:1 1 auto;
+  min-width:0;
+  height:36px;
+  padding:0 10px;
+  border:0;
+  outline:0;
+  background:transparent;
+  color:#c7d0c8;
+  font:800 13px Inter,Arial,sans-serif;
+}
+.market-price-input span{
+  flex:none;
+  padding:0 10px;
+  border-left:1px solid #28342c;
+  color:#89958c;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.05em;
+}
+.market-reset-btn{
+  min-height:32px;
+  padding:0 10px;
+  border:1px solid #344139;
+  border-radius:5px;
+  background:#0b100c;
+  color:#89958c;
+  font:700 10.5px Inter,Arial,sans-serif;
+  letter-spacing:.04em;
+  cursor:pointer;
+}
+.market-reset-btn:hover{
+  border-color:#49725c;
+  color:#c7d0c8;
+}
+.market-reference-note{
+  color:#69756d;
+  font-size:11px;
+}
+
+/* Actual projected costs always use negative sign + red; zero stays neutral. */
+.market-cost-value,
+.total-cost-value,
+.costing-result-only .cost-table tr.total td.total-cost-value,
+.costing-result-only .cost-table tr.total td.market-cost-value{
+  color:#ff7568 !important;
+  font-weight:900 !important;
+}
+.costing-result-only .cost-table tr.total td:nth-child(3):not(.value-neutral),
+.costing-result-only .cost-table tr.total td:nth-child(4):not(.value-neutral){
+  color:#ff7568 !important;
+  font-weight:900 !important;
+}
+.costing-result-only .cost-table td.value-neutral,
+.costing-result-only .metric strong.value-neutral{
+  color:#c2cbc3 !important;
+}
+
+@media(max-width:760px){
+  .market-reference-table{min-width:520px !important}
+  .market-price-input{width:100%}
+}

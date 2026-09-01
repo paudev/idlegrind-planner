@@ -1,0 +1,440 @@
+/*
+ * Semantic UI rules for the TypeScript renderer.
+ * Keep the compact IDLE//GRIND hierarchy while making dense result data readable.
+ */
+
+.metric > span {
+  display: block;
+  margin-top: 5px;
+  color: #788277;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.metric.negative strong {
+  color: var(--red) !important;
+}
+
+/* Deck OUTPUT: rates belong in the comparison table, so build readiness stays a compact strip. */
+.output-ready-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 14px;
+  padding: 11px 13px;
+  border: 1px solid #344239;
+  border-radius: 6px;
+  background: linear-gradient(90deg, rgba(255,255,255,.018), rgba(9,14,10,.96));
+}
+
+.output-ready-strip > div {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  flex: none;
+}
+
+.output-ready-strip small {
+  color: #87928a;
+  font-size: 9.5px;
+  font-weight: 900;
+  letter-spacing: .085em;
+}
+
+.output-ready-strip strong {
+  color: #ddd8ca;
+  font-size: 18px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.output-ready-strip > span {
+  color: #79857c;
+  font-size: 11.5px;
+  line-height: 1.4;
+  text-align: right;
+}
+
+/* Footer/status boxes need visible separation from the output table and from each other. */
+.schedule {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.schedule > span {
+  display: flex;
+  align-items: baseline;
+  flex: 1 1 180px;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #2b372f;
+  border-radius: 5px;
+  background: #0a0f0b;
+  color: #8a958c;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.schedule > span b,
+.schedule > span strong {
+  color: #d0d9d2;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.schedule > span small {
+  flex-basis: 100%;
+  color: #667269;
+  font-size: 9.5px;
+  font-weight: 600;
+}
+
+.schedule > span.orange {
+  border-color: #573729;
+  color: #b78b76;
+}
+
+.schedule > span.orange b,
+.schedule > span.orange strong {
+  color: var(--orange);
+}
+
+.output-schedule {
+  margin-top: 14px;
+}
+
+/* Build Planner output: minimum QNs and setup time are the primary result. */
+.optimized-build-heroes {
+  margin-bottom: 12px;
+}
+
+.optimized-build-heroes .result-hero {
+  min-height: 112px;
+}
+
+.optimized-build-heroes .result-hero strong {
+  color: #e4dfd2;
+}
+
+.optimized-build-warning {
+  margin: 0 0 12px;
+}
+
+.optimized-build-metrics {
+  margin-top: 0;
+}
+
+/* Final Build Performance is statistics for the completed planner build. */
+.final-performance {
+  display: grid;
+  gap: 12px;
+}
+
+.final-performance .result-hero-pair,
+.final-performance .metric-grid,
+.final-performance .schedule {
+  margin: 0;
+}
+
+.final-performance .result-hero {
+  min-height: 128px;
+}
+
+.final-performance .result-hero.over {
+  border-color: #67462f;
+  background: linear-gradient(180deg, rgba(36, 24, 18, .78), rgba(10, 14, 10, .98));
+}
+
+.final-performance .result-hero.over strong {
+  color: #ff946f !important;
+}
+
+/* QN Readiness: grouping controls belong directly with the table. */
+.readiness-summary-grid {
+  margin-top: 0;
+}
+
+.readiness-summary-grid .metric small {
+  font-size: 10.5px;
+  letter-spacing: .07em;
+}
+
+.readiness-summary-grid .metric strong {
+  font-size: 17px;
+}
+
+.groupbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 13px;
+  border: 1px solid #29362d;
+  border-radius: 6px;
+  background: #090e0a;
+}
+
+.readiness-groupbar {
+  margin: 0 0 12px;
+}
+
+.groupbar > div:first-child {
+  min-width: 0;
+}
+
+.groupbar small {
+  display: block;
+  color: #9aa69d;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: .075em;
+}
+
+.groupbar span {
+  display: block;
+  margin-top: 3px;
+  color: #78847b;
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+.groupbar .chip {
+  min-height: 38px;
+  padding-inline: 12px;
+  font-size: 12px;
+}
+
+.readiness-table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.readiness-table thead th {
+  padding: 12px 13px;
+  border-bottom: 1px solid #344139;
+  background: #0b110c;
+  color: #8e9a91;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: .07em;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.readiness-table thead th:nth-child(1) { width: 14%; }
+.readiness-table thead th:nth-child(2) { width: 19%; }
+.readiness-table thead th:nth-child(3) { width: 17%; }
+.readiness-table thead th:nth-child(4) { width: 16%; }
+.readiness-table thead th:nth-child(5) { width: 18%; }
+.readiness-table thead th:nth-child(6) { width: 16%; }
+
+.readiness-table tbody th,
+.readiness-table tbody td {
+  padding: 14px 13px;
+  border-bottom: 1px solid #243028;
+  color: #cbd3cc;
+  font-size: 13px;
+  font-weight: 750;
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+}
+
+.readiness-table tbody th {
+  color: #e1e6df;
+  font-weight: 900;
+}
+
+.readiness-table tbody small {
+  display: block;
+  margin-top: 4px;
+  color: #78847c;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.readiness-table tbody td.negative {
+  color: var(--red);
+  font-weight: 900;
+}
+
+/* Waits and timestamps are references, not gains: keep them neutral. */
+.readiness-table tbody td:nth-child(3),
+.readiness-table tbody td:nth-child(4),
+.readiness-table tbody td:nth-child(5),
+.readiness-table tbody td:nth-child(6) {
+  color: #d2dad3;
+}
+
+.readiness-table tbody td:nth-child(4) {
+  font-weight: 850;
+}
+
+.readiness-table tbody tr:hover {
+  background: rgba(24, 241, 154, .018);
+}
+
+.setup-list small {
+  font-size: 10px;
+}
+
+.setup-list strong {
+  font-size: 12.5px;
+}
+
+.pagination {
+  display: grid;
+  grid-template-columns: auto auto auto 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 13px;
+  border-top: 1px solid #29352c;
+  background: #090e0a;
+}
+
+.pagination button {
+  height: 32px;
+  padding: 0 11px;
+  border: 1px solid #344139;
+  border-radius: 5px;
+  background: #0b100c;
+  color: #a9b3ab;
+  font: 800 10.5px Inter, Arial, sans-serif;
+  letter-spacing: .035em;
+}
+
+.pagination span {
+  color: #8a968d;
+  font-size: 10.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.pagination span b {
+  color: #cbd4cc;
+}
+
+.pagination > small {
+  justify-self: end;
+  color: #748077;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .035em;
+}
+
+/* Settings market references should stay compact and readable. */
+.market-table thead th {
+  padding: 10px 12px;
+  color: #78867c;
+  font-size: 9.5px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.market-table tbody th,
+.market-table tbody td {
+  padding: 8px 12px;
+  color: #bfc9c1;
+  font-size: 11.5px;
+  font-weight: 750;
+}
+
+.market-table tbody th {
+  color: #cbd3cc;
+  font-weight: 850;
+}
+
+.price-input {
+  min-height: 36px;
+}
+
+.price-input input {
+  height: 36px;
+  padding: 0 10px;
+  color: #d8e0da;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.price-input span {
+  color: #7b877e;
+  font-size: 9.5px;
+  font-weight: 900;
+  letter-spacing: .04em;
+}
+
+/* Reassert semantic colors after generic table rules. */
+.compare-table tbody th,
+.cost-table tbody th,
+.reference-table tbody th {
+  color: #aebbb1;
+}
+
+.compare-table tbody td {
+  color: #c2cbc3;
+}
+
+.compare-table td.positive,
+.metric.green strong {
+  color: var(--green) !important;
+}
+
+.compare-table td.negative,
+.metric.negative strong {
+  color: var(--red) !important;
+}
+
+.metric.gold strong {
+  color: var(--gold) !important;
+}
+
+.metric.orange strong,
+.result-hero.over strong {
+  color: var(--orange) !important;
+}
+
+@media (max-width: 760px) {
+  .output-ready-strip,
+  .groupbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .output-ready-strip > div {
+    flex-wrap: wrap;
+  }
+
+  .output-ready-strip > span {
+    text-align: left;
+  }
+
+  .groupbar .choices {
+    width: 100%;
+  }
+
+  .groupbar .chip {
+    flex: 1 1 calc(20% - 6px);
+    min-width: 58px;
+  }
+
+  .pagination {
+    grid-template-columns: 1fr auto 1fr;
+  }
+
+  .pagination button {
+    width: 100%;
+  }
+
+  .pagination > small {
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+}

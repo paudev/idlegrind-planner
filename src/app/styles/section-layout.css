@@ -1,0 +1,279 @@
+/* Structural rules for the current semantic renderer. */
+.page-stack,
+.planner-stack,
+.settings-stack {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  min-width: 0;
+}
+
+.page-stack > .page-intro,
+.planner-stack > .page-intro,
+.settings-stack > .page-intro {
+  margin-bottom: 0;
+}
+
+.panel,
+.panelhead,
+.panelbody,
+.module-grid,
+.result-hero,
+.metric,
+.sim-card {
+  min-width: 0;
+}
+
+.panelbody {
+  overflow: visible;
+}
+
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin-top: 14px;
+}
+
+.input-section {
+  display: grid;
+  gap: 16px;
+}
+
+.input-section > .buffrow {
+  margin: 0;
+  padding-top: 14px;
+  border-top: 1px solid #202a22;
+}
+
+.module-grid.balanced > .field,
+.current-grid > .field,
+.planner-target-grid > .field {
+  min-height: 92px;
+  justify-content: center;
+}
+
+.module-grid.balanced > .field,
+.current-grid > .field,
+.planner-target-grid > .field {
+  padding: 14px;
+  border: 1px solid #27342b;
+  border-radius: 7px;
+  background: #0a0f0b;
+}
+
+.result-hero-pair,
+.result-hero-triple,
+.metric-grid,
+.funding-grid,
+.sim-grid {
+  align-items: stretch;
+}
+
+.result-hero,
+.metric,
+.sim-card {
+  height: 100%;
+}
+
+.result-hero strong,
+.metric strong,
+.hero-output strong {
+  overflow-wrap: anywhere;
+}
+
+.cashout-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cashout-copy {
+  min-width: 150px;
+}
+
+.cashout-actions,
+.editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+
+.cashout-actions button,
+.editor-actions button {
+  min-height: 30px;
+}
+
+.schedule {
+  align-items: stretch;
+}
+
+.schedule > span {
+  flex: 1 1 150px;
+  min-width: 0;
+}
+
+.table-scroll {
+  max-width: 100%;
+}
+
+.price-input input {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .result-hero-triple {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .result-hero-triple > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .rd-shell {
+    padding-inline: 10px;
+  }
+
+  .topbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .brand {
+    line-height: 1;
+  }
+
+  .topfacts {
+    width: 100%;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px;
+    align-items: center;
+  }
+
+  .refine-fact {
+    padding-right: 10px;
+  }
+
+  .cashout-head {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 7px 8px;
+    border: 1px solid #27352c;
+    border-radius: 6px;
+    background: #090e0a;
+  }
+
+  .cashout-copy {
+    min-width: 0;
+    gap: 1px;
+  }
+
+  .cashout-copy strong {
+    font-size: 12px;
+  }
+
+  .cashout-copy span {
+    white-space: normal;
+    line-height: 1.25;
+  }
+
+  .cashout-actions {
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+  }
+
+  .cashout-actions button {
+    min-height: 28px;
+    padding-inline: 7px;
+    font-size: 9px;
+  }
+
+  .cashout-actions button:first-child {
+    max-width: 92px;
+    white-space: normal;
+    line-height: 1.1;
+  }
+
+  .cashout-editor {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .editor-actions {
+    justify-content: flex-start;
+  }
+
+  .result-hero-pair,
+  .result-hero-triple,
+  .sim-grid,
+  .current-grid,
+  .planner-target-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .result-hero-triple > :last-child:nth-child(odd) {
+    grid-column: auto;
+  }
+
+  .module-grid.balanced > .field,
+  .current-grid > .field,
+  .planner-target-grid > .field {
+    min-height: 84px;
+  }
+
+  .page-actions > button {
+    flex: 1 1 auto;
+  }
+
+  .panelhead {
+    gap: 10px;
+  }
+
+  .panelhead .badge {
+    max-width: 45%;
+    overflow-wrap: anywhere;
+    white-space: normal;
+    text-align: right;
+  }
+}
+
+@media (max-width: 420px) {
+  .topfacts {
+    grid-template-columns: 1fr;
+  }
+
+  .refine-fact {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    padding: 0;
+    border-right: 0;
+  }
+
+  .cashout-head {
+    grid-template-columns: 1fr;
+  }
+
+  .cashout-actions {
+    justify-content: flex-start;
+  }
+
+  .cashout-actions button:first-child {
+    max-width: none;
+  }
+
+  .cost-badges,
+  .metric-grid.three,
+  .funding-grid {
+    grid-template-columns: 1fr;
+  }
+}

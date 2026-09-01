@@ -1,0 +1,49 @@
+.cost-summary-badges{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+  gap:7px;
+}
+
+.cost-summary-badge{
+  min-height:34px;
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:0 10px;
+  border:1px solid #344139;
+  border-radius:5px;
+  background:#0a0f0b;
+  white-space:nowrap;
+}
+.cost-summary-badge small{
+  color:#788277;
+  font-size:9px;
+  font-weight:850;
+  letter-spacing:.08em;
+}
+.cost-summary-badge strong{
+  color:#c2cbc3;
+  font-size:11.5px;
+  font-weight:900;
+  font-variant-numeric:tabular-nums;
+}
+.cost-summary-badge.has-cost{
+  border-color:#633b34;
+  background:rgba(255,117,104,.055);
+}
+.cost-summary-badge.has-cost small,
+.cost-summary-badge.has-cost strong{
+  color:#ff7568;
+}
+.cost-summary-badge.is-zero{
+  opacity:.82;
+}
+
+@media(max-width:760px){
+  .cost-summary-badges{
+    width:100%;
+    justify-content:flex-start;
+  }
+}

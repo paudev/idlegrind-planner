@@ -1,0 +1,174 @@
+/* Final presentation pass based on the current IDLE//GRIND production UI. */
+
+/* Keep compound mini inputs inside their own borders. */
+.mini-input{
+  display:inline-grid !important;
+  grid-template-columns:auto minmax(68px,82px);
+  align-items:center;
+  column-gap:0;
+  width:max-content;
+  max-width:100%;
+  min-height:36px;
+  padding-left:10px !important;
+  overflow:hidden;
+  border:1px solid #344139 !important;
+  border-radius:5px !important;
+  background:#0b100c !important;
+  color:#839087;
+}
+.mini-input>span,
+.mini-input>small{
+  padding:0;
+  white-space:nowrap;
+}
+.mini-input input{
+  width:calc(100% - 10px) !important;
+  min-width:0 !important;
+  height:34px !important;
+  margin:0 0 0 10px !important;
+  padding:0 10px !important;
+  border:0 !important;
+  border-left:1px solid #28342c !important;
+  border-radius:0 !important;
+  background:#080b08 !important;
+  color:#c7d0c8 !important;
+  box-shadow:none !important;
+}
+.mini-input:focus-within{
+  border-color:#49725c !important;
+  box-shadow:0 0 0 2px rgba(24,241,154,.045);
+}
+
+/* Banner and view tabs stay separate. The view tabs are flat, not floating pills. */
+.planner-intro{
+  margin:0 0 5px !important;
+  border-radius:8px !important;
+}
+.flat-subtabs{
+  display:flex !important;
+  justify-content:flex-end !important;
+  gap:18px !important;
+  margin:0 0 14px !important;
+  padding:0 8px !important;
+  min-height:38px;
+  border:0 !important;
+  border-bottom:1px solid #202a22 !important;
+  border-radius:0 !important;
+  background:transparent !important;
+}
+.flat-subtabs .subtab{
+  min-width:auto !important;
+  height:38px !important;
+  padding:0 3px !important;
+  border:0 !important;
+  border-bottom:2px solid transparent !important;
+  border-radius:0 !important;
+  background:transparent !important;
+  color:#89958c !important;
+  box-shadow:none !important;
+  font:700 11.5px Inter,Arial,sans-serif !important;
+  letter-spacing:.045em;
+}
+.flat-subtabs .subtab:hover{
+  color:#c0c9c1 !important;
+  background:transparent !important;
+}
+.flat-subtabs .subtab.active{
+  color:#18f19a !important;
+  border-bottom-color:#18f19a !important;
+  background:linear-gradient(180deg,transparent,rgba(24,241,154,.035)) !important;
+}
+
+/* Make rig add actions self-explanatory. */
+.rig-select-label{
+  display:flex;
+  align-items:baseline;
+  gap:9px;
+  margin:2px 0 8px;
+  color:#778178;
+  font-size:11px;
+}
+.rig-select-label b{
+  color:#a8b2aa;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.09em;
+}
+.rig-select-label span{color:#667168}
+
+/* Current overclock time controls should stay compact and visibly separated. */
+.cr-time-inputs{
+  display:flex !important;
+  flex-wrap:wrap !important;
+  align-items:center;
+  column-gap:18px !important;
+  row-gap:10px !important;
+  margin-top:10px;
+  padding-left:2px;
+}
+.cr-time-inputs .mini-input{
+  flex:0 0 156px !important;
+  width:156px !important;
+  grid-template-columns:minmax(58px,1fr) 64px !important;
+}
+.cr-time-inputs .mini-input + .mini-input{
+  margin-left:2px;
+}
+.cr-time-inputs .mini-input input{
+  height:42px !important;
+}
+
+/* Cost/gain semantics are carried by BOTH sign and color. */
+.cost-value,
+.cost-table td.cost-value,
+.simple-price-table td.cost-value,
+.cost-metric strong,
+.cost-badge,
+.compare-table td.value-negative{
+  color:#ff7568 !important;
+  font-weight:850 !important;
+}
+.gain-value,
+.compare-table td.value-positive,
+.compare-table tr.delta-positive .change-col{
+  color:#18f19a !important;
+  font-weight:850 !important;
+}
+.value-neutral{
+  color:#c2cbc3 !important;
+}
+.cost-badge{
+  border-color:#633b34 !important;
+  background:rgba(255,117,104,.055) !important;
+}
+.cost-table tr.total th,
+.cost-table tr.total td:nth-child(2),
+.cost-table tr.total .note{
+  color:#aeb8b0 !important;
+}
+
+/* Ordinary values remain muted-neutral unless explicitly signed by the JS layer. */
+.compare-table tbody td,
+.compare-table tbody th,
+.compare-table .current-col,
+.compare-table .sim-col,
+.compare-table .change-col,
+.cost-table td,
+.cost-table th,
+.metric strong,
+.rigrow .rig-name{
+  color:#c2cbc3;
+}
+.compare-table tr.delta-negative .change-col{color:#ff7568 !important}
+
+@media(max-width:760px){
+  .flat-subtabs{
+    justify-content:flex-start !important;
+    gap:22px !important;
+    padding-left:2px !important;
+  }
+  .rig-select-label{align-items:flex-start;flex-direction:column;gap:2px}
+  .cr-time-inputs{column-gap:12px !important;row-gap:8px !important}
+  .cr-time-inputs .mini-input{flex:1 1 150px !important;width:auto !important}
+  .cr-time-inputs .mini-input + .mini-input{margin-left:0}
+}

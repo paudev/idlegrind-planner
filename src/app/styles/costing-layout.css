@@ -1,0 +1,328 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+/* IDLE//GRIND production design tokens */
+:root{
+  --bg:#060806;
+  --panel:#0c100c;
+  --panel2:#0a0f0b;
+  --line:#263329;
+  --line2:#34433a;
+  --ink:#c7d0c8;
+  --muted:#788277;
+  --dim:#657066;
+  --green:#18f19a;
+  --gold:#f5c542;
+  --amber:#ffb454;
+  --purple:#b18cff;
+  --orange:#ff9567;
+  --red:#ff7568;
+}
+
+html,body,button,input{font-family:Inter,Arial,sans-serif}
+body{background:#060806;color:#c7d0c8;-webkit-font-smoothing:antialiased}
+
+/* Main navigation uses the same compact button language as the game. */
+.tabs{gap:6px;padding:12px 0 14px}
+.navbtn{
+  height:34px;
+  padding:0 13px;
+  border:1px solid #344139;
+  border-radius:5px;
+  background:#0b100c;
+  color:#9aa79c;
+  font:700 11.5px Inter,Arial,sans-serif;
+  letter-spacing:.035em;
+  transition:.16s;
+}
+.navbtn:hover{border-color:#405047;background:#101611;color:#c2ccc2;filter:none}
+.navbtn.active{
+  border-color:#31513f;
+  background:rgba(24,241,154,.06);
+  color:#18f19a;
+  box-shadow:none;
+}
+
+/* The planner intro should read like a compact in-game panel header, not a banner. */
+.page-intro{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  margin:0 0 14px;
+  padding:12px 14px;
+  border:1px solid #263329;
+  border-radius:8px;
+  background:linear-gradient(180deg,rgba(255,255,255,.018),rgba(9,12,9,.98));
+  box-shadow:0 12px 28px rgba(0,0,0,.18);
+}
+.page-intro b{
+  flex:none;
+  color:#eee9db;
+  font:800 11.5px Inter,Arial,sans-serif;
+  letter-spacing:.06em;
+}
+.page-intro span{color:#788277;font-size:11.5px;line-height:1.5}
+
+/* OUTPUT / COSTING tabs become ordinary in-game controls. */
+.subtabs{
+  display:flex;
+  gap:6px;
+  width:auto;
+  justify-content:flex-end;
+  margin:0 0 12px;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+}
+.subtab{
+  min-width:92px;
+  height:34px;
+  padding:0 13px;
+  border:1px solid #344139;
+  border-radius:5px;
+  background:#0b100c;
+  color:#9aa79c;
+  font:700 11.5px Inter,Arial,sans-serif;
+  letter-spacing:.035em;
+  cursor:pointer;
+  transition:.16s;
+}
+.subtab:hover{border-color:#405047;background:#101611;color:#c2ccc2}
+.subtab.active{
+  border-color:#31513f;
+  background:rgba(24,241,154,.06);
+  color:#18f19a;
+  box-shadow:none;
+}
+
+/* Panels / headings mirror the game's redesign system. */
+.panel{
+  border-color:#263329;
+  background:linear-gradient(150deg,rgba(18,24,17,.96),rgba(9,12,9,.98));
+  border-radius:10px;
+  box-shadow:0 20px 60px rgba(0,0,0,.24);
+}
+.panelhead{
+  padding:13px 14px;
+  border-bottom:1px solid #202a22;
+  background:linear-gradient(180deg,rgba(255,255,255,.018),transparent);
+}
+.panelhead h2{color:#eee9db;font:800 14px Inter,Arial,sans-serif;letter-spacing:.025em}
+.panelhead p{color:#788277;font-size:11.5px;line-height:1.5}
+.panelbody{padding:14px}
+
+/* Exact game-style action buttons, mapped onto planner controls. */
+.chip,.addrig,.dangerbtn,.remove{
+  justify-content:center;
+  text-align:center;
+  border:1px solid #31513f;
+  background:rgba(24,241,154,.06);
+  color:#18f19a;
+  border-radius:5px;
+  font:700 11.5px Inter,Arial,sans-serif;
+  box-sizing:border-box;
+  cursor:pointer;
+  transition:.16s;
+  box-shadow:none;
+}
+.chip:hover,.addrig:hover,.dangerbtn:hover,.remove:hover{background:rgba(24,241,154,.14);filter:none}
+.chip:not(.active){border-color:#344139;background:#0b100c;color:#9aa79c}
+.chip:not(.active):hover{border-color:#405047;background:#101611;color:#c2ccc2}
+.chip.active{border-color:#31513f;background:rgba(24,241,154,.06);color:#18f19a;box-shadow:none}
+.chip.gold.active,.addrig.gold{border-color:#5a4b29;color:#f5c542;background:rgba(245,197,66,.055)}
+.chip.purple.active,.addrig.purple{border-color:#51416d;color:#b18cff;background:rgba(177,140,255,.055)}
+.chip.orange.active{border-color:#5d332e;color:#ff9567;background:rgba(255,149,103,.05)}
+.dangerbtn,.remove{border-color:#5d332e;color:#ff7568;background:rgba(255,117,104,.05)}
+button:disabled{opacity:.4;cursor:not-allowed;filter:grayscale(.4)}
+
+/* Inputs use the same dark field treatment as the game. */
+.field input,.mini-input input,.rigrow input,.settings-rig input{
+  background:#080b08;
+  border-color:#2d3a30;
+  color:#d4ddd5;
+  font-family:Inter,Arial,sans-serif;
+}
+.field input:focus,.mini-input input:focus,.rigrow input:focus,.settings-rig input:focus{
+  border-color:#3d5948;
+  box-shadow:0 0 0 2px rgba(24,241,154,.04);
+}
+.field>span,.field>small,.cr-field-title{color:#7d8a7e}
+
+/* Normal text is intentionally muted; bright cream is reserved for headings. */
+.metric strong,.optimizer-copy strong,.preset-name>b,.preset-name div>b,.rigrow .rig-name,
+.result-hero strong,.rack-primary strong,.schedule span b{color:#c2ccc2}
+.metric small,.result-hero small,.rack-primary small,.optimizer-copy small,.optimizer-spec small{color:#657066}
+.info-line,.compact-note,.local-data-row p{color:#788277}
+
+/* Error treatment copied from the game's treasury warning language. */
+.warning{
+  display:block;
+  margin:0 0 18px;
+  padding:9px 11px;
+  border:1px solid #ff7568;
+  border-radius:6px;
+  background:rgba(255,117,104,.06);
+  color:#ff8c82;
+  font-size:11.5px;
+  line-height:1.5;
+  clear:both;
+}
+
+.output-table-scroll{
+  margin-bottom:20px;
+  overflow:auto;
+  border-radius:8px;
+}
+.output-schedule{
+  margin-top:18px !important;
+  padding-top:0;
+  display:flex;
+  flex-wrap:wrap;
+  gap:9px;
+  position:relative;
+  z-index:1;
+  clear:both;
+}
+.output-schedule span{flex:0 0 auto}
+
+.simple-price-table{
+  width:100%;
+  table-layout:fixed;
+  border-collapse:separate;
+  border-spacing:0;
+  overflow:hidden;
+  border:1px solid #2a382e;
+  border-radius:8px;
+  background:#080d09;
+}
+.simple-price-table th,
+.simple-price-table td{
+  padding:12px 14px;
+  border-right:1px solid #29372e;
+  border-bottom:1px solid #29372e;
+  text-align:left;
+  vertical-align:middle;
+  overflow-wrap:anywhere;
+}
+.simple-price-table tr:last-child th,
+.simple-price-table tr:last-child td{border-bottom:0}
+.simple-price-table th:last-child,
+.simple-price-table td:last-child{border-right:0}
+.simple-price-table thead th{
+  background:#101711;
+  color:#7d8a7e;
+  font-size:10px;
+  letter-spacing:.09em;
+  font-weight:800;
+}
+.simple-price-table tbody th{
+  color:#b8c2b9;
+  font-size:12px;
+  font-weight:800;
+}
+.simple-price-table tbody td{
+  color:#aeb8ae;
+  font-size:12px;
+}
+.simple-price-table tbody td:nth-child(2),
+.simple-price-table tbody td:nth-child(3),
+.simple-price-table tbody td:nth-child(4){
+  color:#c2ccc2;
+  font-weight:700;
+}
+.simplified-costing{display:grid;gap:14px}
+
+.v5-deck-baseline{
+  margin:12px 0 16px;
+  padding:12px;
+  border:1px solid #28352c;
+  border-radius:8px;
+  background:#090e0a;
+}
+.v5-deck-inputs{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+}
+.v5-deck-inputs .field{
+  width:220px;
+  max-width:100%;
+  min-height:78px;
+  flex:0 1 220px;
+}
+.v5-deck-inputs .field input{
+  width:100%;
+  min-width:0;
+}
+.v5-deck-baseline .compact-note{margin-top:10px}
+
+.compare-table{
+  border-collapse:separate;
+  border-spacing:0;
+  table-layout:fixed;
+}
+.compare-table th:first-child{width:28%}
+.compare-table th:nth-child(2),
+.compare-table th:nth-child(3),
+.compare-table th:nth-child(4){width:24%}
+.compare-table tbody tr:last-child th,
+.compare-table tbody tr:last-child td{border-bottom:0}
+.compare-table tbody td,
+.compare-table tbody th{color:#b8c2b9 !important}
+.compare-table .current-col,
+.compare-table .sim-col,
+.compare-table .change-col{color:#b8c2b9 !important}
+.compare-table thead th{color:#7d8a7e !important;font:800 10px Inter,Arial,sans-serif}
+.compare-table tbody th{color:#aeb8ae !important;font-weight:800}
+.compare-table tr.delta-positive .change-col{color:#18f19a !important}
+.compare-table tr.delta-negative .change-col{color:#ff7568 !important}
+.compare-table tr.delta-neutral .change-col{color:#aeb8ae !important}
+.compare-table td.value-negative{color:#ff7568 !important}
+
+.costing-result-only{display:block !important}
+.costing-result-only>.panel{width:100%}
+.costing-result-only .warning{margin:0 0 18px !important;display:block;clear:both}
+.costing-result-only .warning + .stats-grid{margin-top:0}
+.costing-result-only .stats-grid{margin-bottom:16px}
+.costing-result-only .metric strong{color:#c2ccc2}
+.costing-result-only .metric.green strong{color:#18f19a}
+.costing-result-only .metric.gold strong,
+.costing-result-only .metric.orange strong{color:#c2ccc2}
+.grit-balance-help{margin:0 0 10px;line-height:1.5}
+.grit-balance-help b{color:#b8c2b9}
+
+.cost-table{
+  table-layout:fixed;
+  min-width:760px !important;
+}
+.cost-table th:nth-child(1){width:17%}
+.cost-table th:nth-child(2){width:23%}
+.cost-table th:nth-child(3){width:13%}
+.cost-table th:nth-child(4){width:15%}
+.cost-table th:nth-child(5){width:32%}
+.cost-table th,
+.cost-table td{
+  overflow-wrap:anywhere;
+  word-break:normal;
+  white-space:normal !important;
+}
+.cost-table thead th{color:#7d8a7e !important}
+.cost-table tbody th{color:#aeb8ae !important}
+.cost-table td{color:#b8c2b9 !important}
+.cost-table td:nth-child(3),
+.cost-table td:nth-child(4){color:#c2ccc2 !important;font-weight:800}
+.cost-table tr.total th,
+.cost-table tr.total td{color:#c7d0c8 !important}
+.cost-table .note{color:#788277 !important;line-height:1.45}
+
+@media(max-width:760px){
+  .page-intro{align-items:flex-start;flex-direction:column;gap:4px}
+  .subtabs{width:100%;justify-content:stretch}
+  .subtab{flex:1}
+  .v5-deck-inputs{display:grid;grid-template-columns:1fr}
+  .v5-deck-inputs .field{width:100%;flex:none}
+  .simple-price-table th,
+  .simple-price-table td{padding:10px 11px}
+  .compare-table,
+  .cost-table{min-width:720px !important}
+}

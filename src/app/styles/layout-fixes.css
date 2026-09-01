@@ -1,0 +1,266 @@
+.planner-target-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.planner-target-grid > label:has(input[data-path="planner.minimumQns"]) {
+  display: none;
+}
+
+.potential-vial {
+  margin-top: 18px;
+}
+
+.refine-warning {
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 194, 51, 0.35);
+  border-radius: 7px;
+  background: rgba(255, 194, 51, 0.07);
+  color: #ffc233;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.current-rack-stack {
+  gap: 14px;
+}
+
+.cr-current-summary {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.8fr) minmax(320px, 1.2fr);
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.cr-current-summary > .field {
+  min-height: 92px;
+  justify-content: center;
+  border: 1px solid #27342b;
+  border-radius: 7px;
+  background: #0a0f0b;
+  padding: 14px;
+}
+
+.cr-sim-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.cr-sim-card {
+  min-width: 0;
+  min-height: 132px;
+  border: 1px solid #27342b;
+  border-radius: 7px;
+  background: #0a0f0b;
+  padding: 14px;
+}
+
+.cr-sim-card .field {
+  margin: 0;
+}
+
+.cr-sim-card p {
+  margin: 10px 0 0;
+  color: #748077;
+  font-size: 12px;
+}
+
+.cr-field-title {
+  margin-bottom: 10px;
+  color: #7b877e;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .07em;
+}
+
+.cr-step-buttons,
+.cr-time-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.cr-time-inputs .mini-input {
+  flex: 1 1 150px;
+  height: 44px;
+}
+
+.cr-time-inputs .mini-input input {
+  height: 42px;
+  font-size: 16px;
+}
+
+.cr-results {
+  display: grid;
+  gap: 12px;
+}
+
+.cr-result-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(240px, .8fr);
+  gap: 10px;
+}
+
+.cr-result-hero > div {
+  min-width: 0;
+  min-height: 104px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border: 1px solid #31513f;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(20,241,149,.065), rgba(10,15,11,.96));
+  padding: 15px 17px;
+}
+
+.cr-result-hero > div:last-child {
+  border-color: #4b4225;
+  background: rgba(245,197,66,.045);
+}
+
+.cr-result-hero small {
+  color: #89948b;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.cr-result-hero strong {
+  margin-top: 5px;
+  color: var(--green);
+  font-size: 30px;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.cr-result-hero > div:last-child strong {
+  color: var(--gold);
+}
+
+.cr-result-hero strong em {
+  color: #8f9a91;
+  font-size: 14px;
+  font-style: normal;
+}
+
+.cr-result-hero p {
+  margin: 6px 0 0;
+  color: #78837a;
+  font-size: 12px;
+}
+
+.cr-comparison-head,
+.cr-comparison-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.15fr) repeat(3, minmax(120px, 1fr));
+  gap: 10px;
+  align-items: center;
+}
+
+.cr-comparison-head {
+  padding: 0 12px 5px;
+  color: #657168;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.cr-comparison-head span,
+.cr-comparison-head strong,
+.cr-comparison-row span,
+.cr-comparison-row strong {
+  text-align: right;
+}
+
+.cr-comparison-row {
+  min-height: 48px;
+  border: 1px solid #28342c;
+  border-radius: 6px;
+  background: #0a100b;
+  padding: 9px 12px;
+}
+
+.cr-comparison-row b {
+  color: #89958c;
+  font-size: 11px;
+  letter-spacing: .045em;
+}
+
+.cr-comparison-row span {
+  color: #dce5de;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.cr-comparison-row strong {
+  color: var(--green);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.cr-comparison-row.gold strong {
+  color: var(--gold);
+}
+
+.current-rack-stack .warning + .cr-results,
+.current-rack-stack .refine-warning + .cr-results {
+  margin-top: 10px;
+}
+
+@media (max-width: 900px) {
+  .cr-current-summary,
+  .cr-sim-grid,
+  .cr-result-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .cr-comparison-head,
+  .cr-comparison-row {
+    grid-template-columns: minmax(125px, 1fr) repeat(3, minmax(100px, .9fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .planner-target-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cr-comparison-head {
+    display: none;
+  }
+
+  .cr-comparison-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 10px;
+  }
+
+  .cr-comparison-row b {
+    grid-column: 1 / -1;
+    font-size: 10px;
+  }
+
+  .cr-comparison-row span,
+  .cr-comparison-row strong {
+    text-align: left;
+  }
+
+  .cr-comparison-row span:first-of-type::before {
+    content: 'CURRENT · ';
+    color: #657168;
+    font-size: 9px;
+  }
+
+  .cr-comparison-row span:nth-of-type(2)::before {
+    content: 'SIM · ';
+    color: #657168;
+    font-size: 9px;
+  }
+
+  .cr-comparison-row strong::before {
+    content: 'CHANGE · ';
+    color: #657168;
+    font-size: 9px;
+  }
+}

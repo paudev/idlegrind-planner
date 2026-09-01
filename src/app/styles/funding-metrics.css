@@ -1,0 +1,38 @@
+.funding-output-strip{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  margin:12px 0 14px;
+}
+
+.funding-ready-metric{
+  min-width:0;
+}
+
+.funding-ready-metric strong{
+  color:#d4d0c4;
+}
+
+.funding-ready-metric span{
+  display:block;
+  margin-top:5px;
+  color:#788277;
+  font-size:10px;
+  font-weight:600;
+  line-height:1.35;
+}
+
+.funding-output-strip .funding-ready-metric{
+  max-width:360px;
+  border-color:#334139;
+  background:#0a0f0b;
+}
+
+.planner-funding-ready{
+  border-color:#334139;
+}
+
+@media(max-width:760px){
+  .funding-output-strip .funding-ready-metric{
+    max-width:none;
+  }
+}
