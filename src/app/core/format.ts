@@ -23,7 +23,12 @@ export function escapeHtml(value: unknown): string {
 }
 
 export function compact(value: unknown, digits = 3): string {
-  const n = number(value);
+  const raw = Number(value);
+  if (Number.isNaN(raw)) return '—';
+  if (raw === Number.POSITIVE_INFINITY) return '∞';
+  if (raw === Number.NEGATIVE_INFINITY) return '−∞';
+
+  const n = raw;
   const abs = Math.abs(n);
   const scales: ReadonlyArray<readonly [number, string]> = [
     [1e15, 'Q'],
@@ -82,6 +87,7 @@ export function duration(seconds: number | null, { ready = true }: { ready?: boo
 }
 
 export function signed(value: number, suffix = ''): string {
+  if (!Number.isFinite(value)) return `${value > 0 ? '+' : value < 0 ? '−' : ''}${compact(value)}${suffix}`;
   if (Math.abs(value) < 1e-9) return `0${suffix}`;
   return `${value > 0 ? '+' : '−'}${compact(Math.abs(value))}${suffix}`;
 }
