@@ -47,8 +47,8 @@ export function intro(title: string, text: string): string {
   return `<div class="page-intro"><b>${title}</b><span>${text}</span></div>`;
 }
 
-export function table(headers: string[], rows: string[], className = ''): string {
-  return `<div class="table-scroll">
+export function table(headers: string[], rows: string[], className = '', wrapperClass = ''): string {
+  return `<div class="table-scroll ${wrapperClass}">
     <table class="${className}">
       <thead><tr>${headers.map((header) => `<th>${header}</th>`).join('')}</tr></thead>
       <tbody>${rows.join('')}</tbody>
@@ -74,15 +74,19 @@ export function costRows(rows: CostRow[]): string {
     rows.map((row) => {
       const grind = Math.max(0, row.grind ?? 0);
       const grit = Math.max(0, row.grit ?? 0);
+      const grindRelevant = grind > 0;
+      const gritRelevant = grit > 0;
+
       return `<tr class="${row.total ? 'total' : ''}">
         <th>${row.item}</th>
         <td>${row.detail || '—'}</td>
-        <td class="${grind > 0 ? 'negative' : ''}">${grind > 0 ? money(grind, '$GRIND', true) : '0 $GRIND'}</td>
-        <td class="${grit > 0 ? 'negative' : ''}">${grit > 0 ? money(grit, 'GRIT', true) : '0 GRIT'}</td>
+        <td class="${grindRelevant ? 'negative' : 'irrelevant'}">${grindRelevant ? money(grind, '$GRIND', true) : '—'}</td>
+        <td class="${gritRelevant ? 'negative' : 'irrelevant'}">${gritRelevant ? money(grit, 'GRIT', true) : '—'}</td>
         <td class="note">${row.note || ''}</td>
       </tr>`;
     }),
     'cost-table',
+    'cost-table-scroll',
   );
 }
 
