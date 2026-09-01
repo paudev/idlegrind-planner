@@ -104,7 +104,8 @@ export function renderQnReadiness(options: ReadinessOptions): string {
     <td>${compact(group.rate)}/s<small>${group.overclock ? `2× ${compact(group.rate * 2)}/s while active` : 'Normal rate after purchase'}</small></td>
   </tr>`);
 
-  const buyableNow = options.timeline.filter((row) => !row.unreachable && row.time <= 0.5).length;
+  // Only QNs purchased at elapsed time 0 are truly affordable from the starting GRIT balance.
+  const buyableNow = options.timeline.filter((row) => !row.unreachable && row.time <= 1e-7).length;
   const pricingNote = options.pricingNote
     ?? `Pricing assumption: <b>${compact(QN_BASE_PRICE)} GRIT × ${QN_PRICE_GROWTH}^owned</b>. Purchases are sequential.`;
 
