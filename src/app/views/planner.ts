@@ -68,9 +68,26 @@ function optimizeBuild(): BuildResult {
   const dayFactor = 1 + vialHours / 24;
   const fixed = rigStats(store.state.planner.rigs, 0, quantumNode);
   const requiredNormalRate = target * refine / DAY / dayFactor;
-  const requiredBase = requiredNormalRate / Math.max(buildMultiplier, 1e-12);
-  const qns = requiredBase > fixed.fixedBase
-    ? Math.ceil((requiredBase - fixed.fixedBase) / Math.max(1e-12, fixed.perQn))
+  const requiredBase = requiredNormalRate / buildMultiplier;
+  const requiredQnBase = Math.max(0, requiredBase - fixed.fixedBase);
+
+  if (requiredQnBase > 0 && fixed.perQn <= 0) {
+    return {
+      computable: false,
+      ok: false,
+      reason: 'This target requires Quantum Nodes, but the configured QN base rate plus fixed-rig +/QN synergy is 0/s. Set a positive QN rate or +/QN synergy under Settings/Rig Setup.',
+      qns: null,
+      stats: null,
+      normal: 0,
+      overclock: 0,
+      average: 0,
+      grind: 0,
+      multiplier: buildMultiplier,
+    };
+  }
+
+  const qns = requiredQnBase > 0
+    ? Math.ceil(requiredQnBase / fixed.perQn)
     : 0;
   const stats = rigStats(store.state.planner.rigs, qns, quantumNode);
   const normal = stats.base * buildMultiplier;
