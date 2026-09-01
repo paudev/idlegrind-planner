@@ -11,7 +11,6 @@ import {
   cashoutRemainingSeconds,
   markWithdrawnNow,
   setLastWithdrawal,
-  undoLastWithdrawal,
 } from './core/cashout';
 import { clamp, duration, number, parseHuman } from './core/format';
 import {
@@ -297,8 +296,9 @@ app.addEventListener('click', (event: MouseEvent) => {
     return;
   }
 
-  if (button.hasAttribute('data-cashout-undo')) {
-    undoLastWithdrawal();
+  if (button.hasAttribute('data-cashout-clear')) {
+    clearCashoutCycle();
+    store.ui.cashoutEditor = false;
     render();
     return;
   }
