@@ -120,6 +120,37 @@
   max-width: 100%;
 }
 
+/* Shared table hierarchy: muted references, semantic colors only for gains/costs. */
+.table-scroll table thead th {
+  color: #7d8980 !important;
+}
+
+.table-scroll table tbody th {
+  color: #aeb8ae !important;
+}
+
+.table-scroll table tbody td {
+  color: #b5beb7 !important;
+}
+
+.table-scroll table td.note,
+.table-scroll table tbody small {
+  color: #78837a !important;
+}
+
+.table-scroll table td.positive {
+  color: var(--green) !important;
+}
+
+.table-scroll table td.negative {
+  color: var(--red) !important;
+}
+
+.table-scroll table tr.total th,
+.table-scroll table tr.total td:not(.negative):not(.positive) {
+  color: #bec7c0 !important;
+}
+
 .price-input input {
   min-width: 0;
 }
