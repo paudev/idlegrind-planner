@@ -5,11 +5,9 @@ import { readJson, writeJson } from './storage';
 export function cashoutCycle(): CashoutCycle {
   const raw = readJson<PersistedCashoutCycle>(STORAGE_KEYS.cashout, {});
   const last = Number(raw.lastWithdrawalAt);
-  const previous = Number(raw.previousLastWithdrawalAt);
 
   return {
     last: Number.isFinite(last) && last > 0 ? last : null,
-    previous: Number.isFinite(previous) && previous > 0 ? previous : null,
   };
 }
 
@@ -59,31 +57,14 @@ export function toDatetimeLocal(timestamp: number | null): string {
 }
 
 export function markWithdrawnNow(): void {
-  const current = cashoutCycle();
-  saveCashoutCycle({
-    lastWithdrawalAt: Date.now(),
-    previousLastWithdrawalAt: current.last,
-  });
+  saveCashoutCycle({ lastWithdrawalAt: Date.now() });
 }
 
 export function setLastWithdrawal(timestamp: number): boolean {
-  if (!Number.isFinite(timestamp)) return false;
-  const current = cashoutCycle();
-  saveCashoutCycle({
-    lastWithdrawalAt: timestamp,
-    previousLastWithdrawalAt: current.last,
-  });
-  return true;
-}
+  if (!Number.isFinite(timestamp) || timestamp <= 0) return false;
+  if (timestamp > Date.now() + 60_000) return false;
 
-export function undoLastWithdrawal(): boolean {
-  const current = cashoutCycle();
-  if (current.previous === null) return false;
-
-  saveCashoutCycle({
-    lastWithdrawalAt: current.previous,
-    previousLastWithdrawalAt: null,
-  });
+  saveCashoutCycle({ lastWithdrawalAt: timestamp });
   return true;
 }
 
