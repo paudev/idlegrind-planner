@@ -48,6 +48,11 @@ function normalizeBuffs(buffs: BuffState): void {
   buffs.otherMult = Math.max(0, number(buffs.otherMult));
 }
 
+function normalizeRackLimit(value: unknown): number {
+  const slots = Math.max(0, Math.floor(number(value)));
+  return slots === 0 ? 0 : Math.max(RACK_BASE_SLOTS, slots);
+}
+
 export function createDefaultState(): ApplicationStore['state'] {
   return {
     activeTab: 'target',
@@ -94,8 +99,8 @@ function loadStore(): ApplicationStore {
   state.planner.view = PLANNER_VIEWS.includes(state.planner.view) ? state.planner.view : 'output';
   deck.view = DECK_VIEWS.includes(deck.view) ? deck.view : 'output';
 
-  if (number(state.settings.refineRate) <= 0) state.settings.refineRate = DEFAULT_SETTINGS.refineRate;
-  state.settings.maxRackSlots = Math.max(0, Math.floor(number(state.settings.maxRackSlots)));
+  state.settings.refineRate = Math.max(0, number(state.settings.refineRate, DEFAULT_SETTINGS.refineRate));
+  state.settings.maxRackSlots = normalizeRackLimit(state.settings.maxRackSlots);
   state.reset.vialHours = clamp(number(state.reset.vialHours), 0, 24);
   state.planner.vialHours = clamp(number(state.planner.vialHours), 0, 24);
   normalizeBuffs(state.planner.buffs);
@@ -158,8 +163,9 @@ function normalizedInputValue(path: string, value: number): number {
       return Math.max(0, value);
     case 'deck.currentOverclockMinutes':
       return clamp(value, 0, 59);
-    case 'state.settings.refineRate':
     case 'state.settings.maxRackSlots':
+      return normalizeRackLimit(value);
+    case 'state.settings.refineRate':
     case 'state.target.grindPerDay':
     case 'state.reset.finalRate':
     case 'state.planner.targetGrindPerDay':
