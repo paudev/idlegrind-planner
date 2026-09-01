@@ -51,7 +51,7 @@ export function header(): string {
         <div class="cashout-actions">
           <button type="button" data-cashout-mark>MARK WITHDRAWN</button>
           <button type="button" data-cashout-edit>${next !== null ? 'EDIT' : 'SET'}</button>
-          ${cycle.previous !== null ? '<button type="button" data-cashout-undo>UNDO</button>' : ''}
+          ${next !== null ? '<button type="button" data-cashout-clear>CLEAR</button>' : ''}
         </div>
       </div>
     </div>
