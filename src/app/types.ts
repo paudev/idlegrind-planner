@@ -95,12 +95,10 @@ export interface ApplicationStore {
 
 export interface CashoutCycle {
   last: number | null;
-  previous: number | null;
 }
 
 export interface PersistedCashoutCycle {
   lastWithdrawalAt?: number | null;
-  previousLastWithdrawalAt?: number | null;
 }
 
 export interface ProductionResult {
