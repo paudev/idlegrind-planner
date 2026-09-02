@@ -1,0 +1,398 @@
+/* Latest planner/deck/cashout polish. Loaded last so semantic layout wins over legacy layers. */
+
+/* Deck Simulator: rack capacity is inferred, not manually maintained. */
+.auto-capacity-card {
+  min-width: 0;
+  min-height: 92px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 14px;
+  border: 1px solid #31513f;
+  border-radius: 7px;
+  background: linear-gradient(135deg, rgba(20, 241, 149, .055), rgba(10, 15, 11, .96));
+}
+.auto-capacity-card small {
+  color: #7b877e;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .09em;
+}
+.auto-capacity-card strong {
+  margin-top: 4px;
+  color: var(--green);
+  font-size: 22px;
+  line-height: 1.05;
+}
+.auto-capacity-card span {
+  margin-top: 6px;
+  color: #748077;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+/* Minimum + final planner results: remove redundant panel badges and restore breathing room. */
+.panel:has(.minimum-performance) .panelhead .badge,
+.panel:has(.final-qn-control) .panelhead .badge {
+  display: none;
+}
+.panel:has(.minimum-performance) .panelbody,
+.panel:has(.final-qn-control) .panelbody {
+  padding: 18px;
+}
+.optimized-build-heroes {
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.optimized-build-metrics {
+  gap: 10px;
+}
+.minimum-performance {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #243129;
+  gap: 14px;
+}
+.minimum-performance .final-output-heroes {
+  gap: 12px;
+}
+.minimum-performance .final-performance-metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.final-qn-control {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(150px, .35fr) minmax(0, 1fr);
+  gap: 10px 18px;
+  align-items: center;
+  margin: 0 0 14px;
+  padding: 14px 16px;
+}
+.final-qn-control .field-title {
+  margin: 0;
+}
+.final-qn-control .qn-quick {
+  margin: 0;
+}
+.final-qn-control p {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid #202a22;
+  line-height: 1.45;
+}
+.panel:has(.final-qn-control) .warning {
+  margin-bottom: 14px;
+}
+.panel:has(.final-qn-control) .final-performance {
+  gap: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #243129;
+}
+.panel:has(.final-qn-control) .final-output-heroes {
+  gap: 12px;
+}
+.panel:has(.final-qn-control) .final-performance-metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.panel:has(.minimum-performance) .result-hero,
+.panel:has(.final-qn-control) .result-hero {
+  min-height: 116px;
+  padding: 16px 18px;
+}
+.panel:has(.minimum-performance) .metric,
+.panel:has(.final-qn-control) .metric {
+  min-height: 76px;
+  padding: 12px 13px;
+}
+
+/* Header cashout: larger and easier to scan on desktop. */
+.topbar .cashout-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 8px 10px 8px 14px;
+  border: 1px solid #2d3d33;
+  border-radius: 7px;
+  background: linear-gradient(180deg, rgba(15, 22, 17, .96), rgba(8, 13, 9, .98));
+}
+.topbar .cashout-copy {
+  min-width: 190px;
+  gap: 2px;
+}
+.topbar .cashout-copy small {
+  margin: 0;
+  color: #78857b;
+  font-size: 8.5px;
+  font-weight: 900;
+  letter-spacing: .1em;
+}
+.topbar .cashout-copy strong {
+  color: #e2e8e3;
+  font-size: 18px;
+  font-weight: 950;
+  line-height: 1.08;
+  font-variant-numeric: tabular-nums;
+}
+.topbar .cashout-head.ready .cashout-copy strong {
+  color: var(--green);
+}
+.topbar .cashout-copy span {
+  color: #738078;
+  font-size: 9.5px;
+  font-weight: 650;
+  line-height: 1.25;
+}
+.topbar .cashout-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 5px;
+}
+.topbar .cashout-actions button {
+  min-height: 30px;
+  padding: 0 8px;
+  font-size: 8.5px;
+  letter-spacing: .035em;
+}
+
+/* Date/time picker: improve legibility without letting it escape the viewport. */
+.cashout-picker-popover {
+  width: 360px;
+  max-width: calc(100vw - 20px);
+  max-height: calc(100dvh - 20px);
+  border-color: #3a5142;
+  box-shadow: 0 22px 58px rgba(0, 0, 0, .62);
+}
+.cashout-picker-panel {
+  gap: 11px;
+  padding: 14px;
+}
+.cashout-picker-top small,
+.cashout-picker-preview span,
+.cashout-picker-time > span {
+  font-size: 9px;
+}
+.cashout-picker-top strong {
+  font-size: 13px;
+}
+.cashout-picker-close,
+.cashout-picker-monthbar > button {
+  width: 32px;
+  height: 32px;
+}
+.cashout-picker-monthbar strong {
+  font-size: 13px;
+}
+.cashout-picker-weekdays span {
+  padding: 3px 0;
+  font-size: 8.5px;
+}
+.cashout-picker-calendar {
+  gap: 4px;
+}
+.cashout-picker-day {
+  min-height: 34px;
+  aspect-ratio: auto;
+  font-size: 11px;
+}
+.cashout-picker-time {
+  padding-top: 10px;
+}
+.cashout-time-control > input {
+  width: 46px;
+  height: 34px;
+  font-size: 12px;
+}
+.cashout-meridiem button {
+  height: 32px;
+  padding: 0 9px;
+  font-size: 9px;
+}
+.cashout-picker-preview {
+  gap: 3px;
+  padding: 10px 11px;
+}
+.cashout-picker-preview strong {
+  font-size: 12px;
+}
+.cashout-picker-preview small {
+  font-size: 9px;
+}
+.cashout-picker-actions .chip {
+  min-height: 32px;
+  padding-inline: 11px;
+  font-size: 9px;
+}
+
+@media (max-width: 900px) {
+  .minimum-performance .final-performance-metrics,
+  .panel:has(.final-qn-control) .final-performance-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .rd-shell {
+    padding-inline: 10px !important;
+  }
+  .topbar {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 5px !important;
+    padding: 4px 0 8px !important;
+  }
+  .brand {
+    font-size: 20px !important;
+    line-height: 1 !important;
+  }
+  .topfacts {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) !important;
+    gap: 6px !important;
+    align-items: stretch !important;
+  }
+  .refine-fact {
+    min-width: 0;
+    display: grid;
+    align-content: center;
+    gap: 1px;
+    padding: 5px 7px !important;
+    border: 1px solid #29382f !important;
+    border-radius: 6px;
+    background: #090e0a;
+  }
+  .refine-fact small {
+    margin: 0;
+    font-size: 7px;
+  }
+  .refine-fact strong {
+    font-size: 9px;
+  }
+  .topbar .cashout-head {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: 6px !important;
+    padding: 5px 6px !important;
+  }
+  .topbar .cashout-copy {
+    min-width: 0;
+    gap: 1px;
+  }
+  .topbar .cashout-copy small {
+    font-size: 7px;
+  }
+  .topbar .cashout-copy strong {
+    font-size: 14px;
+  }
+  .topbar .cashout-copy span {
+    overflow: hidden;
+    font-size: 8px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .topbar .cashout-actions {
+    align-self: center;
+    gap: 3px;
+  }
+  .topbar .cashout-actions button {
+    min-height: 25px !important;
+    padding: 0 5px !important;
+    font-size: 7px !important;
+    border-radius: 4px;
+  }
+
+  .panel:has(.minimum-performance) .panelbody,
+  .panel:has(.final-qn-control) .panelbody {
+    padding: 14px;
+  }
+  .minimum-performance {
+    margin-top: 14px;
+    padding-top: 14px;
+  }
+  .final-qn-control {
+    grid-template-columns: 1fr;
+    gap: 9px;
+    padding: 12px;
+  }
+  .final-qn-control p {
+    grid-column: 1;
+  }
+  .panel:has(.minimum-performance) .result-hero,
+  .panel:has(.final-qn-control) .result-hero {
+    min-height: 104px;
+    padding: 14px;
+  }
+  .minimum-performance .final-performance-metrics,
+  .panel:has(.final-qn-control) .final-performance-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .cashout-picker-popover.header,
+  .cashout-picker-popover.settings {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    right: auto;
+    width: min(360px, calc(100vw - 20px));
+    max-width: calc(100vw - 20px);
+    max-height: calc(100dvh - 20px);
+    transform: translate(-50%, -50%);
+  }
+  .cashout-picker-panel {
+    gap: 9px;
+    padding: 12px;
+  }
+  .cashout-picker-day {
+    min-height: 32px;
+  }
+  .cashout-picker-time {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+  }
+  .cashout-time-control {
+    justify-self: end;
+  }
+}
+
+@media (max-width: 430px) {
+  .topfacts {
+    gap: 5px !important;
+  }
+  .refine-fact {
+    padding-inline: 6px !important;
+  }
+  .topbar .cashout-copy span {
+    display: none;
+  }
+  .topbar .cashout-copy strong {
+    font-size: 13px;
+  }
+  .topbar .cashout-actions button {
+    padding: 0 4px !important;
+    font-size: 6.5px !important;
+  }
+
+  .cashout-picker-popover.header,
+  .cashout-picker-popover.settings {
+    width: calc(100vw - 12px);
+    max-width: calc(100vw - 12px);
+    max-height: calc(100dvh - 12px);
+  }
+  .cashout-picker-panel {
+    padding: 10px;
+  }
+  .cashout-picker-day {
+    min-height: 30px;
+    font-size: 10.5px;
+  }
+  .cashout-time-control > input {
+    width: 42px;
+  }
+}

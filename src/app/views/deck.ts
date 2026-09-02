@@ -4,6 +4,7 @@ import {
   QN_BASE_PRICE,
   QN_PRICE_GROWTH,
   RACK_BASE_SLOTS,
+  RACK_SLOT_STEP,
 } from '../config/economy';
 import { VIAL_OPTIONS } from '../config/game';
 import {
@@ -91,6 +92,12 @@ function deckScenario(): DeckScenario {
   const currentGrit = Math.max(0, number(store.deck.baseline.currentGrit));
   const currentStats = rigStats(store.deck.rigs, currentQns, quantumNode);
   const fullStats = rigStats(store.deck.rigs, targetQns, quantumNode);
+  const inferredRackCapacity = Math.max(
+    RACK_BASE_SLOTS,
+    RACK_BASE_SLOTS
+      + Math.ceil(Math.max(0, currentStats.slots - RACK_BASE_SLOTS) / RACK_SLOT_STEP) * RACK_SLOT_STEP,
+  );
+  store.deck.baseline.currentDeckSlots = inferredRackCapacity;
   const currentProjection = cashoutLeft !== null
     ? production(currentRate, cashoutLeft, existingOverclock)
     : null;
@@ -155,7 +162,11 @@ function setupPanels(scenario: DeckScenario): string {
     `<div class="current-grid">
       ${field('deck.qns', 'CURRENT QUANTUM NODES', store.deck.qns)}
       ${field('deck.baseline.currentGrit', 'CURRENT GRIT BALANCE', store.deck.baseline.currentGrit)}
-      ${field('deck.baseline.currentDeckSlots', 'TOTAL OWNED DECK SLOTS', store.deck.baseline.currentDeckSlots)}
+      <div class="auto-capacity-card">
+        <small>CURRENT RACK CAPACITY</small>
+        <strong>${compact(store.deck.baseline.currentDeckSlots)}</strong>
+        <span>Auto from current QNs + rig slots · 12 base, then +6 slots.</span>
+      </div>
     </div>
     <div class="optimizer-rig">
       <div class="optimizer-copy">
@@ -283,7 +294,7 @@ function costingView(scenario: DeckScenario): string {
 
   const rows: CostRow[] = [
     { item: 'QUANTUM NODES', detail: `+${scenario.addedQns} · ${scenario.currentQns} → ${scenario.targetQns}`, grit: qnCost, note: `QN price assumption: ${compact(QN_BASE_PRICE)} × ${QN_PRICE_GROWTH}^owned.` },
-    { item: 'RACK SLOT EXPANSION', detail: rack.count ? `${rack.count} × +6 rack slots` : 'No expansion needed', grind: rack.total, note: rack.count ? `Target uses ${scenario.fullStats.slots} slots.` : 'Current slot capacity fits the simulation.' },
+    { item: 'RACK SLOT EXPANSION', detail: rack.count ? `${rack.count} × +6 rack slots` : 'No expansion needed', grind: rack.total, note: rack.count ? `Starts from inferred ${capacity}-slot capacity; target uses ${scenario.fullStats.slots} slots.` : `Inferred ${capacity}-slot capacity fits the simulation.` },
     { item: 'VIAL ACQUISITION', detail: store.deck.vialHours ? `${store.deck.vialHours}H market reference` : 'No vial', grind: vialCharge, note: store.deck.vialHours ? (store.deck.baseline.includeVialCost ? 'Included using Settings market reference.' : 'Reference selected but not charged.') : 'No vial selected.' },
     { item: 'TOTAL KNOWN COST', grind: totalGrind, grit: qnCost, note: 'Currencies remain separate.', total: true },
   ];
