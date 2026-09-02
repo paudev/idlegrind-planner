@@ -7,13 +7,10 @@ import {
   VIAL_DEFAULTS,
 } from './config/economy';
 import {
+  cashoutCycle,
   clearCashoutCycle,
   cashoutRemainingSeconds,
-  formatCashoutEditorValue,
-  formatLocalTime,
   markWithdrawnNow,
-  nextCashoutAt,
-  parseCashoutEditorValue,
   setLastWithdrawal,
 } from './core/cashout';
 import { clamp, duration, number, parseHuman } from './core/format';
@@ -35,6 +32,11 @@ import type {
   Rig,
   Scope,
 } from './types';
+import {
+  cashoutMonthStart,
+  cashoutPickerContent,
+  type CashoutPickerScope,
+} from './ui/cashout-picker';
 import { shell } from './ui/shell';
 import { renderCostingView } from './views/costing';
 import { renderDeckView } from './views/deck';
@@ -103,57 +105,75 @@ function toggleFrame(buffs: BuffState, key: string): void {
   if (frame !== 'mixed' && buffs[frame]) buffs.mixed = false;
 }
 
-function cashoutEditorTimestamp(): number {
-  const input = app.querySelector<HTMLInputElement>('[data-cashout-text]');
-  return parseCashoutEditorValue(input?.value ?? '');
+function pickerRoot(scope: CashoutPickerScope): HTMLElement | null {
+  return app.querySelector<HTMLElement>(`[data-cashout-picker="${scope}"]`);
 }
 
-function updateCashoutEditorPreview(): void {
-  const preview = app.querySelector<HTMLElement>('[data-cashout-preview]');
-  const message = app.querySelector<HTMLElement>('[data-cashout-editor-message]');
-  const saveButton = app.querySelector<HTMLButtonElement>('[data-cashout-save]');
-  const previewCard = preview?.closest<HTMLElement>('.cashout-preview');
-  if (!preview || !message || !saveButton) return;
-
-  const timestamp = cashoutEditorTimestamp();
-  const validDate = Number.isFinite(timestamp) && timestamp > 0;
-  const notFuture = validDate && timestamp <= Date.now() + 60_000;
-  const valid = validDate && notFuture;
-
-  saveButton.disabled = !valid;
-  previewCard?.classList.toggle('invalid', !valid);
-
-  if (!validDate) {
-    preview.textContent = 'CHECK DATE & TIME';
-    message.textContent = 'Use MM/DD/YYYY · HH:MM AM/PM.';
-    return;
-  }
-
-  if (!notFuture) {
-    preview.textContent = 'FUTURE TIME';
-    message.textContent = 'Last withdrawal cannot be in the future.';
-    return;
-  }
-
-  preview.textContent = formatLocalTime(nextCashoutAt({ last: timestamp }));
-  message.textContent = 'Exactly 24 elapsed hours after this withdrawal.';
+function pickerDraft(root: HTMLElement): number {
+  const value = Number(root.dataset.draft);
+  return Number.isFinite(value) ? value : Date.now();
 }
 
-function focusCashoutSettings(): void {
-  requestAnimationFrame(() => {
-    const input = app.querySelector<HTMLInputElement>('[data-cashout-text]');
-    if (!input) return;
-    input.focus({ preventScroll: false });
-    input.select();
+function pickerMonth(root: HTMLElement): number {
+  const value = Number(root.dataset.month);
+  return Number.isFinite(value) ? value : cashoutMonthStart(pickerDraft(root));
+}
+
+function refreshPicker(root: HTMLElement, draft: number, month = cashoutMonthStart(draft)): void {
+  root.dataset.draft = String(draft);
+  root.dataset.month = String(month);
+  root.innerHTML = cashoutPickerContent(draft, month);
+}
+
+function closeCashoutPickers(except?: HTMLElement): void {
+  app.querySelectorAll<HTMLElement>('[data-cashout-picker]').forEach((root) => {
+    if (root !== except) root.hidden = true;
   });
+}
+
+function openCashoutPicker(scope: CashoutPickerScope): void {
+  const root = pickerRoot(scope);
+  if (!root) return;
+
+  const draft = cashoutCycle().last ?? Date.now();
+  refreshPicker(root, draft);
+  closeCashoutPickers(root);
+  root.hidden = false;
+}
+
+function selectPickerDay(root: HTMLElement, dayTimestamp: number): void {
+  const selected = new Date(dayTimestamp);
+  const draft = new Date(pickerDraft(root));
+  draft.setFullYear(selected.getFullYear(), selected.getMonth(), selected.getDate());
+
+  if (draft.getTime() > Date.now() + 60_000) {
+    const now = new Date();
+    draft.setHours(now.getHours(), now.getMinutes(), 0, 0);
+  }
+
+  refreshPicker(root, draft.getTime(), cashoutMonthStart(selected.getTime()));
+}
+
+function updatePickerTime(root: HTMLElement): void {
+  const hourInput = root.querySelector<HTMLInputElement>('[data-cashout-picker-hour]');
+  const minuteInput = root.querySelector<HTMLInputElement>('[data-cashout-picker-minute]');
+  const activeMeridiem = root.querySelector<HTMLButtonElement>('[data-cashout-picker-meridiem].active');
+  if (!hourInput || !minuteInput || !activeMeridiem) return;
+
+  const hour12 = clamp(Math.floor(Number(hourInput.value)), 1, 12);
+  const minute = clamp(Math.floor(Number(minuteInput.value)), 0, 59);
+  const isPm = activeMeridiem.dataset.cashoutPickerMeridiem === 'PM';
+  const hour24 = (hour12 % 12) + (isPm ? 12 : 0);
+  const draft = new Date(pickerDraft(root));
+  draft.setHours(hour24, minute, 0, 0);
+  refreshPicker(root, draft.getTime(), pickerMonth(root));
 }
 
 app.addEventListener('input', (event: Event) => {
   const input = event.target;
   if (!(input instanceof HTMLInputElement)) return;
 
-  if (input.hasAttribute('data-cashout-text')) {
-    updateCashoutEditorPreview();
+  if (input.hasAttribute('data-cashout-picker-hour') || input.hasAttribute('data-cashout-picker-minute')) {
     return;
   }
 
@@ -216,8 +236,10 @@ app.addEventListener('input', (event: Event) => {
 app.addEventListener('change', (event: Event) => {
   const input = event.target;
   if (!(input instanceof HTMLInputElement)) return;
-  if (input.hasAttribute('data-cashout-text')) {
-    updateCashoutEditorPreview();
+
+  if (input.hasAttribute('data-cashout-picker-hour') || input.hasAttribute('data-cashout-picker-minute')) {
+    const root = input.closest<HTMLElement>('[data-cashout-picker]');
+    if (root) updatePickerTime(root);
     return;
   }
 
@@ -330,30 +352,58 @@ app.addEventListener('click', (event: MouseEvent) => {
     return;
   }
 
+  if (button.dataset.cashoutPickerOpen === 'header' || button.dataset.cashoutPickerOpen === 'settings') {
+    openCashoutPicker(button.dataset.cashoutPickerOpen);
+    return;
+  }
+
   if (button.hasAttribute('data-cashout-settings')) {
     store.state.activeTab = 'settings';
     render();
-    focusCashoutSettings();
     return;
   }
 
-  if (button.hasAttribute('data-cashout-now')) {
-    const input = app.querySelector<HTMLInputElement>('[data-cashout-text]');
-    if (input) {
-      input.value = formatCashoutEditorValue(Date.now());
-      updateCashoutEditorPreview();
-      input.focus();
-    }
+  if (button.hasAttribute('data-cashout-picker-close')) {
+    const root = button.closest<HTMLElement>('[data-cashout-picker]');
+    if (root) root.hidden = true;
     return;
   }
 
-  if (button.hasAttribute('data-cashout-save')) {
-    const timestamp = cashoutEditorTimestamp();
-    if (setLastWithdrawal(timestamp)) {
-      render();
-    } else {
-      updateCashoutEditorPreview();
-    }
+  if (button.dataset.cashoutPickerMonth) {
+    const root = button.closest<HTMLElement>('[data-cashout-picker]');
+    if (!root) return;
+    const month = new Date(pickerMonth(root));
+    month.setMonth(month.getMonth() + Number(button.dataset.cashoutPickerMonth));
+    refreshPicker(root, pickerDraft(root), cashoutMonthStart(month.getTime()));
+    return;
+  }
+
+  if (button.dataset.cashoutPickerDay) {
+    const root = button.closest<HTMLElement>('[data-cashout-picker]');
+    if (root) selectPickerDay(root, Number(button.dataset.cashoutPickerDay));
+    return;
+  }
+
+  if (button.dataset.cashoutPickerMeridiem) {
+    const root = button.closest<HTMLElement>('[data-cashout-picker]');
+    if (!root) return;
+    root.querySelectorAll<HTMLButtonElement>('[data-cashout-picker-meridiem]').forEach((item) => {
+      item.classList.toggle('active', item === button);
+    });
+    updatePickerTime(root);
+    return;
+  }
+
+  if (button.hasAttribute('data-cashout-picker-now')) {
+    const root = button.closest<HTMLElement>('[data-cashout-picker]');
+    if (root) refreshPicker(root, Date.now());
+    return;
+  }
+
+  if (button.hasAttribute('data-cashout-picker-save')) {
+    const root = button.closest<HTMLElement>('[data-cashout-picker]');
+    if (!root) return;
+    if (setLastWithdrawal(pickerDraft(root))) render();
     return;
   }
 
@@ -414,6 +464,16 @@ app.addEventListener('click', (event: MouseEvent) => {
     clearCashoutCycle();
     render();
   }
+});
+
+document.addEventListener('click', (event: MouseEvent) => {
+  if (!(event.target instanceof Element)) return;
+  if (event.target.closest('[data-cashout-picker]') || event.target.closest('[data-cashout-picker-open]')) return;
+  closeCashoutPickers();
+});
+
+document.addEventListener('keydown', (event: KeyboardEvent) => {
+  if (event.key === 'Escape') closeCashoutPickers();
 });
 
 setInterval(() => {
