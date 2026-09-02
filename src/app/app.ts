@@ -169,6 +169,13 @@ function updatePickerTime(root: HTMLElement): void {
   refreshPicker(root, draft.getTime(), pickerMonth(root));
 }
 
+function eventPathContainsCashoutControl(event: Event): boolean {
+  return event.composedPath().some((node) => {
+    if (!(node instanceof Element)) return false;
+    return node.hasAttribute('data-cashout-picker') || node.hasAttribute('data-cashout-picker-open');
+  });
+}
+
 app.addEventListener('input', (event: Event) => {
   const input = event.target;
   if (!(input instanceof HTMLInputElement)) return;
@@ -467,8 +474,10 @@ app.addEventListener('click', (event: MouseEvent) => {
 });
 
 document.addEventListener('click', (event: MouseEvent) => {
-  if (!(event.target instanceof Element)) return;
-  if (event.target.closest('[data-cashout-picker]') || event.target.closest('[data-cashout-picker-open]')) return;
+  // Use the original event path instead of querying the live DOM. Calendar actions
+  // rebuild their inner markup during the same click, which detaches event.target.
+  // composedPath() remains stable and correctly identifies the click as internal.
+  if (eventPathContainsCashoutControl(event)) return;
   closeCashoutPickers();
 });
 
