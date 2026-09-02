@@ -9,7 +9,10 @@ import {
 import {
   clearCashoutCycle,
   cashoutRemainingSeconds,
+  formatLocalTime,
+  localDateTimeTimestamp,
   markWithdrawnNow,
+  nextCashoutAt,
   setLastWithdrawal,
 } from './core/cashout';
 import { clamp, duration, number, parseHuman } from './core/format';
@@ -99,9 +102,51 @@ function toggleFrame(buffs: BuffState, key: string): void {
   if (frame !== 'mixed' && buffs[frame]) buffs.mixed = false;
 }
 
+function cashoutEditorTimestamp(): number {
+  const dateInput = app.querySelector<HTMLInputElement>('[data-cashout-date]');
+  const timeInput = app.querySelector<HTMLInputElement>('[data-cashout-time]');
+  return localDateTimeTimestamp(dateInput?.value ?? '', timeInput?.value ?? '');
+}
+
+function updateCashoutEditorPreview(): void {
+  const preview = app.querySelector<HTMLElement>('[data-cashout-preview]');
+  const message = app.querySelector<HTMLElement>('[data-cashout-editor-message]');
+  const saveButton = app.querySelector<HTMLButtonElement>('[data-cashout-save]');
+  const previewCard = preview?.closest<HTMLElement>('.cashout-preview');
+  if (!preview || !message || !saveButton) return;
+
+  const timestamp = cashoutEditorTimestamp();
+  const validDate = Number.isFinite(timestamp) && timestamp > 0;
+  const notFuture = validDate && timestamp <= Date.now() + 60_000;
+  const valid = validDate && notFuture;
+
+  saveButton.disabled = !valid;
+  previewCard?.classList.toggle('invalid', !valid);
+
+  if (!validDate) {
+    preview.textContent = 'CHECK DATE & TIME';
+    message.textContent = 'Choose a valid local date and time.';
+    return;
+  }
+
+  if (!notFuture) {
+    preview.textContent = 'FUTURE TIME';
+    message.textContent = 'Last withdrawal cannot be in the future.';
+    return;
+  }
+
+  preview.textContent = formatLocalTime(nextCashoutAt({ last: timestamp }));
+  message.textContent = 'Exactly 24 elapsed hours after this withdrawal.';
+}
+
 app.addEventListener('input', (event: Event) => {
   const input = event.target;
   if (!(input instanceof HTMLInputElement)) return;
+
+  if (input.hasAttribute('data-cashout-date') || input.hasAttribute('data-cashout-time')) {
+    updateCashoutEditorPreview();
+    return;
+  }
 
   if (input.dataset.path) {
     const parsed = parseHuman(input.value);
@@ -162,7 +207,10 @@ app.addEventListener('input', (event: Event) => {
 app.addEventListener('change', (event: Event) => {
   const input = event.target;
   if (!(input instanceof HTMLInputElement)) return;
-  if (input.dataset.cashoutDatetime) return;
+  if (input.hasAttribute('data-cashout-date') || input.hasAttribute('data-cashout-time')) {
+    updateCashoutEditorPreview();
+    return;
+  }
 
   // Recompute only after editing finishes. Input events persist state without stealing focus.
   render();
@@ -287,11 +335,12 @@ app.addEventListener('click', (event: MouseEvent) => {
   }
 
   if (button.hasAttribute('data-cashout-save')) {
-    const input = app.querySelector<HTMLInputElement>('[data-cashout-datetime]');
-    const timestamp = input?.value ? new Date(input.value).getTime() : Number.NaN;
+    const timestamp = cashoutEditorTimestamp();
     if (setLastWithdrawal(timestamp)) {
       store.ui.cashoutEditor = false;
       render();
+    } else {
+      updateCashoutEditorPreview();
     }
     return;
   }
