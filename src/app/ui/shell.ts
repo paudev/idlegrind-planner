@@ -4,24 +4,46 @@ import {
   deviceTimezone,
   formatLocalTime,
   nextCashoutAt,
-  toDatetimeLocal,
+  toLocalDateInput,
+  toLocalTimeInput,
 } from '../core/cashout';
 import { compact, duration, number } from '../core/format';
 import { store } from '../core/state';
 import type { ActiveTab } from '../types';
-import { info } from './components';
 
 export function cashoutEditor(): string {
   const cycle = cashoutCycle();
+  const editorTimestamp = cycle.last ?? Date.now();
+  const previewNext = editorTimestamp + 24 * 60 * 60 * 1000;
+
   return `<div class="cashout-editor">
-    <label class="field">
-      <span>LAST WITHDRAWAL · ${deviceTimezone()}</span>
-      <input type="datetime-local" data-cashout-datetime value="${toDatetimeLocal(cycle.last)}">
-    </label>
-    <div>${info('Entered time is interpreted in this device timezone, then stored as an absolute timestamp. Eligibility is exactly 24 elapsed hours.')}</div>
-    <div class="editor-actions">
-      <button type="button" class="chip active" data-cashout-save>SAVE</button>
-      <button type="button" class="chip" data-cashout-cancel>CANCEL</button>
+    <div class="cashout-editor-head">
+      <div>
+        <small>LAST WITHDRAWAL</small>
+        <strong>Set the local date and time</strong>
+      </div>
+      <span class="cashout-timezone">LOCAL · ${deviceTimezone()}</span>
+    </div>
+    <div class="cashout-editor-grid">
+      <div class="cashout-datetime-grid">
+        <label class="cashout-datetime-field">
+          <span>DATE</span>
+          <input type="date" data-cashout-date value="${toLocalDateInput(editorTimestamp)}">
+        </label>
+        <label class="cashout-datetime-field">
+          <span>TIME</span>
+          <input type="time" data-cashout-time value="${toLocalTimeInput(editorTimestamp)}" step="60">
+        </label>
+      </div>
+      <div class="cashout-preview">
+        <small>NEXT CASHOUT</small>
+        <strong data-cashout-preview>${formatLocalTime(previewNext)}</strong>
+        <span data-cashout-editor-message>Exactly 24 elapsed hours after this withdrawal.</span>
+      </div>
+      <div class="editor-actions">
+        <button type="button" class="chip active" data-cashout-save>SAVE</button>
+        <button type="button" class="chip" data-cashout-cancel>CANCEL</button>
+      </div>
     </div>
   </div>`;
 }
@@ -49,7 +71,7 @@ export function header(): string {
           <span>${next !== null ? `${formatLocalTime(next, false)} · local` : 'Record your last withdrawal'}</span>
         </div>
         <div class="cashout-actions">
-          <button type="button" data-cashout-mark>MARK WITHDRAWN</button>
+          <button type="button" data-cashout-mark>WITHDRAWN</button>
           <button type="button" data-cashout-edit>${next !== null ? 'EDIT' : 'SET'}</button>
           ${next !== null ? '<button type="button" data-cashout-clear>CLEAR</button>' : ''}
         </div>
