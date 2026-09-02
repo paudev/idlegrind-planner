@@ -97,7 +97,7 @@ export function cashoutPickerContent(draftTimestamp: number, monthTimestamp: num
         <strong>${formatLocalTime(draftTimestamp)}</strong>
         <span>The date and time you are setting.</span>
       </div>
-      <div class="cashout-cycle-arrow" aria-hidden="true">→</div>
+      <div class="cashout-cycle-arrow" aria-hidden="true">↓</div>
       <div class="cashout-cycle-card next">
         <small>NEXT CASHOUT</small>
         <strong>${formatLocalTime(nextCashout)}</strong>

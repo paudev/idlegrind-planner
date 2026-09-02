@@ -1,4 +1,4 @@
-/* Cashout picker: calendar first, then a clear last -> next cycle summary. */
+/* Cashout picker: calendar first, then a clear vertical last -> next cycle summary. */
 .cashout-picker-monthbar-primary {
   padding-bottom: 4px;
 }
@@ -23,10 +23,10 @@
 
 .cashout-cycle-summary {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: 1fr;
   align-items: stretch;
-  gap: 8px;
-  padding-top: 2px;
+  gap: 7px;
+  padding-top: 4px;
 }
 
 .cashout-cycle-card {
@@ -34,7 +34,7 @@
   display: grid;
   align-content: center;
   gap: 4px;
-  padding: 10px 11px;
+  padding: 11px 12px;
   border: 1px solid #2d3d33;
   border-radius: 7px;
   background: linear-gradient(180deg, rgba(15, 22, 17, .96), rgba(8, 13, 9, .98));
@@ -48,13 +48,12 @@
 }
 
 .cashout-cycle-card strong {
-  overflow: hidden;
   color: #dce4de;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 900;
   line-height: 1.25;
   font-variant-numeric: tabular-nums;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
 .cashout-cycle-card span {
@@ -73,8 +72,9 @@
 }
 
 .cashout-cycle-card.next {
-  border-color: #31513f;
-  background: linear-gradient(135deg, rgba(20, 241, 149, .05), rgba(8, 13, 9, .98));
+  border-color: #315f47;
+  background: linear-gradient(135deg, rgba(20, 241, 149, .07), rgba(8, 13, 9, .98));
+  box-shadow: inset 0 0 0 1px rgba(24, 241, 154, .025);
 }
 
 .cashout-cycle-card.next small,
@@ -83,17 +83,19 @@
 }
 
 .cashout-cycle-arrow {
-  align-self: center;
+  justify-self: center;
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
-  border: 1px solid #2b3b31;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #2b6848;
   border-radius: 999px;
-  color: #718077;
-  background: #090f0b;
-  font-size: 11px;
-  font-weight: 900;
+  color: var(--green);
+  background: radial-gradient(circle, rgba(24, 241, 154, .11), rgba(9, 15, 11, .98) 72%);
+  box-shadow: 0 0 0 3px rgba(24, 241, 154, .025);
+  font-size: 18px;
+  font-weight: 950;
+  line-height: 1;
 }
 
 .cashout-picker-panel.invalid .cashout-cycle-card.last {
@@ -139,16 +141,95 @@
 }
 
 @media (max-width: 640px) {
+  .topbar {
+    gap: 10px !important;
+    padding: 8px 0 12px !important;
+  }
+
+  .brand {
+    margin-bottom: 1px;
+    font-size: 21px !important;
+  }
+
+  .topfacts {
+    grid-template-columns: minmax(92px, .7fr) minmax(0, 1.65fr) !important;
+    gap: 8px !important;
+    align-items: stretch !important;
+  }
+
+  .refine-fact {
+    padding: 8px 9px !important;
+  }
+
+  .refine-fact small {
+    font-size: 7.5px !important;
+  }
+
+  .refine-fact strong {
+    font-size: 10px !important;
+  }
+
+  .topbar .cashout-head {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    align-content: center;
+    gap: 7px !important;
+    padding: 8px 9px !important;
+  }
+
+  .topbar .cashout-copy {
+    gap: 2px;
+  }
+
+  .topbar .cashout-copy small {
+    font-size: 7.5px !important;
+  }
+
+  .topbar .cashout-copy strong {
+    font-size: 15px !important;
+    line-height: 1.05;
+  }
+
+  .topbar .cashout-copy span {
+    display: block !important;
+    overflow: visible;
+    font-size: 8px !important;
+    line-height: 1.3;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  .topbar .cashout-actions {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px !important;
+  }
+
+  .topbar .cashout-actions button {
+    width: 100%;
+    min-height: 28px !important;
+    padding: 0 6px !important;
+    font-size: 7px !important;
+    border-radius: 5px;
+  }
+
   .cashout-cycle-summary {
     gap: 6px;
   }
 
   .cashout-cycle-card {
-    padding: 9px;
+    padding: 10px;
   }
 
   .cashout-cycle-card strong {
-    font-size: 10px;
+    font-size: 11px;
+  }
+
+  .cashout-cycle-arrow {
+    width: 29px;
+    height: 29px;
+    font-size: 16px;
   }
 
   .cashout-setting-status.primary {
@@ -161,20 +242,56 @@
 }
 
 @media (max-width: 430px) {
+  .topbar {
+    gap: 9px !important;
+    padding-top: 9px !important;
+    padding-bottom: 13px !important;
+  }
+
+  .topfacts {
+    grid-template-columns: minmax(86px, .72fr) minmax(0, 1.7fr) !important;
+    gap: 8px !important;
+  }
+
+  .refine-fact {
+    padding: 8px !important;
+  }
+
+  .topbar .cashout-head {
+    gap: 6px !important;
+    padding: 8px !important;
+  }
+
+  .topbar .cashout-copy strong {
+    font-size: 14.5px !important;
+  }
+
+  .topbar .cashout-copy span {
+    font-size: 7.6px !important;
+  }
+
+  .topbar .cashout-actions {
+    gap: 4px !important;
+  }
+
+  .topbar .cashout-actions button {
+    min-height: 27px !important;
+    padding: 0 4px !important;
+    font-size: 6.4px !important;
+  }
+
   .cashout-cycle-summary {
-    grid-template-columns: 1fr;
     gap: 5px;
   }
 
   .cashout-cycle-arrow {
-    width: 20px;
-    height: 20px;
-    justify-self: center;
-    transform: rotate(90deg);
+    width: 27px;
+    height: 27px;
+    font-size: 15px;
   }
 
   .cashout-cycle-card {
-    padding: 8px 9px;
+    padding: 9px 10px;
   }
 
   .cashout-cycle-card strong {
