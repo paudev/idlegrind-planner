@@ -60,8 +60,9 @@ export function cashoutPickerContent(draftTimestamp: number, monthTimestamp: num
   const minute = draft.getMinutes();
   const meridiem = hour24 >= 12 ? 'PM' : 'AM';
   const next = draftTimestamp + 24 * 60 * 60 * 1000;
+  const futureDraft = draftTimestamp > Date.now() + 60_000;
 
-  return `<div class="cashout-picker-panel">
+  return `<div class="cashout-picker-panel${futureDraft ? ' invalid' : ''}">
     <div class="cashout-picker-top">
       <div>
         <small>LAST WITHDRAWAL</small>
@@ -95,15 +96,15 @@ export function cashoutPickerContent(draftTimestamp: number, monthTimestamp: num
     </div>
 
     <div class="cashout-picker-preview">
-      <span>NEXT CASHOUT</span>
-      <strong>${formatLocalTime(next)}</strong>
-      <small>Exactly 24 elapsed hours later.</small>
+      <span>${futureDraft ? 'INVALID WITHDRAWAL' : 'NEXT CASHOUT'}</span>
+      <strong>${futureDraft ? 'TIME IS IN THE FUTURE' : formatLocalTime(next)}</strong>
+      <small>${futureDraft ? 'Choose a time that has already occurred.' : 'Exactly 24 elapsed hours later.'}</small>
     </div>
 
     <div class="cashout-picker-actions">
       <button type="button" class="chip" data-cashout-picker-now>NOW</button>
       <button type="button" class="chip" data-cashout-picker-close>CANCEL</button>
-      <button type="button" class="chip active" data-cashout-picker-save>SAVE</button>
+      <button type="button" class="chip active" data-cashout-picker-save ${futureDraft ? 'disabled' : ''}>SAVE</button>
     </div>
   </div>`;
 }
