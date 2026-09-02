@@ -15,7 +15,7 @@ import {
   rateFactory,
   rigStats,
 } from '../core/calculations';
-import { clamp, compact, duration, escapeHtml, number } from '../core/format';
+import { clamp, compact, duration, escapeHtml, number, signed } from '../core/format';
 import { getQuantumNodePreset, store } from '../core/state';
 import type { CostRow, FundingRow, RigStats } from '../types';
 import {
@@ -181,7 +181,10 @@ function outputView(result: BuildResult): string {
   const funding = buildFunding(result);
   const vialHours = clamp(number(store.state.planner.vialHours), 0, 24);
   const normalHours = 24 - vialHours;
+  const dayFactor = 1 + vialHours / 24;
+  const refine = Math.max(0, number(store.state.settings.refineRate));
   const qn = getQuantumNodePreset();
+  const qnSlots = Math.max(0, number(qn.slots, 1));
   const qnCost = qnTotalCost(0, result.qns);
   const totalGrit = result.average * DAY;
   const overclockExtraGrit = result.normal * vialHours * HOUR;
@@ -189,9 +192,24 @@ function outputView(result: BuildResult): string {
     ? `Starts from 0 QNs and 0 GRIT. Selected fixed rigs fund QNs sequentially${vialHours ? `; the ${vialHours}H vial accelerates funding while active` : ''}.`
     : 'Setup time is unreachable from 0 GRIT with the current references. Add a producing fixed rig so QN 1 can be funded.';
 
+  const extraQns = Math.max(0, Math.floor(number(store.state.planner.extraQns)));
+  const finalQns = result.qns + extraQns;
+  const finalStats = rigStats(store.state.planner.rigs, finalQns, qn);
+  const finalNormal = finalStats.base * result.multiplier;
+  const finalAverage = finalNormal * dayFactor;
+  const finalTotalGrit = finalAverage * DAY;
+  const finalGrind = refine >= 1000 ? finalTotalGrit / refine : 0;
+  const finalOverclockExtraGrit = finalNormal * vialHours * HOUR;
+  const extraQnCost = qnTotalCost(result.qns, extraQns);
+  const grindGain = finalGrind - result.grind;
+  const rateGain = finalNormal - result.normal;
+  const slotGain = finalStats.slots - result.stats.slots;
+  const cap = Math.max(0, number(store.state.settings.maxRackSlots));
+  const finalFits = !(cap > 0 && finalStats.slots > cap);
+
   return `${panel(
     '4 // MINIMUM BUILD',
-    'Minimum Quantum Nodes required and the estimated time to bring that build online.',
+    'Minimum Quantum Nodes required, setup time, and target-based 24H performance.',
     `${!result.ok ? `<div class="warning">${escapeHtml(result.reason)}</div>` : ''}
     <div class="result-hero-pair optimized-build-heroes">
       <div class="result-hero current">
@@ -208,18 +226,14 @@ function outputView(result: BuildResult): string {
     ${!Number.isFinite(funding.time) && result.qns > 0 ? `<div class="warning optimized-build-warning">Add at least one fixed rig with base production, or reduce the target so the build does not require QNs. Build Planner never borrows GRIT or QNs from Deck Simulator.</div>` : ''}
     <div class="metric-grid optimized-build-metrics">
       ${metric('REQUIRED DECK SLOTS', compact(result.stats.slots))}
-      ${metric('QN SLOTS', compact(result.qns * Math.max(0, number(qn.slots, 1))))}
+      ${metric('QN SLOTS', compact(result.qns * qnSlots))}
       ${metric('FIXED RIG SLOTS', compact(result.stats.fixedSlots))}
       ${metric('QN GRIT COST', qnCost > 0 ? `−${compact(qnCost)} GRIT` : '—', qnCost > 0 ? 'negative' : '')}
-    </div>`,
-    `${result.qns.toLocaleString()} QNs`,
-  )}${panel(
-    '5 // FINAL BUILD PERFORMANCE',
-    'Total 24H output and supporting rates for the completed minimum build.',
-    `<div class="final-performance">
+    </div>
+    <div class="final-performance minimum-performance">
       <div class="result-hero-pair final-output-heroes">
         <div class="result-hero simulated">
-          <small>TOTAL 24H OUTPUT</small>
+          <small>TARGET BUILD 24H OUTPUT</small>
           <strong>${compact(totalGrit)}<em> GRIT</em></strong>
           <p>${compact(result.grind)} $GRIND after refining at the configured rate.</p>
         </div>
@@ -231,16 +245,55 @@ function outputView(result: BuildResult): string {
       </div>
       <div class="metric-grid final-performance-metrics">
         ${metric('NORMAL RATE', `${compact(result.normal)}/s`)}
-        ${metric('2× OVERCLOCK RATE', `${compact(result.overclock)}/s`, 'orange')}
         ${metric('OVERCLOCK EXTRA OUTPUT', vialHours ? `+${compact(overclockExtraGrit)} GRIT` : '—', vialHours ? 'green' : '', vialHours ? `Extra GRIT contributed by ${vialHours}h at 2×.` : 'No vial selected.')}
         ${metric('TOTAL $GRIND / 24H', `${compact(result.grind)} $GRIND`, 'gold')}
+        ${metric('TARGET', `${compact(store.state.planner.targetGrindPerDay)} $GRIND`, result.grind >= number(store.state.planner.targetGrindPerDay) ? 'green' : '')}
       </div>
       <div class="schedule">
         <span><b>${normalHours}h</b> normal production</span>
         <span class="orange"><b>${vialHours}h</b> 2× overclock</span>
       </div>
     </div>`,
-    `${compact(totalGrit)} GRIT / 24H`,
+    `${result.qns.toLocaleString()} QNs`,
+  )}${panel(
+    '5 // FINAL BUILD PERFORMANCE',
+    'Add QNs above the minimum and see the performance of the current planned build.',
+    `<div class="sim-card final-qn-control">
+      <div class="field-title">QNs ABOVE MINIMUM</div>
+      <div class="quickadd qn-quick">
+        ${[1, 5, 10].map((count) => `<button type="button" class="chip" data-add-planner-qn="${count}">+${count}</button>`).join('')}
+        <button type="button" class="chip" data-clear-planner-qn>CLEAR</button>
+      </div>
+      <p><b>+${extraQns.toLocaleString()} QNs</b> above minimum · ${result.qns.toLocaleString()} minimum → ${finalQns.toLocaleString()} current build QNs.</p>
+    </div>
+    ${!finalFits ? `<div class="warning">Current build needs ${compact(finalStats.slots)} slots, above the configured ${compact(cap)}-slot cap.</div>` : ''}
+    <div class="final-performance">
+      <div class="result-hero-pair final-output-heroes">
+        <div class="result-hero simulated">
+          <small>CURRENT BUILD $GRIND / 24H</small>
+          <strong>${compact(finalGrind)}<em> $GRIND</em></strong>
+          <p>${grindGain > 0 ? `${signed(grindGain, ' $GRIND')} versus the minimum build.` : 'Matches the minimum target build.'}</p>
+        </div>
+        <div class="result-hero current">
+          <small>CURRENT BUILD QNs</small>
+          <strong>${finalQns.toLocaleString()}</strong>
+          <p>${compact(finalStats.slots)} total slots · ${extraQns ? `+${compact(slotGain)} slots from added QNs` : 'no QNs added above minimum'}.</p>
+        </div>
+      </div>
+      <div class="metric-grid final-performance-metrics">
+        ${metric('NORMAL RATE', `${compact(finalNormal)}/s`, rateGain > 0 ? 'green' : '', rateGain > 0 ? `${signed(rateGain, '/s')} vs minimum` : 'Minimum build rate')}
+        ${metric('EFFECTIVE 24H RATE', `${compact(finalAverage)}/s`)}
+        ${metric('TOTAL 24H OUTPUT', `${compact(finalTotalGrit)} GRIT`)}
+        ${metric('EXTRA $GRIND / 24H', grindGain > 0 ? signed(grindGain, ' $GRIND') : '—', grindGain > 0 ? 'green' : '')}
+        ${metric('EXTRA QN GRIT COST', extraQnCost > 0 ? `−${compact(extraQnCost)} GRIT` : '—', extraQnCost > 0 ? 'negative' : '', extraQns ? `Cost from QN ${result.qns + 1} through ${finalQns}.` : 'No QNs added above minimum.')}
+        ${metric('OVERCLOCK EXTRA OUTPUT', vialHours ? `+${compact(finalOverclockExtraGrit)} GRIT` : '—', vialHours ? 'green' : '', vialHours ? `${vialHours}h at 2× in the 24H estimate.` : 'No vial selected.')}
+      </div>
+      <div class="schedule">
+        <span><b>${normalHours}h</b> normal production</span>
+        <span class="orange"><b>${vialHours}h</b> 2× overclock</span>
+      </div>
+    </div>`,
+    `${compact(finalGrind)} $GRIND / 24H`,
   )}`;
 }
 

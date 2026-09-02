@@ -34,6 +34,7 @@ export interface BuffState {
 
 export interface PlannerState {
   targetGrindPerDay: number;
+  extraQns: number;
   vialHours: number;
   buffs: BuffState;
   rigs: Rig[];

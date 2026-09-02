@@ -61,6 +61,7 @@ export function createDefaultState(): ApplicationStore['state'] {
     reset: { finalRate: 0, vialHours: 0 },
     planner: {
       targetGrindPerDay: 0,
+      extraQns: 0,
       vialHours: 0,
       buffs: defaultBuffs(),
       rigs: [],
@@ -102,6 +103,7 @@ function loadStore(): ApplicationStore {
   state.settings.refineRate = Math.max(0, number(state.settings.refineRate, DEFAULT_SETTINGS.refineRate));
   state.settings.maxRackSlots = normalizeRackLimit(state.settings.maxRackSlots);
   state.reset.vialHours = clamp(number(state.reset.vialHours), 0, 24);
+  state.planner.extraQns = Math.max(0, Math.floor(number(state.planner.extraQns)));
   state.planner.vialHours = clamp(number(state.planner.vialHours), 0, 24);
   normalizeBuffs(state.planner.buffs);
 
@@ -155,6 +157,7 @@ function normalizedInputValue(path: string, value: number): number {
   switch (path) {
     case 'deck.qns':
     case 'deck.addedQns':
+    case 'state.planner.extraQns':
       return Math.max(0, Math.floor(value));
     case 'deck.baseline.currentDeckSlots':
       return Math.max(RACK_BASE_SLOTS, Math.floor(value));
