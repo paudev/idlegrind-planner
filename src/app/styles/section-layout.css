@@ -84,6 +84,7 @@
 }
 
 .cashout-head {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -107,18 +108,17 @@
   min-height: 30px;
 }
 
-/* Compact cashout editor lives only inside Settings. */
+/* Settings cashout row stays compact; the picker opens as a popover. */
 .cashout-settings-row {
   display: grid;
-  grid-template-columns: minmax(180px, .8fr) minmax(320px, 1.35fr) minmax(220px, 1fr) auto;
+  grid-template-columns: minmax(165px, .75fr) minmax(165px, .75fr) minmax(245px, 1.15fr) auto;
   gap: 10px;
   align-items: center;
   min-width: 0;
 }
 
 .cashout-setting-status,
-.cashout-entry,
-.cashout-preview.compact {
+.cashout-picker-anchor {
   min-width: 0;
 }
 
@@ -128,8 +128,7 @@
 }
 
 .cashout-setting-status small,
-.cashout-entry > span,
-.cashout-preview.compact small {
+.cashout-picker-anchor > small {
   color: #78857b;
   font-size: 9px;
   font-weight: 900;
@@ -150,96 +149,65 @@
   line-height: 1.3;
 }
 
-.cashout-entry {
+.cashout-picker-anchor {
+  position: relative;
   display: grid;
   gap: 5px;
 }
 
-.cashout-entry-control {
-  display: flex;
-  align-items: stretch;
-  min-width: 0;
-  height: 38px;
+.cashout-picker-field {
+  width: 100%;
+  min-height: 42px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 10px;
   border: 1px solid #34443a;
   border-radius: 6px;
   background: #080c09;
-  overflow: hidden;
+  color: #c9d1cb;
+  text-align: left;
+  cursor: pointer;
 }
 
-.cashout-entry-control:focus-within {
+.cashout-picker-field:hover,
+.cashout-picker-field:focus-visible {
   border-color: #4b725d;
-  box-shadow: 0 0 0 2px rgba(20, 241, 149, .05);
+  background: #0a100b;
+  outline: none;
 }
 
-.cashout-entry-control input {
-  flex: 1 1 auto;
+.cashout-picker-field > span:nth-child(2) {
   min-width: 0;
-  height: 100%;
-  padding: 0 11px;
-  border: 0;
-  outline: 0;
-  background: transparent;
+  display: grid;
+  gap: 2px;
+}
+
+.cashout-picker-field strong {
+  overflow: hidden;
   color: #cbd3cc;
-  font: 800 12px Inter, ui-sans-serif, system-ui, sans-serif;
-  font-variant-numeric: tabular-nums;
+  font-size: 11.5px;
+  font-weight: 850;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.cashout-entry-control input::placeholder {
-  color: #59645c;
-}
-
-.cashout-entry-control .chip {
-  flex: none;
-  min-height: 100%;
-  margin: 0;
-  padding-inline: 11px;
-  border: 0;
-  border-left: 1px solid #2d3931;
-  border-radius: 0;
-  background: #0b110c;
-  color: #9ba69e;
-}
-
-.cashout-entry > small {
+.cashout-picker-field small {
   color: #69756d;
   font-size: 8.5px;
   font-weight: 700;
-  line-height: 1.2;
 }
 
-.cashout-preview.compact {
-  display: grid;
-  gap: 3px;
-  min-height: 58px;
-  padding: 8px 10px;
-  border: 1px solid #2d4437;
-  border-radius: 6px;
-  background: rgba(20, 241, 149, .025);
-  align-content: center;
-}
-
-.cashout-preview.compact strong {
-  color: #cbd4cd;
+.cashout-picker-field > b {
+  color: #77847a;
   font-size: 12px;
-  font-weight: 900;
-  line-height: 1.2;
-  overflow-wrap: anywhere;
 }
 
-.cashout-preview.compact span {
-  color: #748078;
-  font-size: 9px;
-  line-height: 1.25;
-}
-
-.cashout-preview.compact.invalid {
-  border-color: #5d3832;
-  background: rgba(255, 117, 104, .03);
-}
-
-.cashout-preview.compact.invalid strong,
-.cashout-preview.compact.invalid span {
-  color: #d9877e;
+.cashout-picker-icon {
+  color: #92a098;
+  font-size: 13px;
 }
 
 .cashout-settings-actions {
@@ -251,9 +219,271 @@
   min-width: 58px;
 }
 
-.cashout-settings-actions button:disabled {
-  cursor: not-allowed;
-  opacity: .42;
+/* Fully styled date/time picker. */
+.cashout-picker-popover[hidden] {
+  display: none !important;
+}
+
+.cashout-picker-popover {
+  position: absolute;
+  z-index: 80;
+  width: 318px;
+  max-width: calc(100vw - 24px);
+  border: 1px solid #34483b;
+  border-radius: 8px;
+  background: #0a0f0b;
+  box-shadow: 0 18px 46px rgba(0, 0, 0, .55);
+}
+
+.cashout-picker-popover.header {
+  top: calc(100% + 8px);
+  right: 0;
+}
+
+.cashout-picker-popover.settings {
+  top: calc(100% + 6px);
+  left: 0;
+}
+
+.cashout-picker-panel {
+  display: grid;
+  gap: 9px;
+  padding: 11px;
+}
+
+.cashout-picker-top,
+.cashout-picker-monthbar,
+.cashout-picker-time,
+.cashout-picker-actions {
+  display: flex;
+  align-items: center;
+}
+
+.cashout-picker-top {
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cashout-picker-top > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.cashout-picker-top small,
+.cashout-picker-preview span,
+.cashout-picker-time > span {
+  color: #748178;
+  font-size: 8.5px;
+  font-weight: 900;
+  letter-spacing: .09em;
+}
+
+.cashout-picker-top strong {
+  overflow: hidden;
+  color: #cbd3cc;
+  font-size: 11.5px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cashout-picker-close,
+.cashout-picker-monthbar > button {
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  padding: 0;
+  border: 1px solid #2b3930;
+  border-radius: 5px;
+  background: #080c09;
+  color: #8c9890;
+  font: 800 17px/1 Inter, sans-serif;
+  cursor: pointer;
+}
+
+.cashout-picker-close:hover,
+.cashout-picker-monthbar > button:hover:not(:disabled) {
+  border-color: #456650;
+  color: #d0d7d2;
+}
+
+.cashout-picker-monthbar {
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 1px;
+}
+
+.cashout-picker-monthbar strong {
+  color: #d0d5cf;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .02em;
+}
+
+.cashout-picker-monthbar > button:disabled,
+.cashout-picker-day:disabled {
+  opacity: .25;
+  cursor: default;
+}
+
+.cashout-picker-weekdays,
+.cashout-picker-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.cashout-picker-weekdays {
+  gap: 2px;
+}
+
+.cashout-picker-weekdays span {
+  padding: 2px 0;
+  color: #657168;
+  font-size: 7.5px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.cashout-picker-calendar {
+  gap: 3px;
+}
+
+.cashout-picker-day {
+  aspect-ratio: 1;
+  min-width: 0;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: #aeb8b0;
+  font: 800 9.5px Inter, sans-serif;
+  cursor: pointer;
+}
+
+.cashout-picker-day:hover:not(:disabled) {
+  border-color: #33453a;
+  background: #101711;
+  color: #d4dad5;
+}
+
+.cashout-picker-day.outside {
+  color: #4f5a52;
+}
+
+.cashout-picker-day.today {
+  border-color: #405648;
+}
+
+.cashout-picker-day.selected {
+  border-color: #2c7954;
+  background: rgba(24, 241, 154, .095);
+  color: #18f19a;
+}
+
+.cashout-picker-time {
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #202b23;
+}
+
+.cashout-time-control {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.cashout-time-control > input {
+  width: 42px;
+  height: 30px;
+  padding: 0 5px;
+  border: 1px solid #334239;
+  border-radius: 5px;
+  background: #070b08;
+  color: #cbd3cc;
+  font: 850 11px Inter, sans-serif;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  outline: none;
+  appearance: textfield;
+}
+
+.cashout-time-control > input::-webkit-inner-spin-button,
+.cashout-time-control > input::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
+}
+
+.cashout-time-control > input:focus {
+  border-color: #4b725d;
+}
+
+.cashout-time-control > b {
+  color: #69756d;
+  font-size: 11px;
+}
+
+.cashout-meridiem {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid #334239;
+  border-radius: 5px;
+}
+
+.cashout-meridiem button {
+  height: 28px;
+  padding: 0 7px;
+  border: 0;
+  border-right: 1px solid #28352d;
+  background: #080c09;
+  color: #7f8b82;
+  font: 850 8.5px Inter, sans-serif;
+  cursor: pointer;
+}
+
+.cashout-meridiem button:last-child {
+  border-right: 0;
+}
+
+.cashout-meridiem button.active {
+  background: rgba(24, 241, 154, .08);
+  color: #18f19a;
+}
+
+.cashout-picker-preview {
+  display: grid;
+  gap: 2px;
+  padding: 8px 9px;
+  border: 1px solid #2a3d32;
+  border-radius: 6px;
+  background: #090e0a;
+}
+
+.cashout-picker-preview strong {
+  color: #c8d0ca;
+  font-size: 10.5px;
+  font-weight: 850;
+}
+
+.cashout-picker-preview small {
+  color: #657168;
+  font-size: 8.5px;
+}
+
+.cashout-picker-actions {
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+.cashout-picker-actions .chip {
+  min-height: 28px;
+  padding-inline: 9px;
+  font-size: 8.5px;
 }
 
 .schedule {
@@ -306,7 +536,7 @@
 
 @media (max-width: 1000px) {
   .cashout-settings-row {
-    grid-template-columns: minmax(180px, .8fr) minmax(280px, 1.2fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .cashout-settings-actions {
@@ -410,12 +640,20 @@
     grid-column: 1 / -1;
   }
 
-  .cashout-preview.compact {
-    min-height: 0;
-  }
-
   .cashout-settings-actions {
     justify-content: flex-start;
+  }
+
+  .cashout-picker-popover.header,
+  .cashout-picker-popover.settings {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    right: auto;
+    width: min(318px, calc(100vw - 24px));
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+    transform: translate(-50%, -50%);
   }
 
   .result-hero-pair,
@@ -473,12 +711,12 @@
     justify-content: flex-start;
   }
 
-  .cashout-entry-control {
-    height: 36px;
+  .cashout-picker-panel {
+    padding: 10px;
   }
 
-  .cashout-entry-control input {
-    font-size: 11px;
+  .cashout-picker-day {
+    font-size: 9px;
   }
 
   .cost-badges,
