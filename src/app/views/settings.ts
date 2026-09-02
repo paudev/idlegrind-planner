@@ -10,8 +10,6 @@ import { store } from '../core/state';
 import { cashoutPickerPopover } from '../ui/cashout-picker';
 import { field, intro, pageStack, panel } from '../ui/components';
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 function rigPresetRows(): string {
   return Object.entries(store.state.settings.rigPresets).map(([id, rig]) => `
     <div class="settings-rig ${rig.optimizerFill ? 'optimizer-preset' : ''}">
@@ -57,27 +55,27 @@ function marketRows(): string {
 function cashoutTimingEditor(): string {
   const cycle = cashoutCycle();
   const next = nextCashoutAt(cycle);
-  const pickerTimestamp = next ?? Date.now() + DAY_MS;
+  const pickerTimestamp = cycle.last ?? Date.now();
 
   return `<div class="cashout-settings-row" data-cashout-settings-section>
     <div class="cashout-setting-status primary">
-      <small>NEXT CASHOUT</small>
-      <strong>${next !== null ? formatLocalTime(next) : 'NOT SET'}</strong>
-      <span>${next !== null ? `Local · ${deviceTimezone()}` : 'Choose when your current window becomes eligible.'}</span>
+      <small>LAST CASHOUT</small>
+      <strong>${cycle.last !== null ? formatLocalTime(cycle.last) : 'NOT SET'}</strong>
+      <span>${cycle.last !== null ? `Local · ${deviceTimezone()}` : 'Set the date and time you most recently cashed out.'}</span>
     </div>
 
     <div class="cashout-setting-status secondary">
-      <small>LAST WITHDRAWAL</small>
-      <strong>${cycle.last !== null ? formatLocalTime(cycle.last) : 'NOT SET'}</strong>
-      <span>${cycle.last !== null ? 'Calculated as exactly 24 elapsed hours before next cashout.' : 'Derived automatically from the next cashout you set.'}</span>
+      <small>NEXT CASHOUT</small>
+      <strong>${next !== null ? formatLocalTime(next) : 'NOT SET'}</strong>
+      <span>${next !== null ? 'Automatically exactly 24 elapsed hours after the last cashout.' : 'Calculated automatically after you set the last cashout.'}</span>
     </div>
 
     <div class="cashout-picker-anchor">
-      <small>SET NEXT CASHOUT</small>
+      <small>SET LAST CASHOUT</small>
       <button type="button" class="cashout-picker-field" data-cashout-picker-open="settings">
         <span class="cashout-picker-icon" aria-hidden="true">◫</span>
         <span>
-          <strong>${next !== null ? formatLocalTime(next) : 'CHOOSE DATE & TIME'}</strong>
+          <strong>${cycle.last !== null ? formatLocalTime(cycle.last) : 'CHOOSE DATE & TIME'}</strong>
           <small>LOCAL · ${deviceTimezone()}</small>
         </span>
         <b aria-hidden="true">⌄</b>
@@ -86,7 +84,7 @@ function cashoutTimingEditor(): string {
     </div>
 
     <div class="editor-actions cashout-settings-actions">
-      <button type="button" class="chip active" data-cashout-mark>WITHDRAWN</button>
+      <button type="button" class="chip active" data-cashout-mark>CASHED OUT NOW</button>
       ${cycle.last !== null ? '<button type="button" class="chip" data-cashout-clear>CLEAR</button>' : ''}
     </div>
   </div>`;
@@ -108,7 +106,7 @@ export function renderSettingsView(): string {
     ),
     panel(
       'CASHOUT TIMING',
-      'Set when your current rolling 24-hour window becomes eligible. Last withdrawal is derived automatically and shown as a reference.',
+      'Set your last cashout. The next cashout is calculated automatically as exactly 24 elapsed hours later.',
       cashoutTimingEditor(),
     ),
     panel(

@@ -1,28 +1,13 @@
-/* Make next cashout the primary concept and keep last withdrawal as a quiet reference. */
-.cashout-picker-top-copy {
-  min-width: 0;
-  display: grid;
-  gap: 3px;
+/* Cashout picker: calendar first, then a clear last -> next cycle summary. */
+.cashout-picker-monthbar-primary {
+  padding-bottom: 4px;
 }
 
-.cashout-picker-top-copy small {
-  color: #86a892;
-}
-
-.cashout-picker-top-copy strong {
-  color: #e3eae4;
-  font-variant-numeric: tabular-nums;
-}
-
-.cashout-picker-top-copy span {
-  color: #748178;
-  font-size: 9px;
-  font-weight: 650;
-  line-height: 1.35;
-}
-
-.cashout-picker-panel.invalid .cashout-picker-top-copy strong {
-  color: var(--orange);
+.cashout-picker-monthbar-primary strong {
+  color: #e1e8e2;
+  font-size: 14px;
+  font-weight: 950;
+  letter-spacing: .015em;
 }
 
 .cashout-picker-warning {
@@ -36,21 +21,87 @@
   line-height: 1.4;
 }
 
-.cashout-picker-reference {
-  border-color: #2b3a31;
-  background: linear-gradient(180deg, rgba(255, 255, 255, .012), rgba(8, 13, 9, .98));
+.cashout-cycle-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: 8px;
+  padding-top: 2px;
 }
 
-.cashout-picker-reference span {
-  color: #718078;
+.cashout-cycle-card {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  padding: 10px 11px;
+  border: 1px solid #2d3d33;
+  border-radius: 7px;
+  background: linear-gradient(180deg, rgba(15, 22, 17, .96), rgba(8, 13, 9, .98));
 }
 
-.cashout-picker-reference strong {
-  color: #c2cbc4;
+.cashout-cycle-card small {
+  color: #77857b;
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: .09em;
 }
 
-.cashout-picker-reference small {
-  color: #68756d;
+.cashout-cycle-card strong {
+  overflow: hidden;
+  color: #dce4de;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+}
+
+.cashout-cycle-card span {
+  color: #69766e;
+  font-size: 8.5px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.cashout-cycle-card.last {
+  border-color: #3a4a40;
+}
+
+.cashout-cycle-card.last small {
+  color: #a0aaa3;
+}
+
+.cashout-cycle-card.next {
+  border-color: #31513f;
+  background: linear-gradient(135deg, rgba(20, 241, 149, .05), rgba(8, 13, 9, .98));
+}
+
+.cashout-cycle-card.next small,
+.cashout-cycle-card.next strong {
+  color: var(--green);
+}
+
+.cashout-cycle-arrow {
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid #2b3b31;
+  border-radius: 999px;
+  color: #718077;
+  background: #090f0b;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.cashout-picker-panel.invalid .cashout-cycle-card.last {
+  border-color: #62432f;
+}
+
+.cashout-picker-panel.invalid .cashout-cycle-card.last strong {
+  color: var(--orange);
 }
 
 .cashout-picker-actions [data-cashout-picker-now] {
@@ -79,13 +130,25 @@
   border-left: 1px solid #29372e;
 }
 
+.cashout-setting-status.secondary small {
+  color: #7f9d89;
+}
+
 .cashout-setting-status.secondary strong {
-  color: #aeb8b0;
+  color: var(--green);
 }
 
 @media (max-width: 640px) {
-  .cashout-picker-top-copy span {
-    font-size: 8.5px;
+  .cashout-cycle-summary {
+    gap: 6px;
+  }
+
+  .cashout-cycle-card {
+    padding: 9px;
+  }
+
+  .cashout-cycle-card strong {
+    font-size: 10px;
   }
 
   .cashout-setting-status.primary {
@@ -98,11 +161,39 @@
 }
 
 @media (max-width: 430px) {
+  .cashout-cycle-summary {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .cashout-cycle-arrow {
+    width: 20px;
+    height: 20px;
+    justify-self: center;
+    transform: rotate(90deg);
+  }
+
+  .cashout-cycle-card {
+    padding: 8px 9px;
+  }
+
+  .cashout-cycle-card strong {
+    font-size: 10.5px;
+  }
+
+  .cashout-cycle-card span {
+    font-size: 8px;
+  }
+
   .cashout-picker-actions {
     gap: 4px;
   }
 
   .cashout-picker-actions .chip {
-    padding-inline: 8px;
+    padding-inline: 7px;
+  }
+
+  .cashout-picker-actions [data-cashout-picker-now] {
+    font-size: 6.8px;
   }
 }
