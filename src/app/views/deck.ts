@@ -233,11 +233,40 @@ function outputView(scenario: DeckScenario): string {
   const simulatedDayProjection = scenario.refine >= 1000
     ? production(scenario.fullRate, DAY, scenario.simulatedOverclock)
     : null;
+  const simulatedDayWithoutAddedVial = scenario.refine >= 1000
+    ? production(scenario.fullRate, DAY, scenario.existingOverclock)
+    : null;
   const currentDayGrind = currentDayProjection
     ? currentDayProjection.grit / scenario.refine
     : null;
   const simulatedDayGrind = simulatedDayProjection
     ? simulatedDayProjection.grit / scenario.refine
+    : null;
+  const simulatedDayWithoutAddedVialGrind = simulatedDayWithoutAddedVial
+    ? simulatedDayWithoutAddedVial.grit / scenario.refine
+    : null;
+  const vialHours = Math.max(0, number(store.deck.vialHours));
+  const hasVial = vialHours > 0;
+  const includeVialCost = hasVial && Boolean(store.deck.baseline.includeVialCost);
+  const vialPrice = hasVial ? Math.max(0, number(store.vials[String(vialHours)] ?? 0)) : 0;
+  const vialCharge = includeVialCost ? vialPrice : 0;
+  const vialAddedGrind = simulatedDayGrind !== null && simulatedDayWithoutAddedVialGrind !== null
+    ? Math.max(0, simulatedDayGrind - simulatedDayWithoutAddedVialGrind)
+    : null;
+  const netVialImpact = vialAddedGrind !== null
+    ? vialAddedGrind - vialCharge
+    : null;
+  const netSimulatedDayGrind = simulatedDayGrind !== null
+    ? simulatedDayGrind - vialCharge
+    : null;
+  const netDayChange = currentDayGrind !== null && netSimulatedDayGrind !== null
+    ? netSimulatedDayGrind - currentDayGrind
+    : null;
+  const netCashoutGrind = simulatedGrind !== null
+    ? simulatedGrind - vialCharge
+    : null;
+  const netCashoutChange = currentGrind !== null && netCashoutGrind !== null
+    ? netCashoutGrind - currentGrind
     : null;
   const next = nextCashoutAt(scenario.cycle);
 
@@ -247,16 +276,63 @@ function outputView(scenario: DeckScenario): string {
     ['USED DECK SLOTS', compact(scenario.currentStats.slots), compact(scenario.fullStats.slots), signed(scenario.fullStats.slots - scenario.currentStats.slots)],
     ['NORMAL RATE', `${compact(scenario.currentRate)}/s`, `${compact(scenario.fullRate)}/s`, signed(scenario.fullRate - scenario.currentRate, '/s')],
     ['EST. $GRIND / 24H', currentDayGrind !== null ? `${compact(currentDayGrind)} $GRIND` : '—', simulatedDayGrind !== null ? `${compact(simulatedDayGrind)} $GRIND` : '—', currentDayGrind !== null && simulatedDayGrind !== null ? signed(simulatedDayGrind - currentDayGrind, ' $GRIND') : '—'],
+    ...(includeVialCost ? [[
+      'NET EST. $GRIND / 24H',
+      currentDayGrind !== null ? `${compact(currentDayGrind)} $GRIND` : '—',
+      netSimulatedDayGrind !== null ? `${compact(netSimulatedDayGrind)} $GRIND` : '—',
+      netDayChange !== null ? signed(netDayChange, ' $GRIND') : '—',
+    ] as CompareRow] : []),
     ['AVG RATE UNTIL NEXT CASHOUT', hasProjectionWindow ? `${compact(scenario.currentProjection!.average)}/s` : '—', simulatedAverage !== null ? `${compact(simulatedAverage)}/s` : '—', hasProjectionWindow && simulatedAverage !== null ? signed(simulatedAverage - scenario.currentProjection!.average, '/s') : '—'],
     ['BY NEXT CASHOUT', currentGrind !== null ? `${compact(currentGrind)} $GRIND` : '—', simulatedGrind !== null ? `${compact(simulatedGrind)} $GRIND` : '—', currentGrind !== null && simulatedGrind !== null ? signed(simulatedGrind - currentGrind, ' $GRIND') : '—'],
+    ...(includeVialCost ? [[
+      'NET BY NEXT CASHOUT',
+      currentGrind !== null ? `${compact(currentGrind)} $GRIND` : '—',
+      netCashoutGrind !== null ? `${compact(netCashoutGrind)} $GRIND` : '—',
+      netCashoutChange !== null ? signed(netCashoutChange, ' $GRIND') : '—',
+    ] as CompareRow] : []),
   ];
+
+  const vialEconomics = hasVial ? `<div class="vial-economics ${includeVialCost ? 'cost-included' : 'cost-excluded'} ${netVialImpact !== null && netVialImpact < 0 ? 'loss' : 'gain'}">
+    <div class="vial-economics-head">
+      <div>
+        <small>VIAL ECONOMICS</small>
+        <strong>${vialHours}H OVERCLOCK VIAL</strong>
+        <span>Vial-only value on the simulated ${scenario.targetQns}-QN build. QN gains are excluded from the vial gain.</span>
+      </div>
+      <b>${includeVialCost ? 'COST INCLUDED' : 'COST EXCLUDED'}</b>
+    </div>
+    <div class="vial-economics-grid">
+      <div class="vial-economic-card gain-card">
+        <small>EXTRA $GRIND GENERATED</small>
+        <strong>${vialAddedGrind !== null ? `+${compact(vialAddedGrind)} $GRIND` : '—'}</strong>
+        <span>Additional 24H output caused by the selected vial only.</span>
+      </div>
+      <div class="vial-economic-card cost-card">
+        <small>VIAL ACQUISITION COST</small>
+        <strong>${includeVialCost ? `−${compact(vialCharge)} $GRIND` : 'NOT INCLUDED'}</strong>
+        <span>${includeVialCost ? 'Deducted once using the current Settings market reference.' : `${compact(vialPrice)} $GRIND reference · enable acquisition costing to deduct it.`}</span>
+      </div>
+      <div class="vial-economic-card net-card">
+        <small>NET VIAL IMPACT</small>
+        <strong>${netVialImpact !== null ? signed(netVialImpact, ' $GRIND') : '—'}</strong>
+        <span>${includeVialCost ? 'Extra vial output minus its acquisition price.' : 'Gross vial contribution because acquisition cost is excluded.'}</span>
+      </div>
+    </div>
+    <div class="vial-economics-total">
+      <div>
+        <small>SIMULATED 24H AFTER VIAL COST</small>
+        <strong>${netSimulatedDayGrind !== null ? `${compact(netSimulatedDayGrind)} $GRIND` : '—'}</strong>
+      </div>
+      <span>${includeVialCost && netDayChange !== null ? `${signed(netDayChange, ' $GRIND')} versus the current deck after paying for the vial.` : 'Gross simulated 24H output; acquisition cost is not currently deducted.'}</span>
+    </div>
+  </div>` : '';
 
   return `${intro(
     'DECK SIMULATOR',
     'Start with your current deck, add Quantum Nodes and/or vial time, then compare the realistic result. QNs are funded sequentially when GRIT becomes available.',
   )}${setupPanels(scenario)}${panel(
     '4 // OUTPUT',
-    'Current versus simulated output. The 24H estimate is independent from cashout/reset timing; cashout rows remain funding-aware.',
+    'Current versus simulated output. Gross mining stays visible; when vial acquisition is enabled, net rows and vial economics deduct its market cost separately.',
     `<div class="output-ready-strip">
       <div>
         <small>SIMULATED BUILD READY</small>
@@ -265,6 +341,7 @@ function outputView(scenario: DeckScenario): string {
       <span>Sequential funding to ${scenario.targetQns} QNs · ${compact(scenario.fullStats.slots)} used slots. Cashout eligibility does not interrupt the build.</span>
     </div>
     ${compareRows(rows)}
+    ${vialEconomics}
     <div class="schedule output-schedule">
       <span>
         <b>CASHOUT READY IN</b>
@@ -274,7 +351,9 @@ function outputView(scenario: DeckScenario): string {
       <span><b>CURRENT OVERCLOCK</b><strong>${scenario.existingOverclock ? duration(scenario.existingOverclock, { ready: false }) : 'OFF'}</strong></span>
       <span class="orange"><b>SIMULATED OVERCLOCK</b><strong>${scenario.simulatedOverclock ? duration(scenario.simulatedOverclock, { ready: false }) : 'OFF'}</strong></span>
     </div>`,
-    simulatedDayGrind !== null ? `${compact(simulatedDayGrind, 2)} $GRIND / 24H` : 'SET REFINE RATE',
+    netSimulatedDayGrind !== null
+      ? `${compact(netSimulatedDayGrind, 2)} ${includeVialCost ? 'NET ' : ''}$GRIND / 24H`
+      : 'SET REFINE RATE',
   )}`;
 }
 
