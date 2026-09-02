@@ -56,8 +56,8 @@ export function renderPotentialView(): string {
         </div>
       </div>
       <div class="page-actions">
-        <button type="button" class="chip active" data-cashout-mark>MARK WITHDRAWN NOW</button>
-        <button type="button" class="chip" data-cashout-edit>${cycle.last !== null ? 'EDIT LAST WITHDRAWAL' : 'SET LAST WITHDRAWAL'}</button>
+        <button type="button" class="chip active" data-cashout-mark>WITHDRAWN</button>
+        <button type="button" class="chip" data-cashout-settings>${cycle.last !== null ? 'EDIT IN SETTINGS' : 'SET IN SETTINGS'}</button>
       </div>`,
       next !== null ? duration(remaining) : 'NOT SET',
     ),
