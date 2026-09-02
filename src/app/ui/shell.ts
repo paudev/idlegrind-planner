@@ -7,6 +7,7 @@ import {
 import { compact, duration, number } from '../core/format';
 import { store } from '../core/state';
 import type { ActiveTab } from '../types';
+import { cashoutPickerPopover } from './cashout-picker';
 
 export function header(): string {
   const cycle = cashoutCycle();
@@ -16,6 +17,7 @@ export function header(): string {
   const refine = number(store.state.settings.refineRate) > 0
     ? `${compact(store.state.settings.refineRate, 1)} / $GRIND`
     : 'NOT SET';
+  const pickerTimestamp = cycle.last ?? Date.now();
 
   return `<header class="topbar">
     <div class="brand">IDLE<span>//</span>GRIND</div>
@@ -32,9 +34,10 @@ export function header(): string {
         </div>
         <div class="cashout-actions">
           <button type="button" data-cashout-mark>WITHDRAWN</button>
-          <button type="button" data-cashout-settings>${next !== null ? 'EDIT' : 'SET'}</button>
+          <button type="button" data-cashout-picker-open="header">${next !== null ? 'EDIT' : 'SET'}</button>
           ${next !== null ? '<button type="button" data-cashout-clear>CLEAR</button>' : ''}
         </div>
+        ${cashoutPickerPopover('header', pickerTimestamp)}
       </div>
     </div>
   </header>`;
