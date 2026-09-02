@@ -9,10 +9,11 @@ import {
 import {
   clearCashoutCycle,
   cashoutRemainingSeconds,
+  formatCashoutEditorValue,
   formatLocalTime,
-  localDateTimeTimestamp,
   markWithdrawnNow,
   nextCashoutAt,
+  parseCashoutEditorValue,
   setLastWithdrawal,
 } from './core/cashout';
 import { clamp, duration, number, parseHuman } from './core/format';
@@ -103,9 +104,8 @@ function toggleFrame(buffs: BuffState, key: string): void {
 }
 
 function cashoutEditorTimestamp(): number {
-  const dateInput = app.querySelector<HTMLInputElement>('[data-cashout-date]');
-  const timeInput = app.querySelector<HTMLInputElement>('[data-cashout-time]');
-  return localDateTimeTimestamp(dateInput?.value ?? '', timeInput?.value ?? '');
+  const input = app.querySelector<HTMLInputElement>('[data-cashout-text]');
+  return parseCashoutEditorValue(input?.value ?? '');
 }
 
 function updateCashoutEditorPreview(): void {
@@ -125,7 +125,7 @@ function updateCashoutEditorPreview(): void {
 
   if (!validDate) {
     preview.textContent = 'CHECK DATE & TIME';
-    message.textContent = 'Choose a valid local date and time.';
+    message.textContent = 'Use MM/DD/YYYY · HH:MM AM/PM.';
     return;
   }
 
@@ -139,11 +139,20 @@ function updateCashoutEditorPreview(): void {
   message.textContent = 'Exactly 24 elapsed hours after this withdrawal.';
 }
 
+function focusCashoutSettings(): void {
+  requestAnimationFrame(() => {
+    const input = app.querySelector<HTMLInputElement>('[data-cashout-text]');
+    if (!input) return;
+    input.focus({ preventScroll: false });
+    input.select();
+  });
+}
+
 app.addEventListener('input', (event: Event) => {
   const input = event.target;
   if (!(input instanceof HTMLInputElement)) return;
 
-  if (input.hasAttribute('data-cashout-date') || input.hasAttribute('data-cashout-time')) {
+  if (input.hasAttribute('data-cashout-text')) {
     updateCashoutEditorPreview();
     return;
   }
@@ -207,7 +216,7 @@ app.addEventListener('input', (event: Event) => {
 app.addEventListener('change', (event: Event) => {
   const input = event.target;
   if (!(input instanceof HTMLInputElement)) return;
-  if (input.hasAttribute('data-cashout-date') || input.hasAttribute('data-cashout-time')) {
+  if (input.hasAttribute('data-cashout-text')) {
     updateCashoutEditorPreview();
     return;
   }
@@ -317,27 +326,30 @@ app.addEventListener('click', (event: MouseEvent) => {
 
   if (button.hasAttribute('data-cashout-mark')) {
     markWithdrawnNow();
-    store.ui.cashoutEditor = false;
     render();
     return;
   }
 
-  if (button.hasAttribute('data-cashout-edit')) {
-    store.ui.cashoutEditor = true;
+  if (button.hasAttribute('data-cashout-settings')) {
+    store.state.activeTab = 'settings';
     render();
+    focusCashoutSettings();
     return;
   }
 
-  if (button.hasAttribute('data-cashout-cancel')) {
-    store.ui.cashoutEditor = false;
-    render();
+  if (button.hasAttribute('data-cashout-now')) {
+    const input = app.querySelector<HTMLInputElement>('[data-cashout-text]');
+    if (input) {
+      input.value = formatCashoutEditorValue(Date.now());
+      updateCashoutEditorPreview();
+      input.focus();
+    }
     return;
   }
 
   if (button.hasAttribute('data-cashout-save')) {
     const timestamp = cashoutEditorTimestamp();
     if (setLastWithdrawal(timestamp)) {
-      store.ui.cashoutEditor = false;
       render();
     } else {
       updateCashoutEditorPreview();
@@ -347,7 +359,6 @@ app.addEventListener('click', (event: MouseEvent) => {
 
   if (button.hasAttribute('data-cashout-clear')) {
     clearCashoutCycle();
-    store.ui.cashoutEditor = false;
     render();
     return;
   }
