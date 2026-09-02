@@ -261,7 +261,8 @@ function outputView(result: BuildResult): string {
       <div class="field-title">QNs ABOVE MINIMUM</div>
       <div class="quickadd qn-quick">
         ${[1, 5, 10].map((count) => `<button type="button" class="chip" data-add-planner-qn="${count}">+${count}</button>`).join('')}
-        <button type="button" class="chip" data-clear-planner-qn>CLEAR</button>
+        <button type="button" class="chip" data-add-planner-qn="-1" ${extraQns <= 0 ? 'disabled' : ''}>−1</button>
+        <button type="button" class="chip" data-clear-planner-qn ${extraQns <= 0 ? 'disabled' : ''}>CLEAR</button>
       </div>
       <p><b>+${extraQns.toLocaleString()} QNs</b> above minimum · ${result.qns.toLocaleString()} minimum → ${finalQns.toLocaleString()} current build QNs.</p>
     </div>

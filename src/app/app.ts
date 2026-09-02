@@ -304,7 +304,9 @@ app.addEventListener('click', (event: MouseEvent) => {
   }
 
   if (button.dataset.addPlannerQn) {
-    store.state.planner.extraQns = Math.max(0, Math.floor(number(store.state.planner.extraQns))) + Math.max(0, Number(button.dataset.addPlannerQn));
+    const currentExtraQns = Math.max(0, Math.floor(number(store.state.planner.extraQns)));
+    const delta = Math.trunc(Number(button.dataset.addPlannerQn));
+    if (Number.isFinite(delta)) store.state.planner.extraQns = Math.max(0, currentExtraQns + delta);
     render();
     return;
   }
