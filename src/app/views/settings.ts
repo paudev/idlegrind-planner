@@ -2,12 +2,13 @@ import { MARKET_DEFAULTS, MARKET_LABELS, VIAL_DEFAULTS } from '../config/economy
 import {
   cashoutCycle,
   deviceTimezone,
+  formatCashoutEditorValue,
   formatLocalTime,
   nextCashoutAt,
 } from '../core/cashout';
 import { escapeHtml, inputText } from '../core/format';
 import { store } from '../core/state';
-import { field, intro, metric, pageStack, panel } from '../ui/components';
+import { field, intro, pageStack, panel } from '../ui/components';
 
 function rigPresetRows(): string {
   return Object.entries(store.state.settings.rigPresets).map(([id, rig]) => `
@@ -51,10 +52,51 @@ function marketRows(): string {
   return [...rigPrices, ...vialPrices].join('');
 }
 
-export function renderSettingsView(): string {
+function cashoutTimingEditor(): string {
   const cycle = cashoutCycle();
+  const editorTimestamp = cycle.last ?? Date.now();
   const next = nextCashoutAt(cycle);
+  const previewNext = editorTimestamp + 24 * 60 * 60 * 1000;
 
+  return `<div class="cashout-settings-row" data-cashout-settings-section>
+    <div class="cashout-setting-status">
+      <small>LAST WITHDRAWAL</small>
+      <strong>${cycle.last !== null ? formatLocalTime(cycle.last) : 'NOT SET'}</strong>
+      <span>${next !== null ? `Next · ${formatLocalTime(next)}` : 'No cashout window is active.'}</span>
+    </div>
+
+    <label class="cashout-entry">
+      <span>SET LOCAL DATE & TIME</span>
+      <div class="cashout-entry-control">
+        <input
+          type="text"
+          inputmode="text"
+          autocomplete="off"
+          spellcheck="false"
+          data-cashout-text
+          value="${formatCashoutEditorValue(editorTimestamp)}"
+          placeholder="09/02/2026 · 02:23 PM"
+          aria-label="Last withdrawal local date and time"
+        >
+        <button type="button" class="chip" data-cashout-now>NOW</button>
+      </div>
+      <small>LOCAL · ${deviceTimezone()}</small>
+    </label>
+
+    <div class="cashout-preview compact">
+      <small>NEXT CASHOUT</small>
+      <strong data-cashout-preview>${formatLocalTime(previewNext)}</strong>
+      <span data-cashout-editor-message>Exactly 24 elapsed hours after this withdrawal.</span>
+    </div>
+
+    <div class="editor-actions cashout-settings-actions">
+      <button type="button" class="chip active" data-cashout-save>SAVE</button>
+      ${cycle.last !== null ? '<button type="button" class="chip" data-cashout-clear>CLEAR</button>' : ''}
+    </div>
+  </div>`;
+}
+
+export function renderSettingsView(): string {
   return pageStack(
     intro(
       'SETTINGS',
@@ -70,17 +112,8 @@ export function renderSettingsView(): string {
     ),
     panel(
       'CASHOUT TIMING',
-      'Manual correction for your personal rolling 24-hour cashout cycle.',
-      `<div class="metric-grid three">
-        ${metric('LAST WITHDRAWAL', cycle.last !== null ? formatLocalTime(cycle.last) : 'NOT SET')}
-        ${metric('NEXT CASHOUT', next !== null ? formatLocalTime(next) : 'NOT SET')}
-        ${metric('DISPLAY TIMEZONE', deviceTimezone())}
-        ${metric('RULE', 'LAST WITHDRAWAL + 24H')}
-      </div>
-      <div class="page-actions">
-        <button type="button" class="chip active" data-cashout-mark>MARK WITHDRAWN NOW</button>
-        <button type="button" class="chip" data-cashout-edit>${cycle.last !== null ? 'EDIT LAST WITHDRAWAL' : 'SET LAST WITHDRAWAL'}</button>
-      </div>`,
+      'Set or correct your personal rolling 24-hour cashout cycle. Time is interpreted in your current device timezone.',
+      cashoutTimingEditor(),
     ),
     panel(
       'RIG PRESETS',
