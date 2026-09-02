@@ -307,6 +307,18 @@ app.addEventListener('click', (event: MouseEvent) => {
     return;
   }
 
+  if (button.dataset.addPlannerQn) {
+    store.state.planner.extraQns = Math.max(0, Math.floor(number(store.state.planner.extraQns))) + Math.max(0, Number(button.dataset.addPlannerQn));
+    render();
+    return;
+  }
+
+  if (button.hasAttribute('data-clear-planner-qn')) {
+    store.state.planner.extraQns = 0;
+    render();
+    return;
+  }
+
   if (button.hasAttribute('data-toggle-vial-cost')) {
     store.deck.baseline.includeVialCost = !store.deck.baseline.includeVialCost;
     render();
