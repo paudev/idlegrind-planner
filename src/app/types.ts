@@ -71,7 +71,6 @@ export interface DeckState {
 }
 
 export interface UiState {
-  cashoutEditor: boolean;
   readinessGroup: number;
   readinessPage: number;
   rackPage: number;
