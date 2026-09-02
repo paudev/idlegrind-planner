@@ -1,8 +1,10 @@
+import { DAY } from '../config/economy';
 import { formatLocalTime } from '../core/cashout';
 
 export type CashoutPickerScope = 'header' | 'settings';
 
 const WEEKDAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+const DAY_MS = DAY * 1000;
 
 function pad(value: number): string {
   return String(value).padStart(2, '0');
@@ -26,14 +28,24 @@ export function cashoutPickerContent(draftTimestamp: number, monthTimestamp: num
   const first = new Date(month.getFullYear(), month.getMonth(), 1);
   const firstVisible = new Date(first);
   firstVisible.setDate(first.getDate() - first.getDay());
+  const maxNextTimestamp = Date.now() + DAY_MS + 60_000;
+  const maxNextDate = new Date(maxNextTimestamp);
 
   const monthLabel = new Intl.DateTimeFormat(undefined, {
     month: 'long',
     year: 'numeric',
   }).format(first);
 
-  const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1, 12, 0, 0, 0).getTime();
-  const nextDisabled = monthTimestamp >= currentMonthStart;
+  const maxMonthStart = new Date(
+    maxNextDate.getFullYear(),
+    maxNextDate.getMonth(),
+    1,
+    12,
+    0,
+    0,
+    0,
+  ).getTime();
+  const nextDisabled = monthTimestamp >= maxMonthStart;
 
   const days = Array.from({ length: 42 }, (_, index) => {
     const date = new Date(firstVisible);
@@ -41,8 +53,8 @@ export function cashoutPickerContent(draftTimestamp: number, monthTimestamp: num
     date.setHours(12, 0, 0, 0);
 
     const outside = date.getMonth() !== month.getMonth();
-    const future = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
-      > new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+    const beyondWindow = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
+      > new Date(maxNextDate.getFullYear(), maxNextDate.getMonth(), maxNextDate.getDate()).getTime();
     const selected = sameLocalDay(date, draft);
     const isToday = sameLocalDay(date, today);
 
@@ -50,7 +62,7 @@ export function cashoutPickerContent(draftTimestamp: number, monthTimestamp: num
       type="button"
       class="cashout-picker-day${outside ? ' outside' : ''}${selected ? ' selected' : ''}${isToday ? ' today' : ''}"
       data-cashout-picker-day="${date.getTime()}"
-      ${future ? 'disabled' : ''}
+      ${beyondWindow ? 'disabled' : ''}
       aria-label="${date.toLocaleDateString()}"
     >${date.getDate()}</button>`;
   }).join('');
@@ -59,14 +71,15 @@ export function cashoutPickerContent(draftTimestamp: number, monthTimestamp: num
   const hour12 = hour24 % 12 || 12;
   const minute = draft.getMinutes();
   const meridiem = hour24 >= 12 ? 'PM' : 'AM';
-  const next = draftTimestamp + 24 * 60 * 60 * 1000;
-  const futureDraft = draftTimestamp > Date.now() + 60_000;
+  const lastWithdrawal = draftTimestamp - DAY_MS;
+  const invalidDraft = draftTimestamp > maxNextTimestamp;
 
-  return `<div class="cashout-picker-panel${futureDraft ? ' invalid' : ''}">
+  return `<div class="cashout-picker-panel${invalidDraft ? ' invalid' : ''}">
     <div class="cashout-picker-top">
-      <div>
-        <small>LAST WITHDRAWAL</small>
+      <div class="cashout-picker-top-copy">
+        <small>NEXT CASHOUT</small>
         <strong>${formatLocalTime(draftTimestamp)}</strong>
+        <span>Choose when your rolling 24-hour window becomes eligible.</span>
       </div>
       <button type="button" class="cashout-picker-close" data-cashout-picker-close aria-label="Close date and time picker">×</button>
     </div>
@@ -83,7 +96,7 @@ export function cashoutPickerContent(draftTimestamp: number, monthTimestamp: num
     <div class="cashout-picker-calendar">${days}</div>
 
     <div class="cashout-picker-time">
-      <span>TIME</span>
+      <span>ELIGIBLE AT</span>
       <div class="cashout-time-control">
         <input type="number" min="1" max="12" inputmode="numeric" value="${hour12}" data-cashout-picker-hour aria-label="Hour">
         <b>:</b>
@@ -95,16 +108,18 @@ export function cashoutPickerContent(draftTimestamp: number, monthTimestamp: num
       </div>
     </div>
 
-    <div class="cashout-picker-preview">
-      <span>${futureDraft ? 'INVALID WITHDRAWAL' : 'NEXT CASHOUT'}</span>
-      <strong>${futureDraft ? 'TIME IS IN THE FUTURE' : formatLocalTime(next)}</strong>
-      <small>${futureDraft ? 'Choose a time that has already occurred.' : 'Exactly 24 elapsed hours later.'}</small>
+    ${invalidDraft ? '<div class="cashout-picker-warning">Next cashout must be within 24 hours from now. Otherwise the implied last withdrawal would still be in the future.</div>' : ''}
+
+    <div class="cashout-picker-preview cashout-picker-reference">
+      <span>LAST WITHDRAWAL</span>
+      <strong>${formatLocalTime(lastWithdrawal)}</strong>
+      <small>Calculated automatically · exactly 24 elapsed hours before the selected cashout.</small>
     </div>
 
     <div class="cashout-picker-actions">
-      <button type="button" class="chip" data-cashout-picker-now>NOW</button>
+      <button type="button" class="chip" data-cashout-picker-now>WITHDREW NOW</button>
       <button type="button" class="chip" data-cashout-picker-close>CANCEL</button>
-      <button type="button" class="chip active" data-cashout-picker-save ${futureDraft ? 'disabled' : ''}>SAVE</button>
+      <button type="button" class="chip active" data-cashout-picker-save ${invalidDraft ? 'disabled' : ''}>SAVE</button>
     </div>
   </div>`;
 }

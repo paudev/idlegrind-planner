@@ -11,7 +11,8 @@ import {
   clearCashoutCycle,
   cashoutRemainingSeconds,
   markWithdrawnNow,
-  setLastWithdrawal,
+  nextCashoutAt,
+  setNextCashout,
 } from './core/cashout';
 import { clamp, duration, number, parseHuman } from './core/format';
 import {
@@ -53,6 +54,7 @@ const ACTIVE_TABS: ActiveTab[] = ['target', 'reset', 'current', 'planner', 'cost
 const DECK_VIEWS: DeckView[] = ['output', 'cost', 'readiness'];
 const PLANNER_VIEWS: PlannerView[] = ['output', 'cost', 'readiness'];
 const SCOPES: Scope[] = ['deck', 'planner'];
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 type NumericBuffKey = 'tier' | 'coolantLevel' | 'prestigePct' | 'auraPct' | 'corePct' | 'otherMult';
 type FrameKey = 'bronze' | 'silver' | 'gold' | 'mixed';
@@ -111,7 +113,7 @@ function pickerRoot(scope: CashoutPickerScope): HTMLElement | null {
 
 function pickerDraft(root: HTMLElement): number {
   const value = Number(root.dataset.draft);
-  return Number.isFinite(value) ? value : Date.now();
+  return Number.isFinite(value) ? value : Date.now() + DAY_MS;
 }
 
 function pickerMonth(root: HTMLElement): number {
@@ -135,7 +137,7 @@ function openCashoutPicker(scope: CashoutPickerScope): void {
   const root = pickerRoot(scope);
   if (!root) return;
 
-  const draft = cashoutCycle().last ?? Date.now();
+  const draft = nextCashoutAt(cashoutCycle()) ?? Date.now() + DAY_MS;
   refreshPicker(root, draft);
   closeCashoutPickers(root);
   root.hidden = false;
@@ -145,12 +147,6 @@ function selectPickerDay(root: HTMLElement, dayTimestamp: number): void {
   const selected = new Date(dayTimestamp);
   const draft = new Date(pickerDraft(root));
   draft.setFullYear(selected.getFullYear(), selected.getMonth(), selected.getDate());
-
-  if (draft.getTime() > Date.now() + 60_000) {
-    const now = new Date();
-    draft.setHours(now.getHours(), now.getMinutes(), 0, 0);
-  }
-
   refreshPicker(root, draft.getTime(), cashoutMonthStart(selected.getTime()));
 }
 
@@ -415,14 +411,14 @@ app.addEventListener('click', (event: MouseEvent) => {
 
   if (button.hasAttribute('data-cashout-picker-now')) {
     const root = button.closest<HTMLElement>('[data-cashout-picker]');
-    if (root) refreshPicker(root, Date.now());
+    if (root) refreshPicker(root, Date.now() + DAY_MS);
     return;
   }
 
   if (button.hasAttribute('data-cashout-picker-save')) {
     const root = button.closest<HTMLElement>('[data-cashout-picker]');
     if (!root) return;
-    if (setLastWithdrawal(pickerDraft(root))) render();
+    if (setNextCashout(pickerDraft(root))) render();
     return;
   }
 

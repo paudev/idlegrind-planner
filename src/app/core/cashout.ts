@@ -60,6 +60,16 @@ export function setLastWithdrawal(timestamp: number): boolean {
   return true;
 }
 
+export function setNextCashout(timestamp: number): boolean {
+  if (!Number.isFinite(timestamp) || timestamp <= 0) return false;
+
+  const lastWithdrawalAt = timestamp - DAY * 1000;
+  if (lastWithdrawalAt <= 0 || lastWithdrawalAt > Date.now() + 60_000) return false;
+
+  saveCashoutCycle({ lastWithdrawalAt });
+  return true;
+}
+
 export function clearCashoutCycle(): void {
   writeJson<PersistedCashoutCycle>(STORAGE_KEYS.cashout, {});
 }

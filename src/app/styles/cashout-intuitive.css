@@ -1,0 +1,108 @@
+/* Make next cashout the primary concept and keep last withdrawal as a quiet reference. */
+.cashout-picker-top-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.cashout-picker-top-copy small {
+  color: #86a892;
+}
+
+.cashout-picker-top-copy strong {
+  color: #e3eae4;
+  font-variant-numeric: tabular-nums;
+}
+
+.cashout-picker-top-copy span {
+  color: #748178;
+  font-size: 9px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.cashout-picker-panel.invalid .cashout-picker-top-copy strong {
+  color: var(--orange);
+}
+
+.cashout-picker-warning {
+  padding: 8px 10px;
+  border: 1px solid #62432f;
+  border-radius: 6px;
+  background: rgba(92, 50, 30, .16);
+  color: #c6987e;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.cashout-picker-reference {
+  border-color: #2b3a31;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .012), rgba(8, 13, 9, .98));
+}
+
+.cashout-picker-reference span {
+  color: #718078;
+}
+
+.cashout-picker-reference strong {
+  color: #c2cbc4;
+}
+
+.cashout-picker-reference small {
+  color: #68756d;
+}
+
+.cashout-picker-actions [data-cashout-picker-now] {
+  margin-right: auto;
+}
+
+.cashout-setting-status.primary {
+  padding: 8px 10px;
+  border: 1px solid #31503f;
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(24, 241, 154, .045), rgba(9, 14, 10, .96));
+}
+
+.cashout-setting-status.primary small {
+  color: #86a892;
+}
+
+.cashout-setting-status.primary strong {
+  color: #e0e7e1;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cashout-setting-status.secondary {
+  padding: 7px 8px;
+  border-left: 1px solid #29372e;
+}
+
+.cashout-setting-status.secondary strong {
+  color: #aeb8b0;
+}
+
+@media (max-width: 640px) {
+  .cashout-picker-top-copy span {
+    font-size: 8.5px;
+  }
+
+  .cashout-setting-status.primary {
+    padding: 7px 8px;
+  }
+
+  .cashout-setting-status.secondary {
+    padding: 6px 7px;
+  }
+}
+
+@media (max-width: 430px) {
+  .cashout-picker-actions {
+    gap: 4px;
+  }
+
+  .cashout-picker-actions .chip {
+    padding-inline: 8px;
+  }
+}

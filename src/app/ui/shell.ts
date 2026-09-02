@@ -9,6 +9,8 @@ import { store } from '../core/state';
 import type { ActiveTab } from '../types';
 import { cashoutPickerPopover } from './cashout-picker';
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 export function header(): string {
   const cycle = cashoutCycle();
   const next = nextCashoutAt(cycle);
@@ -17,7 +19,7 @@ export function header(): string {
   const refine = number(store.state.settings.refineRate) > 0
     ? `${compact(store.state.settings.refineRate, 1)} / $GRIND`
     : 'NOT SET';
-  const pickerTimestamp = cycle.last ?? Date.now();
+  const pickerTimestamp = next ?? Date.now() + DAY_MS;
 
   return `<header class="topbar">
     <div class="brand">IDLE<span>//</span>GRIND</div>
@@ -30,7 +32,7 @@ export function header(): string {
         <div class="cashout-copy">
           <small>${ready ? 'CASHOUT READY' : 'NEXT CASHOUT'}</small>
           <strong data-live-cashout>${next !== null ? duration(remaining) : 'NOT SET'}</strong>
-          <span>${next !== null ? `${formatLocalTime(next, false)} · local` : 'Record your last withdrawal'}</span>
+          <span>${next !== null ? `${formatLocalTime(next, false)} · local` : 'Set when your next cashout becomes eligible'}</span>
         </div>
         <div class="cashout-actions">
           <button type="button" data-cashout-mark>WITHDRAWN</button>
