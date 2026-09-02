@@ -91,7 +91,7 @@ function loadStore(): ApplicationStore {
   const state = mergeState(createDefaultState(), readJson<unknown>(STORAGE_KEYS.app, {}));
   const deck = mergeState(createDefaultDeck(), readJson<unknown>(STORAGE_KEYS.deck, {}));
   const ui = mergeState(
-    { cashoutEditor: false, readinessGroup: 1, readinessPage: 1, rackPage: 1 },
+    { readinessGroup: 1, readinessPage: 1, rackPage: 1 },
     readJson<unknown>(STORAGE_KEYS.ui, {}),
   );
 
@@ -238,6 +238,6 @@ export function resetPlannerData(): void {
   store.market = { ...MARKET_DEFAULTS };
   store.vials = { ...VIAL_DEFAULTS };
   store.costingReference = { coolantLevel: 0, rackSlots: RACK_BASE_SLOTS };
-  store.ui = { cashoutEditor: false, readinessGroup: 1, readinessPage: 1, rackPage: 1 };
+  store.ui = { readinessGroup: 1, readinessPage: 1, rackPage: 1 };
   saveAll();
 }
