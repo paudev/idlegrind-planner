@@ -229,6 +229,9 @@
   z-index: 80;
   width: 318px;
   max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border: 1px solid #34483b;
   border-radius: 8px;
   background: #0a0f0b;
@@ -240,9 +243,14 @@
   right: 0;
 }
 
+/* Settings panels intentionally clip their contents. Keep this editor out of that
+   clipping context and centered in the viewport instead of growing below the row. */
 .cashout-picker-popover.settings {
-  top: calc(100% + 6px);
-  left: 0;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  right: auto;
+  transform: translate(-50%, -50%);
 }
 
 .cashout-picker-panel {
@@ -651,7 +659,7 @@
     left: 50%;
     right: auto;
     width: min(318px, calc(100vw - 24px));
-    max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - 24px);
     overflow-y: auto;
     transform: translate(-50%, -50%);
   }
