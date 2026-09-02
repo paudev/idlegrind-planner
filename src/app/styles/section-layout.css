@@ -107,150 +107,151 @@
   min-height: 30px;
 }
 
-/* Cashout date/time editor */
-.cashout-editor {
+/* Compact cashout editor lives only inside Settings. */
+.cashout-settings-row {
   display: grid;
-  gap: 12px;
-  margin: 12px 0 2px;
-  padding: 14px;
-  border: 1px solid #314239;
-  border-radius: 8px;
-  background: linear-gradient(180deg, #0d140f, #090e0a);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, .2);
-}
-
-.cashout-editor-head {
-  display: flex;
+  grid-template-columns: minmax(180px, .8fr) minmax(320px, 1.35fr) minmax(220px, 1fr) auto;
+  gap: 10px;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  min-width: 0;
 }
 
-.cashout-editor-head > div {
+.cashout-setting-status,
+.cashout-entry,
+.cashout-preview.compact {
+  min-width: 0;
+}
+
+.cashout-setting-status {
   display: grid;
-  gap: 2px;
+  gap: 3px;
 }
 
-.cashout-editor-head small,
-.cashout-preview small,
-.cashout-datetime-field > span {
+.cashout-setting-status small,
+.cashout-entry > span,
+.cashout-preview.compact small {
   color: #78857b;
   font-size: 9px;
   font-weight: 900;
-  letter-spacing: .09em;
+  letter-spacing: .085em;
 }
 
-.cashout-editor-head strong {
-  color: #c6cec7;
-  font-size: 13px;
+.cashout-setting-status strong {
+  color: #c7cfc8;
+  font-size: 12px;
   font-weight: 850;
-}
-
-.cashout-timezone {
-  flex: none;
-  max-width: 46%;
-  padding: 5px 8px;
-  border: 1px solid #2d3b32;
-  border-radius: 999px;
-  background: #090d0a;
-  color: #839087;
-  font-size: 9px;
-  font-weight: 800;
-  line-height: 1.2;
-  text-align: right;
+  line-height: 1.25;
   overflow-wrap: anywhere;
 }
 
-.cashout-editor-grid {
+.cashout-setting-status span {
+  color: #748078;
+  font-size: 9.5px;
+  line-height: 1.3;
+}
+
+.cashout-entry {
   display: grid;
-  grid-template-columns: minmax(300px, 1.15fr) minmax(230px, .85fr) auto;
-  gap: 10px;
+  gap: 5px;
+}
+
+.cashout-entry-control {
+  display: flex;
   align-items: stretch;
-}
-
-.cashout-datetime-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(120px, .85fr);
-  gap: 8px;
-}
-
-.cashout-datetime-field {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-  padding: 10px 11px;
-  border: 1px solid #2b3930;
-  border-radius: 6px;
-  background: #080d09;
-}
-
-.cashout-datetime-field input {
-  width: 100%;
   min-width: 0;
   height: 38px;
-  padding: 0 9px;
-  border: 1px solid #35463b;
-  border-radius: 5px;
-  background: #070a08;
-  color: #d1d8d2;
-  font: 800 13px Inter, ui-sans-serif, system-ui, sans-serif;
-  color-scheme: dark;
-  outline: none;
-}
-
-.cashout-datetime-field input:focus {
-  border-color: #4b725d;
-  box-shadow: 0 0 0 2px rgba(20, 241, 149, .055);
-}
-
-.cashout-preview {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-width: 0;
-  padding: 10px 12px;
-  border: 1px solid #31513f;
+  border: 1px solid #34443a;
   border-radius: 6px;
-  background: linear-gradient(135deg, rgba(20, 241, 149, .04), #090e0a 72%);
+  background: #080c09;
+  overflow: hidden;
 }
 
-.cashout-preview strong {
-  margin-top: 4px;
+.cashout-entry-control:focus-within {
+  border-color: #4b725d;
+  box-shadow: 0 0 0 2px rgba(20, 241, 149, .05);
+}
+
+.cashout-entry-control input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  padding: 0 11px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #cbd3cc;
+  font: 800 12px Inter, ui-sans-serif, system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.cashout-entry-control input::placeholder {
+  color: #59645c;
+}
+
+.cashout-entry-control .chip {
+  flex: none;
+  min-height: 100%;
+  margin: 0;
+  padding-inline: 11px;
+  border: 0;
+  border-left: 1px solid #2d3931;
+  border-radius: 0;
+  background: #0b110c;
+  color: #9ba69e;
+}
+
+.cashout-entry > small {
+  color: #69756d;
+  font-size: 8.5px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.cashout-preview.compact {
+  display: grid;
+  gap: 3px;
+  min-height: 58px;
+  padding: 8px 10px;
+  border: 1px solid #2d4437;
+  border-radius: 6px;
+  background: rgba(20, 241, 149, .025);
+  align-content: center;
+}
+
+.cashout-preview.compact strong {
   color: #cbd4cd;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 900;
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
 
-.cashout-preview span {
-  margin-top: 4px;
+.cashout-preview.compact span {
   color: #748078;
-  font-size: 10px;
-  line-height: 1.35;
+  font-size: 9px;
+  line-height: 1.25;
 }
 
-.cashout-preview.invalid {
+.cashout-preview.compact.invalid {
   border-color: #5d3832;
-  background: rgba(255, 117, 104, .035);
+  background: rgba(255, 117, 104, .03);
 }
 
-.cashout-preview.invalid strong,
-.cashout-preview.invalid span {
+.cashout-preview.compact.invalid strong,
+.cashout-preview.compact.invalid span {
   color: #d9877e;
 }
 
-.cashout-editor .editor-actions {
-  align-self: end;
+.cashout-settings-actions {
   justify-content: flex-end;
-  padding-bottom: 1px;
+  flex-wrap: nowrap;
 }
 
-.cashout-editor .editor-actions button {
-  min-width: 64px;
+.cashout-settings-actions button {
+  min-width: 58px;
 }
 
-.cashout-editor .editor-actions button:disabled {
+.cashout-settings-actions button:disabled {
   cursor: not-allowed;
   opacity: .42;
 }
@@ -303,6 +304,16 @@
   min-width: 0;
 }
 
+@media (max-width: 1000px) {
+  .cashout-settings-row {
+    grid-template-columns: minmax(180px, .8fr) minmax(280px, 1.2fr);
+  }
+
+  .cashout-settings-actions {
+    justify-content: flex-start;
+  }
+}
+
 @media (max-width: 900px) {
   .result-hero-triple {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -310,15 +321,6 @@
 
   .result-hero-triple > :last-child:nth-child(odd) {
     grid-column: 1 / -1;
-  }
-
-  .cashout-editor-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(220px, .8fr);
-  }
-
-  .cashout-editor .editor-actions {
-    grid-column: 1 / -1;
-    justify-content: flex-start;
   }
 }
 
@@ -385,31 +387,35 @@
     font-size: 9px;
   }
 
-  .cashout-editor {
-    gap: 10px;
-    padding: 12px;
-  }
-
-  .cashout-editor-head {
-    align-items: flex-start;
-  }
-
-  .cashout-timezone {
-    max-width: 52%;
-  }
-
-  .cashout-editor-grid,
-  .cashout-datetime-grid {
+  .cashout-settings-row {
     grid-template-columns: 1fr;
+    gap: 9px;
   }
 
-  .cashout-editor .editor-actions {
-    grid-column: auto;
+  .cashout-setting-status {
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 8px;
+    align-items: baseline;
+  }
+
+  .cashout-setting-status small {
+    grid-column: 1;
+  }
+
+  .cashout-setting-status strong {
+    grid-column: 2;
+  }
+
+  .cashout-setting-status span {
+    grid-column: 1 / -1;
+  }
+
+  .cashout-preview.compact {
+    min-height: 0;
+  }
+
+  .cashout-settings-actions {
     justify-content: flex-start;
-  }
-
-  .cashout-editor .editor-actions button {
-    flex: 1 1 0;
   }
 
   .result-hero-pair,
@@ -467,15 +473,12 @@
     justify-content: flex-start;
   }
 
-  .cashout-editor-head {
-    display: grid;
-    grid-template-columns: 1fr;
+  .cashout-entry-control {
+    height: 36px;
   }
 
-  .cashout-timezone {
-    max-width: 100%;
-    width: fit-content;
-    text-align: left;
+  .cashout-entry-control input {
+    font-size: 11px;
   }
 
   .cost-badges,
