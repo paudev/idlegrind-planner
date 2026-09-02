@@ -1,4 +1,5 @@
 import {
+  DAY,
   HOUR,
   QN_BASE_PRICE,
   QN_PRICE_GROWTH,
@@ -154,7 +155,7 @@ function setupPanels(scenario: DeckScenario): string {
     `<div class="current-grid">
       ${field('deck.qns', 'CURRENT QUANTUM NODES', store.deck.qns)}
       ${field('deck.baseline.currentGrit', 'CURRENT GRIT BALANCE', store.deck.baseline.currentGrit)}
-      ${field('deck.baseline.currentDeckSlots', 'TOTAL DECK SLOT', store.deck.baseline.currentDeckSlots)}
+      ${field('deck.baseline.currentDeckSlots', 'TOTAL OWNED DECK SLOTS', store.deck.baseline.currentDeckSlots)}
     </div>
     <div class="optimizer-rig">
       <div class="optimizer-copy">
@@ -198,7 +199,7 @@ function setupPanels(scenario: DeckScenario): string {
         <p>Existing active overclock applies before any added vial.</p>
       </div>
     </div>
-    ${choiceRow('ADD VIAL', vialButtons, 'Added after current overclock. Cashout eligibility does not stop the build funding timeline.')}
+    ${choiceRow('ADD VIAL', vialButtons, 'Added after current overclock. The 24H estimate uses 2× production only while overclock/vial time is active, then normal production for the rest of the day.')}
     ${choiceRow('COSTING', chip('INCLUDE VIAL ACQUISITION', Boolean(store.deck.baseline.includeVialCost), 'data-toggle-vial-cost'), `Uses the editable ${store.deck.vialHours ? `${store.deck.vialHours}H` : ''} vial market reference.`)}`,
   )}`;
 }
@@ -215,6 +216,18 @@ function outputView(scenario: DeckScenario): string {
   const simulatedGrind = configured && scenario.refine >= 1000
     ? scenario.progress!.mined / scenario.refine
     : null;
+  const currentDayProjection = scenario.refine >= 1000
+    ? production(scenario.currentRate, DAY, scenario.existingOverclock)
+    : null;
+  const simulatedDayProjection = scenario.refine >= 1000
+    ? production(scenario.fullRate, DAY, scenario.simulatedOverclock)
+    : null;
+  const currentDayGrind = currentDayProjection
+    ? currentDayProjection.grit / scenario.refine
+    : null;
+  const simulatedDayGrind = simulatedDayProjection
+    ? simulatedDayProjection.grit / scenario.refine
+    : null;
   const next = nextCashoutAt(scenario.cycle);
 
   const rows: CompareRow[] = [
@@ -222,7 +235,7 @@ function outputView(scenario: DeckScenario): string {
     ['QNs ACTIVE BY NEXT CASHOUT', scenario.currentQns, configured ? scenario.progress!.qns : '—', configured ? signed(scenario.progress!.qns - scenario.currentQns) : '—'],
     ['USED DECK SLOTS', compact(scenario.currentStats.slots), compact(scenario.fullStats.slots), signed(scenario.fullStats.slots - scenario.currentStats.slots)],
     ['NORMAL RATE', `${compact(scenario.currentRate)}/s`, `${compact(scenario.fullRate)}/s`, signed(scenario.fullRate - scenario.currentRate, '/s')],
-    ['2× OVERCLOCK RATE', `${compact(scenario.currentRate * 2)}/s`, `${compact(scenario.fullRate * 2)}/s`, signed((scenario.fullRate - scenario.currentRate) * 2, '/s')],
+    ['EST. $GRIND / 24H', currentDayGrind !== null ? `${compact(currentDayGrind)} $GRIND` : '—', simulatedDayGrind !== null ? `${compact(simulatedDayGrind)} $GRIND` : '—', currentDayGrind !== null && simulatedDayGrind !== null ? signed(simulatedDayGrind - currentDayGrind, ' $GRIND') : '—'],
     ['AVG RATE UNTIL NEXT CASHOUT', hasProjectionWindow ? `${compact(scenario.currentProjection!.average)}/s` : '—', simulatedAverage !== null ? `${compact(simulatedAverage)}/s` : '—', hasProjectionWindow && simulatedAverage !== null ? signed(simulatedAverage - scenario.currentProjection!.average, '/s') : '—'],
     ['BY NEXT CASHOUT', currentGrind !== null ? `${compact(currentGrind)} $GRIND` : '—', simulatedGrind !== null ? `${compact(simulatedGrind)} $GRIND` : '—', currentGrind !== null && simulatedGrind !== null ? signed(simulatedGrind - currentGrind, ' $GRIND') : '—'],
   ];
@@ -232,7 +245,7 @@ function outputView(scenario: DeckScenario): string {
     'Start with your current deck, add Quantum Nodes and/or vial time, then compare the realistic result. QNs are funded sequentially when GRIT becomes available.',
   )}${setupPanels(scenario)}${panel(
     '4 // OUTPUT',
-    'Current versus simulated output with a funding-aware cashout projection.',
+    'Current versus simulated output. The 24H estimate is independent from cashout/reset timing; cashout rows remain funding-aware.',
     `<div class="output-ready-strip">
       <div>
         <small>SIMULATED BUILD READY</small>
@@ -250,7 +263,7 @@ function outputView(scenario: DeckScenario): string {
       <span><b>CURRENT OVERCLOCK</b><strong>${scenario.existingOverclock ? duration(scenario.existingOverclock, { ready: false }) : 'OFF'}</strong></span>
       <span class="orange"><b>SIMULATED OVERCLOCK</b><strong>${scenario.simulatedOverclock ? duration(scenario.simulatedOverclock, { ready: false }) : 'OFF'}</strong></span>
     </div>`,
-    simulatedGrind !== null ? `${compact(simulatedGrind, 2)} BY NEXT CASHOUT` : 'SET CASHOUT',
+    simulatedDayGrind !== null ? `${compact(simulatedDayGrind, 2)} $GRIND / 24H` : 'SET REFINE RATE',
   )}`;
 }
 
