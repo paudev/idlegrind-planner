@@ -48,12 +48,47 @@ export function formatLocalTime(timestamp: number | null, includeYear = true): s
   }
 }
 
-export function toDatetimeLocal(timestamp: number | null): string {
-  if (timestamp === null || !Number.isFinite(timestamp)) return '';
+function localInputDate(timestamp: number | null): Date {
+  return new Date(timestamp !== null && Number.isFinite(timestamp) ? timestamp : Date.now());
+}
 
-  const date = new Date(timestamp);
-  const pad = (value: number): string => String(value).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+function pad(value: number): string {
+  return String(value).padStart(2, '0');
+}
+
+export function toLocalDateInput(timestamp: number | null): string {
+  const date = localInputDate(timestamp);
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+export function toLocalTimeInput(timestamp: number | null): string {
+  const date = localInputDate(timestamp);
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+export function localDateTimeTimestamp(dateValue: string, timeValue: string): number {
+  const dateMatch = dateValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const timeMatch = timeValue.match(/^(\d{2}):(\d{2})$/);
+  if (!dateMatch || !timeMatch) return Number.NaN;
+
+  const year = Number(dateMatch[1]);
+  const month = Number(dateMatch[2]);
+  const day = Number(dateMatch[3]);
+  const hours = Number(timeMatch[1]);
+  const minutes = Number(timeMatch[2]);
+  const date = new Date(year, month - 1, day, hours, minutes, 0, 0);
+
+  if (
+    date.getFullYear() !== year
+    || date.getMonth() !== month - 1
+    || date.getDate() !== day
+    || date.getHours() !== hours
+    || date.getMinutes() !== minutes
+  ) {
+    return Number.NaN;
+  }
+
+  return date.getTime();
 }
 
 export function markWithdrawnNow(): void {
