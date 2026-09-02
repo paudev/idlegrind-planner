@@ -254,7 +254,6 @@ function outputView(result: BuildResult): string {
         <span class="orange"><b>${vialHours}h</b> 2× overclock</span>
       </div>
     </div>`,
-    `${result.qns.toLocaleString()} QNs`,
   )}${panel(
     '5 // FINAL BUILD PERFORMANCE',
     'Add QNs above the minimum and see the performance of the current planned build.',
@@ -293,7 +292,6 @@ function outputView(result: BuildResult): string {
         <span class="orange"><b>${vialHours}h</b> 2× overclock</span>
       </div>
     </div>`,
-    `${compact(finalGrind)} $GRIND / 24H`,
   )}`;
 }
 
