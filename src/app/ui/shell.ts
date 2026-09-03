@@ -36,12 +36,12 @@ export function header(): string {
           </span>
         </div>
         <div class="cashout-actions">
-          <button type="button" class="cashout-withdrawn-action" data-cashout-mark>WITHDRAWN</button>
+          <button type="button" class="cashout-withdrawn-action" data-cashout-mark>WITHDRAW</button>
           <button type="button" class="cashout-icon-action" data-cashout-picker-open="header" aria-label="${next !== null ? 'Edit cashout timing' : 'Set cashout timing'}" title="${next !== null ? 'Edit cashout timing' : 'Set cashout timing'}">
-            <span class="cashout-action-icon" aria-hidden="true">✎</span>
+            <svg class="cashout-action-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.25" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M12 7.5v5l3.25 2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
             <span class="cashout-action-label">${next !== null ? 'EDIT' : 'SET'}</span>
           </button>
-          ${next !== null ? '<button type="button" class="cashout-icon-action" data-cashout-clear aria-label="Clear cashout timing" title="Clear cashout timing"><span class="cashout-action-icon" aria-hidden="true">×</span><span class="cashout-action-label">CLEAR</span></button>' : ''}
+          ${next !== null ? '<button type="button" class="cashout-icon-action" data-cashout-clear aria-label="Clear cashout timing" title="Clear cashout timing"><svg class="cashout-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 7.5l9 9m0-9l-9 9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="cashout-action-label">CLEAR</span></button>' : ''}
         </div>
         ${cashoutPickerPopover('header', pickerTimestamp)}
       </div>
