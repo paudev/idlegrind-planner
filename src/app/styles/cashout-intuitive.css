@@ -265,8 +265,8 @@
 
 @media (max-width: 640px) {
   .topbar {
-    gap: 8px !important;
-    padding: 7px 0 10px !important;
+    gap: 9px !important;
+    padding: 8px 0 10px !important;
   }
 
   .brand {
@@ -275,29 +275,46 @@
   }
 
   .topfacts {
-    grid-template-columns: minmax(88px, .68fr) minmax(0, 1.7fr) !important;
-    gap: 7px !important;
-    align-items: stretch !important;
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: minmax(82px, .58fr) minmax(0, 1.8fr) !important;
+    gap: 0 !important;
+    align-items: center !important;
+    padding: 7px 0 !important;
+    border-top: 1px solid #1f2c24;
+    border-bottom: 1px solid #1f2c24;
+    background: transparent !important;
   }
 
   .refine-fact {
-    padding: 7px 8px !important;
+    min-width: 0;
+    padding: 4px 10px 4px 0 !important;
+    border: 0 !important;
+    border-right: 1px solid #27362d !important;
+    border-radius: 0 !important;
+    background: transparent !important;
   }
 
   .refine-fact small {
-    font-size: 7.5px !important;
+    font-size: 7.2px !important;
   }
 
   .refine-fact strong {
-    font-size: 10px !important;
+    font-size: 9.5px !important;
   }
 
   .topbar .cashout-head {
+    width: 100%;
+    min-width: 0;
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) auto !important;
     align-items: center !important;
-    gap: 7px !important;
-    padding: 6px 7px !important;
+    gap: 8px !important;
+    padding: 3px 0 3px 10px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
   }
 
   .topbar .cashout-copy {
@@ -306,18 +323,19 @@
   }
 
   .topbar .cashout-copy small {
-    font-size: 7.25px !important;
+    font-size: 7.2px !important;
   }
 
   .topbar .cashout-copy strong {
-    font-size: 14.5px !important;
-    line-height: 1.04;
+    font-size: 15px !important;
+    line-height: 1.02;
   }
 
   .topbar .cashout-copy span {
     display: block !important;
     overflow: hidden;
-    font-size: 7.4px !important;
+    color: #66756d !important;
+    font-size: 7.2px !important;
     line-height: 1.2;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -329,24 +347,36 @@
     flex-wrap: nowrap;
     align-items: center;
     justify-content: flex-end;
-    gap: 3px !important;
+    gap: 2px !important;
   }
 
   .topbar .cashout-actions button {
     width: auto;
-    min-height: 24px !important;
+    min-height: 25px !important;
     border-radius: 4px;
   }
 
   .topbar .cashout-withdrawn-action {
     padding: 0 7px !important;
-    font-size: 6.2px !important;
+    border-color: #2c4034 !important;
+    background: rgba(12, 18, 14, .55) !important;
+    font-size: 6.1px !important;
   }
 
   .topbar .cashout-icon-action {
-    width: 24px !important;
-    min-width: 24px !important;
+    width: 25px !important;
+    min-width: 25px !important;
     padding: 0 !important;
+    border-color: transparent !important;
+    background: transparent !important;
+    color: #839087 !important;
+  }
+
+  .topbar .cashout-icon-action:hover,
+  .topbar .cashout-icon-action:focus-visible {
+    border-color: #294837 !important;
+    color: var(--green) !important;
+    background: rgba(24, 241, 154, .035) !important;
   }
 
   .topbar .cashout-icon-action .cashout-action-icon {
@@ -404,34 +434,34 @@
   .topbar {
     gap: 8px !important;
     padding-top: 8px !important;
-    padding-bottom: 10px !important;
+    padding-bottom: 9px !important;
   }
 
   .topfacts {
-    grid-template-columns: minmax(82px, .66fr) minmax(0, 1.76fr) !important;
-    gap: 6px !important;
+    grid-template-columns: minmax(78px, .55fr) minmax(0, 1.85fr) !important;
+    padding-block: 6px !important;
   }
 
   .refine-fact {
-    padding: 7px !important;
+    padding-right: 8px !important;
   }
 
   .topbar .cashout-head {
     gap: 5px !important;
-    padding: 6px !important;
+    padding-left: 8px !important;
   }
 
   .topbar .cashout-copy strong {
-    font-size: 14px !important;
+    font-size: 14.5px !important;
   }
 
   .topbar .cashout-copy span {
-    font-size: 7.1px !important;
+    font-size: 6.9px !important;
   }
 
   .topbar .cashout-withdrawn-action {
     padding-inline: 6px !important;
-    font-size: 5.9px !important;
+    font-size: 5.8px !important;
   }
 
   .topbar .cashout-icon-action {

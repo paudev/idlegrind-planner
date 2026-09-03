@@ -62,6 +62,10 @@ function isScope(value: string | undefined): value is Scope {
   return value !== undefined && SCOPES.includes(value as Scope);
 }
 
+function resetPlannerExtraQns(scope: Scope): void {
+  if (scope === 'planner') store.state.planner.extraQns = 0;
+}
+
 function currentView(): string {
   switch (store.state.activeTab) {
     case 'target': return renderTargetView();
@@ -84,12 +88,21 @@ function updateRigField(scope: Scope, id: string, key: RigField, rawValue: strin
   if (!rig) return;
 
   if (key === 'name') {
-    rig.name = rawValue;
+    if (rig.name !== rawValue) {
+      rig.name = rawValue;
+      resetPlannerExtraQns(scope);
+    }
     return;
   }
 
   const parsed = parseHuman(rawValue);
-  if (Number.isFinite(parsed)) rig[key] = Math.max(0, parsed);
+  if (Number.isFinite(parsed)) {
+    const nextValue = Math.max(0, parsed);
+    if (rig[key] !== nextValue) {
+      rig[key] = nextValue;
+      resetPlannerExtraQns(scope);
+    }
+  }
 }
 
 function setNumericBuff(buffs: BuffState, key: string, value: number): void {
@@ -193,6 +206,7 @@ app.addEventListener('input', (event: Event) => {
     const parsed = parseHuman(input.value);
     if (Number.isFinite(parsed)) {
       setNumericBuff(buffTarget(scopeValue), key, parsed);
+      resetPlannerExtraQns(scopeValue);
       saveAll();
     }
     return;
@@ -278,7 +292,9 @@ app.addEventListener('click', (event: MouseEvent) => {
   }
 
   if (button.dataset.deckVial !== undefined) {
-    store.deck.vialHours = Math.max(0, Number(button.dataset.deckVial));
+    const vialHours = Math.max(0, Number(button.dataset.deckVial));
+    store.deck.vialHours = vialHours;
+    if (vialHours <= 0) store.deck.baseline.includeVialCost = false;
     render();
     return;
   }
@@ -316,28 +332,40 @@ app.addEventListener('click', (event: MouseEvent) => {
   }
 
   if (button.hasAttribute('data-toggle-vial-cost')) {
-    store.deck.baseline.includeVialCost = !store.deck.baseline.includeVialCost;
+    const hasVial = Math.max(0, number(store.deck.vialHours)) > 0;
+    store.deck.baseline.includeVialCost = hasVial
+      ? !store.deck.baseline.includeVialCost
+      : false;
     render();
     return;
   }
 
   if (button.dataset.buff) {
     const [scopeValue, key, rawValue] = button.dataset.buff.split(':');
-    if (isScope(scopeValue) && key && rawValue !== undefined) setNumericBuff(buffTarget(scopeValue), key, Number(rawValue));
+    if (isScope(scopeValue) && key && rawValue !== undefined) {
+      setNumericBuff(buffTarget(scopeValue), key, Number(rawValue));
+      resetPlannerExtraQns(scopeValue);
+    }
     render();
     return;
   }
 
   if (button.dataset.frame) {
     const [scopeValue, key] = button.dataset.frame.split(':');
-    if (isScope(scopeValue) && key) toggleFrame(buffTarget(scopeValue), key);
+    if (isScope(scopeValue) && key) {
+      toggleFrame(buffTarget(scopeValue), key);
+      resetPlannerExtraQns(scopeValue);
+    }
     render();
     return;
   }
 
   if (button.dataset.addRig) {
     const [scopeValue, presetId] = button.dataset.addRig.split(':');
-    if (isScope(scopeValue) && presetId) addRig(scopeValue, presetId);
+    if (isScope(scopeValue) && presetId) {
+      addRig(scopeValue, presetId);
+      resetPlannerExtraQns(scopeValue);
+    }
     render();
     return;
   }
@@ -345,6 +373,7 @@ app.addEventListener('click', (event: MouseEvent) => {
   const customScope = button.dataset.addCustom;
   if (isScope(customScope)) {
     addCustomRig(customScope);
+    resetPlannerExtraQns(customScope);
     render();
     return;
   }
@@ -356,6 +385,7 @@ app.addEventListener('click', (event: MouseEvent) => {
       const next = rigs.filter((rig) => rig.id !== id);
       if (scopeValue === 'deck') store.deck.rigs = next;
       else store.state.planner.rigs = next;
+      if (next.length !== rigs.length) resetPlannerExtraQns(scopeValue);
     }
     render();
     return;

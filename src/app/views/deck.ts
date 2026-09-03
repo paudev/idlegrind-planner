@@ -155,6 +155,10 @@ function setupPanels(scenario: DeckScenario): string {
     `data-deck-vial="${hours}"`,
     hours ? 'orange' : '',
   )).join('');
+  const hasSelectedVial = Math.max(0, number(store.deck.vialHours)) > 0;
+  const vialCostControl = hasSelectedVial
+    ? chip('INCLUDE VIAL ACQUISITION', Boolean(store.deck.baseline.includeVialCost), 'data-toggle-vial-cost')
+    : '<button type="button" class="chip" disabled aria-disabled="true" title="Select a vial first">INCLUDE VIAL ACQUISITION</button>';
 
   return `${panel(
     '1 // CURRENT DECK',
@@ -211,7 +215,7 @@ function setupPanels(scenario: DeckScenario): string {
       </div>
     </div>
     ${choiceRow('ADD VIAL', vialButtons, 'Added after current overclock. The 24H estimate uses 2× production only while overclock/vial time is active, then normal production for the rest of the day.')}
-    ${choiceRow('COSTING', chip('INCLUDE VIAL ACQUISITION', Boolean(store.deck.baseline.includeVialCost), 'data-toggle-vial-cost'), `Uses the editable ${store.deck.vialHours ? `${store.deck.vialHours}H` : ''} vial market reference.`)}`,
+    ${choiceRow('COSTING', vialCostControl, hasSelectedVial ? `Uses the editable ${store.deck.vialHours}H vial market reference.` : 'Select a vial first. Acquisition costing cannot affect output without a simulated vial.')}`,
   )}`;
 }
 
@@ -250,7 +254,7 @@ function outputView(scenario: DeckScenario): string {
   const includeVialCost = hasVial && Boolean(store.deck.baseline.includeVialCost);
   const vialPrice = hasVial ? Math.max(0, number(store.vials[String(vialHours)] ?? 0)) : 0;
   const vialCharge = includeVialCost ? vialPrice : 0;
-  const vialAddedGrind = simulatedDayGrind !== null && simulatedDayWithoutAddedVialGrind !== null
+  const vialAddedGrind = hasVial && simulatedDayGrind !== null && simulatedDayWithoutAddedVialGrind !== null
     ? Math.max(0, simulatedDayGrind - simulatedDayWithoutAddedVialGrind)
     : null;
   const netVialImpact = vialAddedGrind !== null
@@ -261,12 +265,6 @@ function outputView(scenario: DeckScenario): string {
     : null;
   const netDayChange = currentDayGrind !== null && netSimulatedDayGrind !== null
     ? netSimulatedDayGrind - currentDayGrind
-    : null;
-  const netCashoutGrind = simulatedGrind !== null
-    ? simulatedGrind - vialCharge
-    : null;
-  const netCashoutChange = currentGrind !== null && netCashoutGrind !== null
-    ? netCashoutGrind - currentGrind
     : null;
   const next = nextCashoutAt(scenario.cycle);
 
@@ -284,12 +282,6 @@ function outputView(scenario: DeckScenario): string {
     ] as CompareRow] : []),
     ['AVG RATE UNTIL NEXT CASHOUT', hasProjectionWindow ? `${compact(scenario.currentProjection!.average)}/s` : '—', simulatedAverage !== null ? `${compact(simulatedAverage)}/s` : '—', hasProjectionWindow && simulatedAverage !== null ? signed(simulatedAverage - scenario.currentProjection!.average, '/s') : '—'],
     ['BY NEXT CASHOUT', currentGrind !== null ? `${compact(currentGrind)} $GRIND` : '—', simulatedGrind !== null ? `${compact(simulatedGrind)} $GRIND` : '—', currentGrind !== null && simulatedGrind !== null ? signed(simulatedGrind - currentGrind, ' $GRIND') : '—'],
-    ...(includeVialCost ? [[
-      'NET BY NEXT CASHOUT',
-      currentGrind !== null ? `${compact(currentGrind)} $GRIND` : '—',
-      netCashoutGrind !== null ? `${compact(netCashoutGrind)} $GRIND` : '—',
-      netCashoutChange !== null ? signed(netCashoutChange, ' $GRIND') : '—',
-    ] as CompareRow] : []),
   ];
 
   const vialEconomics = hasVial ? `<div class="vial-economics ${includeVialCost ? 'cost-included' : 'cost-excluded'} ${netVialImpact !== null && netVialImpact < 0 ? 'loss' : 'gain'}">
@@ -332,7 +324,7 @@ function outputView(scenario: DeckScenario): string {
     'Start with your current deck, add Quantum Nodes and/or vial time, then compare the realistic result. QNs are funded sequentially when GRIT becomes available.',
   )}${setupPanels(scenario)}${panel(
     '4 // OUTPUT',
-    'Current versus simulated output. Gross mining stays visible; when vial acquisition is enabled, net rows and vial economics deduct its market cost separately.',
+    'Current versus simulated output. Gross mining stays visible; when a simulated vial has acquisition costing enabled, the net 24H row and vial economics deduct its market cost separately.',
     `<div class="output-ready-strip">
       <div>
         <small>SIMULATED BUILD READY</small>
@@ -360,10 +352,11 @@ function outputView(scenario: DeckScenario): string {
 function costingView(scenario: DeckScenario): string {
   const qnCost = qnTotalCost(scenario.currentQns, scenario.addedQns);
   const capacity = Math.max(RACK_BASE_SLOTS, number(store.deck.baseline.currentDeckSlots, RACK_BASE_SLOTS));
+  const hasVial = Math.max(0, number(store.deck.vialHours)) > 0;
+  const vialPrice = hasVial ? store.vials[String(store.deck.vialHours)] ?? 0 : 0;
+  const vialCharge = hasVial && store.deck.baseline.includeVialCost ? vialPrice : 0;
+  const totalGrind = rackExpansion(capacity, scenario.fullStats.slots).total + vialCharge;
   const rack = rackExpansion(capacity, scenario.fullStats.slots);
-  const vialPrice = store.deck.vialHours ? store.vials[String(store.deck.vialHours)] ?? 0 : 0;
-  const vialCharge = store.deck.baseline.includeVialCost ? vialPrice : 0;
-  const totalGrind = rack.total + vialCharge;
   const funding = scenario.progress;
 
   const summary = `<div class="cost-badges">
@@ -374,7 +367,7 @@ function costingView(scenario: DeckScenario): string {
   const rows: CostRow[] = [
     { item: 'QUANTUM NODES', detail: `+${scenario.addedQns} · ${scenario.currentQns} → ${scenario.targetQns}`, grit: qnCost, note: `QN price assumption: ${compact(QN_BASE_PRICE)} × ${QN_PRICE_GROWTH}^owned.` },
     { item: 'RACK SLOT EXPANSION', detail: rack.count ? `${rack.count} × +6 rack slots` : 'No expansion needed', grind: rack.total, note: rack.count ? `Starts from inferred ${capacity}-slot capacity; target uses ${scenario.fullStats.slots} slots.` : `Inferred ${capacity}-slot capacity fits the simulation.` },
-    { item: 'VIAL ACQUISITION', detail: store.deck.vialHours ? `${store.deck.vialHours}H market reference` : 'No vial', grind: vialCharge, note: store.deck.vialHours ? (store.deck.baseline.includeVialCost ? 'Included using Settings market reference.' : 'Reference selected but not charged.') : 'No vial selected.' },
+    { item: 'VIAL ACQUISITION', detail: hasVial ? `${store.deck.vialHours}H market reference` : 'No vial', grind: vialCharge, note: hasVial ? (store.deck.baseline.includeVialCost ? 'Included using Settings market reference.' : 'Reference selected but not charged.') : 'No vial selected.' },
     { item: 'TOTAL KNOWN COST', grind: totalGrind, grit: qnCost, note: 'Currencies remain separate.', total: true },
   ];
 
