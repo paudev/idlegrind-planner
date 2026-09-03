@@ -1,0 +1,77 @@
+/* Final mobile cashout header polish. */
+@media (max-width: 640px) {
+  .topbar {
+    border-bottom: 0 !important;
+  }
+
+  .topbar .cashout-head {
+    border-top: 1px solid #233229 !important;
+    border-bottom: 1px solid #233229 !important;
+  }
+
+  .topbar .cashout-actions {
+    gap: 5px !important;
+  }
+
+  .topbar .cashout-actions button {
+    min-height: 28px !important;
+    box-shadow: none !important;
+  }
+
+  .topbar .cashout-withdrawn-action {
+    padding: 0 9px !important;
+    border: 1px solid #314238 !important;
+    border-radius: 4px !important;
+    background: rgba(255, 255, 255, .012) !important;
+    color: #aab6ae !important;
+    font-size: 6.4px !important;
+    font-weight: 900 !important;
+    letter-spacing: .045em;
+  }
+
+  .topbar .cashout-withdrawn-action:hover,
+  .topbar .cashout-withdrawn-action:focus-visible {
+    border-color: #3b6550 !important;
+    background: rgba(20, 241, 149, .045) !important;
+    color: var(--green) !important;
+  }
+
+  .topbar .cashout-icon-action {
+    width: 27px !important;
+    min-width: 27px !important;
+    min-height: 28px !important;
+    padding: 0 !important;
+    border: 1px solid transparent !important;
+    border-radius: 4px !important;
+    background: transparent !important;
+    color: #78867d !important;
+  }
+
+  .topbar .cashout-icon-action:hover,
+  .topbar .cashout-icon-action:focus-visible {
+    border-color: #2b4135 !important;
+    background: rgba(255, 255, 255, .018) !important;
+    color: #b4c0b8 !important;
+  }
+
+  .topbar .cashout-icon-action .cashout-action-icon {
+    font-size: 13px !important;
+    line-height: 1 !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .topbar .cashout-actions {
+    gap: 4px !important;
+  }
+
+  .topbar .cashout-withdrawn-action {
+    padding-inline: 7px !important;
+    font-size: 6px !important;
+  }
+
+  .topbar .cashout-icon-action {
+    width: 25px !important;
+    min-width: 25px !important;
+  }
+}
