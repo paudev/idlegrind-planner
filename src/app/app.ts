@@ -300,7 +300,11 @@ app.addEventListener('click', (event: MouseEvent) => {
   }
 
   if (button.dataset.plVial !== undefined) {
-    store.state.planner.vialHours = Math.max(0, Number(button.dataset.plVial));
+    const vialHours = Math.max(0, Number(button.dataset.plVial));
+    if (Math.max(0, number(store.state.planner.vialHours)) !== vialHours) {
+      store.state.planner.vialHours = vialHours;
+      store.state.planner.extraQns = 0;
+    }
     render();
     return;
   }

@@ -30,7 +30,10 @@ export function header(): string {
         <div class="cashout-copy">
           <small>${ready ? 'CASHOUT READY' : 'NEXT CASHOUT'}</small>
           <strong data-live-cashout>${next !== null ? duration(remaining) : 'NOT SET'}</strong>
-          <span>${next !== null ? `${formatLocalTime(next, false)} · local` : 'Set your last cashout to start the 24h cycle'}</span>
+          <span class="cashout-meta">
+            <span class="cashout-date">${next !== null ? `${formatLocalTime(next, false)} · local` : 'Set your last cashout to start the 24h cycle'}</span>
+            <span class="cashout-mobile-refine"><b>REFINE</b>${refine}</span>
+          </span>
         </div>
         <div class="cashout-actions">
           <button type="button" class="cashout-withdrawn-action" data-cashout-mark>WITHDRAWN</button>
