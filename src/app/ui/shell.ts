@@ -33,9 +33,12 @@ export function header(): string {
           <span>${next !== null ? `${formatLocalTime(next, false)} · local` : 'Set your last cashout to start the 24h cycle'}</span>
         </div>
         <div class="cashout-actions">
-          <button type="button" data-cashout-mark>WITHDRAWN</button>
-          <button type="button" data-cashout-picker-open="header">${next !== null ? 'EDIT' : 'SET'}</button>
-          ${next !== null ? '<button type="button" data-cashout-clear>CLEAR</button>' : ''}
+          <button type="button" class="cashout-withdrawn-action" data-cashout-mark>WITHDRAWN</button>
+          <button type="button" class="cashout-icon-action" data-cashout-picker-open="header" aria-label="${next !== null ? 'Edit cashout timing' : 'Set cashout timing'}" title="${next !== null ? 'Edit cashout timing' : 'Set cashout timing'}">
+            <span class="cashout-action-icon" aria-hidden="true">✎</span>
+            <span class="cashout-action-label">${next !== null ? 'EDIT' : 'SET'}</span>
+          </button>
+          ${next !== null ? '<button type="button" class="cashout-icon-action" data-cashout-clear aria-label="Clear cashout timing" title="Clear cashout timing"><span class="cashout-action-icon" aria-hidden="true">×</span><span class="cashout-action-label">CLEAR</span></button>' : ''}
         </div>
         ${cashoutPickerPopover('header', pickerTimestamp)}
       </div>

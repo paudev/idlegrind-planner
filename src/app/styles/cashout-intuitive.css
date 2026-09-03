@@ -25,7 +25,7 @@
   display: grid;
   grid-template-columns: 1fr;
   align-items: stretch;
-  gap: 4px;
+  gap: 0;
   padding-top: 4px;
 }
 
@@ -88,6 +88,7 @@
   place-items: center;
   width: 18px;
   height: 18px;
+  margin: 7px 0;
   border: 0;
   color: #5fe2a6;
   background: transparent;
@@ -111,34 +112,155 @@
   margin-right: auto;
 }
 
+/* Header actions: labels on desktop, compact icons on mobile. */
+.cashout-action-icon {
+  display: none;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.cashout-action-label {
+  display: inline;
+}
+
+/* Settings cashout editor: cycle overview + focused controls. */
+.cashout-settings-row {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.15fr) minmax(330px, .85fr) !important;
+  gap: 16px !important;
+  align-items: stretch !important;
+}
+
+.cashout-settings-cycle {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr);
+  align-items: stretch;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #2a3a30;
+  border-radius: 8px;
+  background: linear-gradient(145deg, rgba(16, 24, 18, .94), rgba(8, 13, 9, .98));
+}
+
+.cashout-setting-status {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+}
+
 .cashout-setting-status.primary {
-  padding: 8px 10px;
-  border: 1px solid #31503f;
-  border-radius: 6px;
-  background: linear-gradient(135deg, rgba(24, 241, 154, .045), rgba(9, 14, 10, .96));
+  padding: 12px 13px;
+  border: 1px solid #3a4c40;
+  border-radius: 7px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .012), rgba(8, 13, 9, .98));
+}
+
+.cashout-setting-status.primary small,
+.cashout-setting-status.secondary small {
+  font-size: 8.5px;
+  font-weight: 950;
+  letter-spacing: .08em;
 }
 
 .cashout-setting-status.primary small {
-  color: #86a892;
+  color: #99aaa0;
+}
+
+.cashout-setting-status.primary strong,
+.cashout-setting-status.secondary strong {
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 
 .cashout-setting-status.primary strong {
   color: #e0e7e1;
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
+}
+
+.cashout-setting-status.primary span,
+.cashout-setting-status.secondary span {
+  color: #718078;
+  font-size: 9px;
+  line-height: 1.35;
 }
 
 .cashout-setting-status.secondary {
-  padding: 7px 8px;
-  border-left: 1px solid #29372e;
+  padding: 12px 13px;
+  border: 1px solid #315b44;
+  border-radius: 7px;
+  background: linear-gradient(135deg, rgba(24, 241, 154, .055), rgba(8, 13, 9, .98));
 }
 
-.cashout-setting-status.secondary small {
-  color: #7f9d89;
-}
-
+.cashout-setting-status.secondary small,
 .cashout-setting-status.secondary strong {
   color: var(--green);
+}
+
+.cashout-settings-flow {
+  align-self: center;
+  justify-self: center;
+  color: #617c6b;
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.cashout-settings-control {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #2d4034;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(12, 19, 14, .98), rgba(8, 13, 9, .99));
+}
+
+.cashout-settings-control .cashout-picker-anchor {
+  min-width: 0;
+}
+
+.cashout-settings-control .cashout-picker-anchor > small {
+  display: block;
+  margin-bottom: 6px;
+  color: #77857c;
+  font-size: 8.5px;
+  font-weight: 950;
+  letter-spacing: .08em;
+}
+
+.cashout-settings-control .cashout-picker-field {
+  width: 100%;
+  min-height: 44px;
+}
+
+.cashout-settings-actions {
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px !important;
+  white-space: nowrap;
+}
+
+.cashout-settings-actions .chip {
+  min-height: 34px;
+}
+
+@media (max-width: 980px) {
+  .cashout-settings-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .cashout-settings-control {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
 }
 
 @media (max-width: 640px) {
@@ -172,13 +294,14 @@
 
   .topbar .cashout-head {
     display: grid !important;
-    grid-template-columns: 1fr !important;
-    align-content: center;
-    gap: 4px !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    gap: 7px !important;
     padding: 6px 7px !important;
   }
 
   .topbar .cashout-copy {
+    min-width: 0;
     gap: 1px;
   }
 
@@ -194,7 +317,7 @@
   .topbar .cashout-copy span {
     display: block !important;
     overflow: hidden;
-    font-size: 7.5px !important;
+    font-size: 7.4px !important;
     line-height: 1.2;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -204,20 +327,42 @@
     width: auto;
     display: flex !important;
     flex-wrap: nowrap;
-    justify-content: flex-start;
-    gap: 4px !important;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 3px !important;
   }
 
   .topbar .cashout-actions button {
     width: auto;
-    min-height: 23px !important;
-    padding: 0 7px !important;
-    font-size: 6.5px !important;
+    min-height: 24px !important;
     border-radius: 4px;
   }
 
-  .cashout-cycle-summary {
-    gap: 3px;
+  .topbar .cashout-withdrawn-action {
+    padding: 0 7px !important;
+    font-size: 6.2px !important;
+  }
+
+  .topbar .cashout-icon-action {
+    width: 24px !important;
+    min-width: 24px !important;
+    padding: 0 !important;
+  }
+
+  .topbar .cashout-icon-action .cashout-action-icon {
+    display: inline-grid;
+    place-items: center;
+  }
+
+  .topbar .cashout-icon-action .cashout-action-label {
+    display: none;
+  }
+
+  .cashout-cycle-arrow {
+    margin-block: 6px;
+    width: 17px;
+    height: 16px;
+    font-size: 15px;
   }
 
   .cashout-cycle-card {
@@ -228,18 +373,30 @@
     font-size: 11px;
   }
 
-  .cashout-cycle-arrow {
-    width: 17px;
-    height: 16px;
-    font-size: 15px;
+  .cashout-settings-cycle {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 10px;
   }
 
-  .cashout-setting-status.primary {
-    padding: 7px 8px;
+  .cashout-settings-flow {
+    transform: rotate(90deg);
+    margin: 1px 0;
   }
 
+  .cashout-setting-status.primary,
   .cashout-setting-status.secondary {
-    padding: 6px 7px;
+    padding: 10px 11px;
+  }
+
+  .cashout-settings-control {
+    grid-template-columns: 1fr;
+    gap: 9px;
+    padding: 10px;
+  }
+
+  .cashout-settings-actions {
+    justify-content: flex-start;
   }
 }
 
@@ -251,8 +408,8 @@
   }
 
   .topfacts {
-    grid-template-columns: minmax(84px, .7fr) minmax(0, 1.72fr) !important;
-    gap: 7px !important;
+    grid-template-columns: minmax(82px, .66fr) minmax(0, 1.76fr) !important;
+    gap: 6px !important;
   }
 
   .refine-fact {
@@ -260,8 +417,8 @@
   }
 
   .topbar .cashout-head {
-    gap: 4px !important;
-    padding: 6px 7px !important;
+    gap: 5px !important;
+    padding: 6px !important;
   }
 
   .topbar .cashout-copy strong {
@@ -269,24 +426,21 @@
   }
 
   .topbar .cashout-copy span {
-    font-size: 7.2px !important;
+    font-size: 7.1px !important;
   }
 
-  .topbar .cashout-actions {
-    gap: 3px !important;
+  .topbar .cashout-withdrawn-action {
+    padding-inline: 6px !important;
+    font-size: 5.9px !important;
   }
 
-  .topbar .cashout-actions button {
-    min-height: 22px !important;
-    padding: 0 6px !important;
-    font-size: 6.1px !important;
-  }
-
-  .cashout-cycle-summary {
-    gap: 3px;
+  .topbar .cashout-icon-action {
+    width: 23px !important;
+    min-width: 23px !important;
   }
 
   .cashout-cycle-arrow {
+    margin-block: 6px;
     width: 16px;
     height: 15px;
     font-size: 14px;
