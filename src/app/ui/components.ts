@@ -151,7 +151,6 @@ export function buffsUi(
     ${choiceRow('FRAMES', frames.map(([key, label, tone]) => chip(label, buffs[key], `data-frame="${scope}:${key}"`, tone)).join(''), 'Mixed replaces the normal frame layer.')}
     ${choiceRow('AURA', `${chip('OFF', number(buffs.auraPct) === 0, `data-buff="${scope}:auraPct:0"`, 'purple')}${chip('+10%', number(buffs.auraPct) === 10, `data-buff="${scope}:auraPct:10"`, 'purple')}<label class="mini-input">CUSTOM <input data-custom-buff="${scope}:auraPct" data-num value="${inputText(buffs.auraPct)}"></label>`)}
     ${choiceRow('CORE', `<label class="mini-input">POWER % <input data-custom-buff="${scope}:corePct" data-num value="${inputText(buffs.corePct)}"></label>`)}
-    ${choiceRow('OTHER', `<label class="mini-input">MULTIPLIER × <input data-custom-buff="${scope}:otherMult" data-num value="${inputText(buffs.otherMult)}"></label>`)}
   `;
 
   if (withVial) {
