@@ -51,6 +51,29 @@ interface BuildFundingResult {
   startingRate: number;
 }
 
+function fundingForQns(targetQns: number): BuildFundingResult {
+  const quantumNode = getQuantumNodePreset();
+  const rateForQns = rateFactory(store.state.planner.rigs, store.state.planner.buffs, quantumNode);
+  const startingRate = rateForQns(0);
+  const target = Math.max(0, Math.floor(number(targetQns)));
+  const overclockSeconds = clamp(number(store.state.planner.vialHours), 0, 24) * HOUR;
+  const timeline = fundingTimeline({
+    currentQns: 0,
+    targetQns: target,
+    currentGrit: 0,
+    rateForQns,
+    overclockSeconds,
+  });
+  const finalRow = timeline.at(-1);
+  const time = target === 0
+    ? 0
+    : timeline.length === target && finalRow && !finalRow.unreachable
+      ? finalRow.time
+      : Number.POSITIVE_INFINITY;
+
+  return { time, timeline, startingRate };
+}
+
 function optimizeBuild(): BuildResult {
   const target = Math.max(0, number(store.state.planner.targetGrindPerDay));
   const refine = Math.max(0, number(store.state.settings.refineRate));
@@ -67,11 +90,30 @@ function optimizeBuild(): BuildResult {
   const vialHours = clamp(number(store.state.planner.vialHours), 0, 24);
   const dayFactor = 1 + vialHours / 24;
   const fixed = rigStats(store.state.planner.rigs, 0, quantumNode);
-  const requiredNormalRate = target * refine / DAY / dayFactor;
-  const requiredBase = requiredNormalRate / buildMultiplier;
-  const requiredQnBase = Math.max(0, requiredBase - fixed.fixedBase);
+  const requiredEffectiveRate = target * refine / DAY;
 
-  if (requiredQnBase > 0 && fixed.perQn <= 0) {
+  const qnsForProductionFactor = (productionFactor: number): number | null => {
+    const requiredNormalRate = requiredEffectiveRate / Math.max(1, productionFactor);
+    const requiredBase = requiredNormalRate / buildMultiplier;
+    const requiredQnBase = Math.max(0, requiredBase - fixed.fixedBase);
+    if (requiredQnBase <= 0) return 0;
+    if (fixed.perQn <= 0) return null;
+    return Math.ceil(requiredQnBase / fixed.perQn);
+  };
+
+  const normalQns = qnsForProductionFactor(1);
+  const overclockQns = vialHours > 0 ? qnsForProductionFactor(2) : null;
+  let qns = normalQns;
+
+  if (vialHours > 0 && overclockQns !== null) {
+    const overclockSeconds = vialHours * HOUR;
+    const acceleratedFunding = fundingForQns(overclockQns);
+    if (Number.isFinite(acceleratedFunding.time) && acceleratedFunding.time <= overclockSeconds + 1e-6) {
+      qns = overclockQns;
+    }
+  }
+
+  if (qns === null) {
     return {
       computable: false,
       ok: false,
@@ -86,9 +128,6 @@ function optimizeBuild(): BuildResult {
     };
   }
 
-  const qns = requiredQnBase > 0
-    ? Math.ceil(requiredQnBase / fixed.perQn)
-    : 0;
   const stats = rigStats(store.state.planner.rigs, qns, quantumNode);
   const normal = stats.base * buildMultiplier;
   const average = normal * dayFactor;
@@ -115,26 +154,7 @@ function buildFunding(result: BuildResult): BuildFundingResult {
     return { time: Number.POSITIVE_INFINITY, timeline: [], startingRate: 0 };
   }
 
-  const quantumNode = getQuantumNodePreset();
-  const rateForQns = rateFactory(store.state.planner.rigs, store.state.planner.buffs, quantumNode);
-  const startingRate = rateForQns(0);
-  const targetQns = Math.max(0, result.qns);
-  const overclockSeconds = clamp(number(store.state.planner.vialHours), 0, 24) * HOUR;
-  const timeline = fundingTimeline({
-    currentQns: 0,
-    targetQns,
-    currentGrit: 0,
-    rateForQns,
-    overclockSeconds,
-  });
-  const finalRow = timeline.at(-1);
-  const time = targetQns === 0
-    ? 0
-    : timeline.length === targetQns && finalRow && !finalRow.unreachable
-      ? finalRow.time
-      : Number.POSITIVE_INFINITY;
-
-  return { time, timeline, startingRate };
+  return fundingForQns(result.qns);
 }
 
 function setupPanels(): string {
@@ -142,16 +162,16 @@ function setupPanels(): string {
 
   return `${intro(
     'BUILD PLANNER',
-    'Build a custom setup from scratch and find the minimum Quantum Nodes needed for your target. This planner is independent from Deck Simulator data.',
+    'Build from 0 QNs and 0 GRIT. Minimum QNs follow the production rate available when the build becomes ready, so extending a vial past readiness does not lower the minimum further.',
   )}${panel(
     '1 // DAILY TARGET',
-    'Set the output the build must reach.',
+    'Set the output rate the build should reach when ready.',
     `<div class="module-grid two planner-target-grid">
       ${field('state.planner.targetGrindPerDay', '$GRIND / 24H TARGET', store.state.planner.targetGrindPerDay)}
       <div class="hero-output compact">
         <small>BUILD MULTIPLIER</small>
         <strong>×${buildMultiplier.toFixed(3)}</strong>
-        <p>Overclock is handled by the selected vial duration separately.</p>
+        <p>Vials accelerate GRIT funding while active. Once the minimum build is ready, a longer vial does not reduce its QN count.</p>
       </div>
     </div>`,
   )}${panel(
@@ -188,8 +208,11 @@ function outputView(result: BuildResult): string {
   const qnCost = qnTotalCost(0, result.qns);
   const totalGrit = result.average * DAY;
   const overclockExtraGrit = result.normal * vialHours * HOUR;
+  const vialCoversBuild = vialHours > 0
+    && Number.isFinite(funding.time)
+    && funding.time <= vialHours * HOUR + 1e-6;
   const setupNote = Number.isFinite(funding.time)
-    ? `Starts from 0 QNs and 0 GRIT. Selected fixed rigs fund QNs sequentially${vialHours ? `; the ${vialHours}H vial accelerates funding while active` : ''}.`
+    ? `Starts from 0 QNs and 0 GRIT. Selected fixed rigs fund QNs sequentially${vialHours ? vialCoversBuild ? `; the ${vialHours}H vial covers the full build, so extending it further does not change the minimum` : `; the ${vialHours}H vial accelerates funding only while active` : ''}.`
     : 'Setup time is unreachable from 0 GRIT with the current references. Add a producing fixed rig so QN 1 can be funded.';
 
   const extraQns = Math.max(0, Math.floor(number(store.state.planner.extraQns)));
@@ -209,7 +232,7 @@ function outputView(result: BuildResult): string {
 
   return `${panel(
     '4 // MINIMUM BUILD',
-    'Minimum Quantum Nodes required, setup time, and target-based 24H performance.',
+    'Minimum Quantum Nodes from the sequential GRIT funding path, setup time, and selected-vial 24H performance.',
     `${!result.ok ? `<div class="warning">${escapeHtml(result.reason)}</div>` : ''}
     <div class="result-hero-pair optimized-build-heroes">
       <div class="result-hero current">
@@ -233,7 +256,7 @@ function outputView(result: BuildResult): string {
     <div class="final-performance minimum-performance">
       <div class="result-hero-pair final-output-heroes">
         <div class="result-hero simulated">
-          <small>TARGET BUILD 24H OUTPUT</small>
+          <small>SIMULATED 24H OUTPUT</small>
           <strong>${compact(totalGrit)}<em> GRIT</em></strong>
           <p>${compact(result.grind)} $GRIND after refining at the configured rate.</p>
         </div>
