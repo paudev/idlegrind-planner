@@ -61,7 +61,7 @@ test('production applies overclock only inside the requested window', () => {
 
 test('QN pricing follows the configured geometric assumption', () => {
   assert.equal(qnPrice(0), 2_800_000);
-  assert.equal(qnPrice(1), 3_220_000);
+  assert.ok(Math.abs(qnPrice(1) - 3_220_000) < 1e-6);
   assert.ok(Math.abs(qnTotalCost(0, 3) - (qnPrice(0) + qnPrice(1) + qnPrice(2))) < 1e-6);
 });
 
