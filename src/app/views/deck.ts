@@ -1,8 +1,6 @@
 import {
   DAY,
   HOUR,
-  QN_BASE_PRICE,
-  QN_PRICE_GROWTH,
   RACK_BASE_SLOTS,
   RACK_SLOT_STEP,
 } from '../config/economy';
@@ -67,11 +65,21 @@ interface DeckScenario {
   currentGrit: number;
   currentStats: RigStats;
   fullStats: RigStats;
+  slotCap: number;
+  currentFitsCap: boolean;
+  fullFitsCap: boolean;
   currentProjection: ProductionResult | null;
   progress: FundingProgress | null;
   timeline: FundingRow[];
   fullBuildTime: number;
   refine: number;
+}
+
+function qnPricing(): { base: number; growth: number } {
+  return {
+    base: Math.max(0, number(store.state.settings.qnBasePrice)),
+    growth: Math.max(1, number(store.state.settings.qnPriceGrowth, 1.15)),
+  };
 }
 
 function deckScenario(): DeckScenario {
@@ -81,6 +89,7 @@ function deckScenario(): DeckScenario {
   const addedQns = Math.max(0, Math.floor(number(store.deck.addedQns)));
   const targetQns = currentQns + addedQns;
   const quantumNode = getQuantumNodePreset();
+  const pricing = qnPricing();
   const rateForQns = rateFactory(store.deck.rigs, store.deck.buffs, quantumNode);
   const currentRate = rateForQns(currentQns);
   const fullRate = rateForQns(targetQns);
@@ -92,6 +101,9 @@ function deckScenario(): DeckScenario {
   const currentGrit = Math.max(0, number(store.deck.baseline.currentGrit));
   const currentStats = rigStats(store.deck.rigs, currentQns, quantumNode);
   const fullStats = rigStats(store.deck.rigs, targetQns, quantumNode);
+  const slotCap = Math.max(0, Math.floor(number(store.state.settings.maxRackSlots)));
+  const currentFitsCap = !(slotCap > 0 && currentStats.slots > slotCap);
+  const fullFitsCap = !(slotCap > 0 && fullStats.slots > slotCap);
   const inferredRackCapacity = Math.max(
     RACK_BASE_SLOTS,
     RACK_BASE_SLOTS
@@ -109,6 +121,8 @@ function deckScenario(): DeckScenario {
       rateForQns,
       horizon: cashoutLeft,
       overclockSeconds: simulatedOverclock,
+      qnBasePrice: pricing.base,
+      qnPriceGrowth: pricing.growth,
     })
     : null;
   const timeline = fundingTimeline({
@@ -117,6 +131,8 @@ function deckScenario(): DeckScenario {
     currentGrit,
     rateForQns,
     overclockSeconds: simulatedOverclock,
+    qnBasePrice: pricing.base,
+    qnPriceGrowth: pricing.growth,
   });
   const finalRow = timeline.at(-1);
   const fullBuildTime = addedQns === 0
@@ -139,6 +155,9 @@ function deckScenario(): DeckScenario {
     currentGrit,
     currentStats,
     fullStats,
+    slotCap,
+    currentFitsCap,
+    fullFitsCap,
     currentProjection,
     progress,
     timeline,
@@ -149,6 +168,7 @@ function deckScenario(): DeckScenario {
 
 function setupPanels(scenario: DeckScenario): string {
   const qn = getQuantumNodePreset();
+  const pricing = qnPricing();
   const vialButtons = VIAL_OPTIONS.map((hours) => chip(
     hours ? `⚡ ${hours}H` : 'NO VIAL',
     number(store.deck.vialHours) === hours,
@@ -172,6 +192,7 @@ function setupPanels(scenario: DeckScenario): string {
         <span>Auto from current QNs + rig slots · 12 base, then +6 slots.</span>
       </div>
     </div>
+    ${!scenario.currentFitsCap ? `<div class="warning">Current deck uses ${compact(scenario.currentStats.slots)} slots, above the configured ${compact(scenario.slotCap)}-slot maximum.</div>` : ''}
     <div class="optimizer-rig">
       <div class="optimizer-copy">
         <span class="rigdot green"></span>
@@ -203,7 +224,7 @@ function setupPanels(scenario: DeckScenario): string {
           ${[1, 5, 10, 20, 50].map((count) => `<button type="button" class="chip" data-add-qn="${count}">+${count}</button>`).join('')}
           <button type="button" class="chip" data-clear-qn>CLEAR</button>
         </div>
-        <p>Projected total QN cost: <b>${money(qnTotalCost(scenario.currentQns, scenario.addedQns), 'GRIT')}</b></p>
+        <p>Projected total QN cost: <b>${money(qnTotalCost(scenario.currentQns, scenario.addedQns, pricing.base, pricing.growth), 'GRIT')}</b></p>
       </div>
       <div class="sim-card">
         <div class="field-title">CURRENT OVERCLOCK LEFT</div>
@@ -214,6 +235,7 @@ function setupPanels(scenario: DeckScenario): string {
         <p>Existing active overclock applies before any added vial.</p>
       </div>
     </div>
+    ${!scenario.fullFitsCap ? `<div class="warning">Simulated build uses ${compact(scenario.fullStats.slots)} slots, above the configured ${compact(scenario.slotCap)}-slot maximum. Output is shown for comparison, but the build does not fit.</div>` : ''}
     ${choiceRow('ADD VIAL', vialButtons, 'Added after current overclock. The 24H estimate uses 2× production only while overclock/vial time is active, then normal production for the rest of the day.')}
     ${choiceRow('COSTING', vialCostControl, hasSelectedVial ? `Uses the editable ${store.deck.vialHours}H vial market reference.` : 'Select a vial first. Acquisition costing cannot affect output without a simulated vial.')}`,
   )}`;
@@ -325,7 +347,8 @@ function outputView(scenario: DeckScenario): string {
   )}${setupPanels(scenario)}${panel(
     '4 // OUTPUT',
     'Current versus simulated output. Gross mining stays visible; when a simulated vial has acquisition costing enabled, the net 24H row and vial economics deduct its market cost separately.',
-    `<div class="output-ready-strip">
+    `${!scenario.fullFitsCap ? `<div class="warning">Simulated build requires ${compact(scenario.fullStats.slots)} slots but the configured maximum is ${compact(scenario.slotCap)}. The output below is informational only until the slot cap is increased or the build is reduced.</div>` : ''}
+    <div class="output-ready-strip">
       <div>
         <small>SIMULATED BUILD READY</small>
         <strong>${duration(scenario.fullBuildTime)}</strong>
@@ -350,13 +373,15 @@ function outputView(scenario: DeckScenario): string {
 }
 
 function costingView(scenario: DeckScenario): string {
-  const qnCost = qnTotalCost(scenario.currentQns, scenario.addedQns);
+  const pricing = qnPricing();
+  const qnCost = qnTotalCost(scenario.currentQns, scenario.addedQns, pricing.base, pricing.growth);
   const capacity = Math.max(RACK_BASE_SLOTS, number(store.deck.baseline.currentDeckSlots, RACK_BASE_SLOTS));
   const hasVial = Math.max(0, number(store.deck.vialHours)) > 0;
-  const vialPrice = hasVial ? store.vials[String(store.deck.vialHours)] ?? 0 : 0;
+  const vialPrice = hasVial ? Math.max(0, number(store.vials[String(store.deck.vialHours)] ?? 0)) : 0;
   const vialCharge = hasVial && store.deck.baseline.includeVialCost ? vialPrice : 0;
-  const totalGrind = rackExpansion(capacity, scenario.fullStats.slots).total + vialCharge;
-  const rack = rackExpansion(capacity, scenario.fullStats.slots);
+  const rackTarget = scenario.slotCap > 0 ? Math.min(scenario.fullStats.slots, scenario.slotCap) : scenario.fullStats.slots;
+  const rack = rackExpansion(capacity, rackTarget);
+  const totalGrind = rack.total + vialCharge;
   const funding = scenario.progress;
 
   const summary = `<div class="cost-badges">
@@ -365,10 +390,11 @@ function costingView(scenario: DeckScenario): string {
   </div>`;
 
   const rows: CostRow[] = [
-    { item: 'QUANTUM NODES', detail: `+${scenario.addedQns} · ${scenario.currentQns} → ${scenario.targetQns}`, grit: qnCost, note: `QN price assumption: ${compact(QN_BASE_PRICE)} × ${QN_PRICE_GROWTH}^owned.` },
-    { item: 'RACK SLOT EXPANSION', detail: rack.count ? `${rack.count} × +6 rack slots` : 'No expansion needed', grind: rack.total, note: rack.count ? `Starts from inferred ${capacity}-slot capacity; target uses ${scenario.fullStats.slots} slots.` : `Inferred ${capacity}-slot capacity fits the simulation.` },
+    { item: 'QUANTUM NODES', detail: `+${scenario.addedQns} · ${scenario.currentQns} → ${scenario.targetQns}`, grit: qnCost, note: `QN pricing setting: ${compact(pricing.base)} × ${pricing.growth}^owned.` },
+    { item: 'RACK SLOT EXPANSION', detail: rack.count ? `${rack.count} × +6 rack slots` : 'No expansion needed', grind: rack.total, note: scenario.fullFitsCap ? (rack.count ? `Starts from inferred ${capacity}-slot capacity; target uses ${scenario.fullStats.slots} slots.` : `Inferred ${capacity}-slot capacity fits the simulation.`) : `Costed only through the configured ${scenario.slotCap}-slot maximum; target uses ${scenario.fullStats.slots}.` },
+    ...(!scenario.fullFitsCap ? [{ item: 'DECK SLOT CAP', detail: `${scenario.fullStats.slots} needed · ${scenario.slotCap} maximum`, note: 'The simulated build does not fit the configured maximum deck slots.' } as CostRow] : []),
     { item: 'VIAL ACQUISITION', detail: hasVial ? `${store.deck.vialHours}H market reference` : 'No vial', grind: vialCharge, note: hasVial ? (store.deck.baseline.includeVialCost ? 'Included using Settings market reference.' : 'Reference selected but not charged.') : 'No vial selected.' },
-    { item: 'TOTAL KNOWN COST', grind: totalGrind, grit: qnCost, note: 'Currencies remain separate.', total: true },
+    { item: 'TOTAL KNOWN COST', grind: totalGrind, grit: qnCost, note: scenario.fullFitsCap ? 'Currencies remain separate.' : 'Currencies remain separate. Rack cost stops at the configured slot cap.', total: true },
   ];
 
   const fundingRows = [
@@ -382,7 +408,8 @@ function costingView(scenario: DeckScenario): string {
   return panel(
     '4 // COSTING',
     'Known investment and funding impact for this exact simulation.',
-    `${summary}
+    `${!scenario.fullFitsCap ? `<div class="warning">Simulated build requires ${compact(scenario.fullStats.slots)} slots, above the configured ${compact(scenario.slotCap)}-slot maximum.</div>` : ''}
+    ${summary}
     ${scenario.addedQns ? info('QN purchases may exceed your current GRIT. That does not block the simulation; purchases are funded continuously as soon as they become affordable.') : ''}
     <div class="funding-grid">
       ${metric('QNs REQUESTED', scenario.addedQns)}
@@ -397,13 +424,14 @@ function costingView(scenario: DeckScenario): string {
 }
 
 function readinessView(scenario: DeckScenario): string {
+  const pricing = qnPricing();
   const issues: Array<{ label: string; message: string }> = [];
 
   if (scenario.addedQns <= 0) {
     issues.push({ label: 'QUANTUM NODES TO ADD', message: 'Set at least 1 under 3 // SIMULATE CHANGES.' });
   }
 
-  if (scenario.addedQns > 0 && scenario.currentRate <= 0 && scenario.currentGrit < qnPrice(scenario.currentQns)) {
+  if (scenario.addedQns > 0 && scenario.currentRate <= 0 && scenario.currentGrit < qnPrice(scenario.currentQns, pricing.base, pricing.growth)) {
     issues.push({ label: 'MINING SOURCE', message: 'Add a producing rig/current QN, or enough GRIT to buy the first simulated QN.' });
   }
 
@@ -412,7 +440,7 @@ function readinessView(scenario: DeckScenario): string {
     issues.push({ label: 'FUNDING PATH', message: `QN ${unreachable.to} cannot be reached with the current setup.` });
   }
 
-  return renderQnReadiness({
+  const readiness = renderQnReadiness({
     scope: 'deck',
     requestedQns: scenario.addedQns,
     startingGrit: scenario.currentGrit,
@@ -423,8 +451,14 @@ function readinessView(scenario: DeckScenario): string {
     introText: 'This view uses the Deck Simulator setup from OUTPUT.',
     rateLabel: 'CURRENT NORMAL RATE',
     issues,
-    pricingNote: `Pricing assumption: <b>${compact(QN_BASE_PRICE)} GRIT × ${QN_PRICE_GROWTH}^owned</b>. Existing overclock plus the selected vial accelerates purchases only while active.`,
+    pricingNote: `QN pricing setting: <b>${compact(pricing.base)} GRIT × ${pricing.growth}^owned</b>. Existing overclock plus the selected vial accelerates purchases only while active.`,
   });
+
+  return `${!scenario.fullFitsCap ? panel(
+    'DECK SLOT CAP',
+    'The funding timeline is still shown, but this simulated build does not fit the configured deck maximum.',
+    `<div class="warning">${compact(scenario.fullStats.slots)} slots required · ${compact(scenario.slotCap)} slots maximum.</div>`,
+  ) : ''}${readiness}`;
 }
 
 export function renderDeckView(): string {

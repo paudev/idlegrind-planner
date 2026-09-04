@@ -29,7 +29,6 @@ export interface BuffState {
   mixed: boolean;
   auraPct: number;
   corePct: number;
-  otherMult: number;
 }
 
 export interface PlannerState {
@@ -44,6 +43,8 @@ export interface PlannerState {
 export interface SettingsState {
   refineRate: number;
   maxRackSlots: number;
+  qnBasePrice: number;
+  qnPriceGrowth: number;
   rigPresets: Record<string, RigPreset>;
 }
 

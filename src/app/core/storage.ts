@@ -66,12 +66,13 @@ export function loadPositiveDefaults(
   let changed = false;
 
   for (const [id, fallback] of Object.entries(defaults)) {
-    const value = parseHuman(saved[id]);
-    const invalid = !Number.isFinite(value) || (repairZero ? value <= 0 : value < 0);
+    const present = Object.prototype.hasOwnProperty.call(saved, id);
+    const value = present ? parseHuman(saved[id]) : Number.NaN;
+    const invalid = !present || !Number.isFinite(value) || (repairZero ? value <= 0 : value < 0);
     values[id] = invalid ? fallback : value;
     if (invalid) changed = true;
   }
 
-  if (changed || !localStorage.getItem(key)) writeJson(key, values);
+  if (changed) writeJson(key, values);
   return values;
 }

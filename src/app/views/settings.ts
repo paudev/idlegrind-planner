@@ -27,7 +27,7 @@ function rigPresetRows(): string {
 }
 
 function marketRows(): string {
-  const rigPrices = Object.keys(MARKET_DEFAULTS).map((key) => `
+  const marketPrices = Object.keys(MARKET_DEFAULTS).map((key) => `
     <tr>
       <th>${MARKET_LABELS[key] ?? key}</th>
       <td>
@@ -49,7 +49,7 @@ function marketRows(): string {
       </td>
     </tr>`);
 
-  return [...rigPrices, ...vialPrices].join('');
+  return [...marketPrices, ...vialPrices].join('');
 }
 
 function cashoutTimingEditor(): string {
@@ -98,14 +98,16 @@ export function renderSettingsView(): string {
   return pageStack(
     intro(
       'SETTINGS',
-      'Stable economy and rig configuration, personal cashout timing, and editable current market references.',
+      'Stable economy and rig configuration, personal cashout timing, and editable current marketplace references.',
     ),
     panel(
       'ECONOMY',
-      'Global values shared by every module.',
+      'Global values shared by every module. QN pricing remains an editable planner assumption.',
       `<div class="formgrid">
         ${field('state.settings.refineRate', 'GRIT PER 1 $GRIND · e.g. 96K', store.state.settings.refineRate)}
         ${field('state.settings.maxRackSlots', 'MAX DECK SLOTS · 0 = NO CAP', store.state.settings.maxRackSlots)}
+        ${field('state.settings.qnBasePrice', 'QN BASE PRICE · GRIT', store.state.settings.qnBasePrice)}
+        ${field('state.settings.qnPriceGrowth', 'QN PRICE GROWTH · e.g. 1.15', store.state.settings.qnPriceGrowth)}
       </div>`,
     ),
     panel(
@@ -119,8 +121,8 @@ export function renderSettingsView(): string {
       `<div class="settings-rigs">${rigPresetRows()}</div>`,
     ),
     panel(
-      'MARKET PRICE REFERENCES',
-      'Editable current prices used strictly by simulator/planner costing.',
+      'MARKETPLACE REFERENCES',
+      'Editable rig, frame, and vial prices used strictly by simulator/planner costing.',
       `<div class="table-scroll">
         <table class="market-table">
           <thead><tr><th>ITEM</th><th>CURRENT MARKET PRICE</th></tr></thead>

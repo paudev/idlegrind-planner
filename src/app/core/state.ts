@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS } from '../config/game';
+import { DEFAULT_SETTINGS, TIER_OPTIONS, VIAL_OPTIONS } from '../config/game';
 import {
   MARKET_DEFAULTS,
   RACK_BASE_SLOTS,
@@ -24,10 +24,12 @@ import { loadPositiveDefaults, mergeState, readJson, setPath, writeJson } from '
 const ACTIVE_TABS: ActiveTab[] = ['target', 'reset', 'current', 'planner', 'costing', 'settings'];
 const PLANNER_VIEWS: PlannerView[] = ['output', 'cost', 'readiness'];
 const DECK_VIEWS: DeckView[] = ['output', 'cost', 'readiness'];
+const VALID_TIERS = new Set<number>(TIER_OPTIONS.map((tier) => tier.mult));
+const VALID_VIAL_HOURS = new Set<number>(VIAL_OPTIONS);
 
 function defaultBuffs(): BuffState {
   return {
-    tier: 0,
+    tier: 1,
     coolantLevel: 0,
     prestigePct: 0,
     bronze: false,
@@ -36,21 +38,51 @@ function defaultBuffs(): BuffState {
     mixed: false,
     auraPct: 0,
     corePct: 0,
-    otherMult: 0,
   };
 }
 
 function normalizeBuffs(buffs: BuffState): void {
+  const tier = number(buffs.tier, 1);
+  buffs.tier = VALID_TIERS.has(tier) ? tier : 1;
   buffs.coolantLevel = clamp(Math.floor(number(buffs.coolantLevel)), 0, 10);
   buffs.prestigePct = Math.max(0, number(buffs.prestigePct));
   buffs.auraPct = Math.max(0, number(buffs.auraPct));
   buffs.corePct = Math.max(0, number(buffs.corePct));
-  buffs.otherMult = Math.max(0, number(buffs.otherMult));
+  if (buffs.mixed) {
+    buffs.bronze = false;
+    buffs.silver = false;
+    buffs.gold = false;
+  }
+}
+
+function normalizeVialHours(value: unknown): number {
+  const hours = number(value);
+  return VALID_VIAL_HOURS.has(hours) ? hours : 0;
 }
 
 function normalizeRackLimit(value: unknown): number {
   const slots = Math.max(0, Math.floor(number(value)));
-  return slots === 0 ? 0 : Math.max(RACK_BASE_SLOTS, slots);
+  if (slots === 0) return 0;
+  return clamp(
+    RACK_BASE_SLOTS + Math.round((slots - RACK_BASE_SLOTS) / RACK_SLOT_STEP) * RACK_SLOT_STEP,
+    RACK_BASE_SLOTS,
+    RACK_DISPLAY_LIMIT,
+  );
+}
+
+function normalizePreset(preset: RigPreset): void {
+  preset.rate = Math.max(0, number(preset.rate));
+  preset.synergy = Math.max(0, number(preset.synergy));
+  preset.slots = Math.max(0, Math.floor(number(preset.slots, 1)));
+}
+
+function normalizeRigs(rigs: Rig[]): void {
+  for (const rig of rigs) {
+    rig.qty = Math.max(0, Math.floor(number(rig.qty)));
+    rig.rate = Math.max(0, number(rig.rate));
+    rig.synergy = Math.max(0, number(rig.synergy));
+    rig.slots = Math.max(0, Math.floor(number(rig.slots, 1)));
+  }
 }
 
 export function createDefaultState(): ApplicationStore['state'] {
@@ -102,22 +134,27 @@ function loadStore(): ApplicationStore {
 
   state.settings.refineRate = Math.max(0, number(state.settings.refineRate, DEFAULT_SETTINGS.refineRate));
   state.settings.maxRackSlots = normalizeRackLimit(state.settings.maxRackSlots);
-  state.reset.vialHours = clamp(number(state.reset.vialHours), 0, 24);
+  state.settings.qnBasePrice = Math.max(0, number(state.settings.qnBasePrice, DEFAULT_SETTINGS.qnBasePrice));
+  state.settings.qnPriceGrowth = Math.max(1, number(state.settings.qnPriceGrowth, DEFAULT_SETTINGS.qnPriceGrowth));
+  Object.values(state.settings.rigPresets).forEach(normalizePreset);
+  state.reset.vialHours = normalizeVialHours(state.reset.vialHours);
   state.planner.extraQns = Math.max(0, Math.floor(number(state.planner.extraQns)));
-  state.planner.vialHours = clamp(number(state.planner.vialHours), 0, 24);
+  state.planner.vialHours = normalizeVialHours(state.planner.vialHours);
   normalizeBuffs(state.planner.buffs);
+  normalizeRigs(state.planner.rigs);
 
   deck.qns = Math.max(0, Math.floor(number(deck.qns)));
   deck.addedQns = Math.max(0, Math.floor(number(deck.addedQns)));
   deck.currentOverclockHours = Math.max(0, number(deck.currentOverclockHours));
   deck.currentOverclockMinutes = clamp(number(deck.currentOverclockMinutes), 0, 59);
-  deck.vialHours = clamp(number(deck.vialHours), 0, 24);
+  deck.vialHours = normalizeVialHours(deck.vialHours);
   deck.baseline.currentDeckSlots = Math.max(
     RACK_BASE_SLOTS,
     Math.floor(number(deck.baseline.currentDeckSlots, RACK_BASE_SLOTS)),
   );
   deck.baseline.currentGrit = Math.max(0, number(deck.baseline.currentGrit));
   normalizeBuffs(deck.buffs);
+  normalizeRigs(deck.rigs);
 
   const market = loadPositiveDefaults(STORAGE_KEYS.market, MARKET_DEFAULTS);
   const vials = loadPositiveDefaults(STORAGE_KEYS.vials, VIAL_DEFAULTS, { repairZero: true });
@@ -168,7 +205,10 @@ function normalizedInputValue(path: string, value: number): number {
       return clamp(value, 0, 59);
     case 'state.settings.maxRackSlots':
       return normalizeRackLimit(value);
+    case 'state.settings.qnPriceGrowth':
+      return Math.max(1, value);
     case 'state.settings.refineRate':
+    case 'state.settings.qnBasePrice':
     case 'state.target.grindPerDay':
     case 'state.reset.finalRate':
     case 'state.planner.targetGrindPerDay':
@@ -201,7 +241,7 @@ export function addRig(scope: Scope, presetId: string): void {
 
   const existing = target.find((rig) => rig.presetId === presetId);
   if (existing) {
-    existing.qty = number(existing.qty) + 1;
+    existing.qty = Math.max(0, Math.floor(number(existing.qty))) + 1;
     return;
   }
 

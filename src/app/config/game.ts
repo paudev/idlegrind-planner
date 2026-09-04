@@ -1,8 +1,11 @@
+import { QN_BASE_PRICE, QN_PRICE_GROWTH } from './economy';
 import type { SettingsState } from '../types';
 
 export const DEFAULT_SETTINGS: SettingsState = {
   refineRate: 96_000,
   maxRackSlots: 0,
+  qnBasePrice: QN_BASE_PRICE,
+  qnPriceGrowth: QN_PRICE_GROWTH,
   rigPresets: {
     quantum_node: { name: 'QUANTUM NODE', rate: 1400, synergy: 0, slots: 1, accent: 'green', optimizerFill: true },
     data_center: { name: 'DATA CENTER', rate: 260, synergy: 0, slots: 1, accent: 'green' },

@@ -29,9 +29,9 @@ export const COOLANT_COSTS = [
   192_000,
   384_000,
   768_000,
-  921_600,
-  1_843_200,
-  3_520_800,
+  1_536_000,
+  3_072_000,
+  6_144_000,
 ] as const;
 
 export const FORGE_ROWS: ReadonlyArray<readonly [name: string, cost: number, note: string]> = [
@@ -48,10 +48,13 @@ export const FORGE_ROWS: ReadonlyArray<readonly [name: string, cost: number, not
 
 export const MARKET_DEFAULTS: Record<string, number> = {
   qdc_s: 10_000_000,
-  qdc: 5_000_000,
+  qdc: 4_700_000,
   mini_qdc: 2_000_000,
   tiny_qdc: 1_000_000,
   qdc_shard: 850_000,
+  bronze_frame: 1_250_000,
+  silver_frame: 2_500_000,
+  gold_frame: 5_000_000,
 };
 
 export const MARKET_LABELS: Record<string, string> = {
@@ -60,6 +63,9 @@ export const MARKET_LABELS: Record<string, string> = {
   mini_qdc: 'MINI QDC',
   tiny_qdc: 'TINY QDC',
   qdc_shard: 'QDC SHARD',
+  bronze_frame: 'BRONZE FRAME',
+  silver_frame: 'SILVER FRAME',
+  gold_frame: 'GOLD FRAME',
 };
 
 export const VIAL_DEFAULTS: Record<string, number> = {

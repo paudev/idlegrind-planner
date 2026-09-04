@@ -2,18 +2,15 @@ import {
   DAY,
   HOUR,
   MARKET_DEFAULTS,
-  QN_BASE_PRICE,
-  QN_PRICE_GROWTH,
   RACK_BASE_SLOTS,
 } from '../config/economy';
 import {
   coolantUpgradeCost,
-  fundingTimeline,
   multiplier,
   qnTotalCost,
   rackExpansion,
-  rateFactory,
   rigStats,
+  solveMinimumBuild,
 } from '../core/calculations';
 import { clamp, compact, duration, escapeHtml, number, signed } from '../core/format';
 import { getQuantumNodePreset, store } from '../core/state';
@@ -32,6 +29,12 @@ import {
 } from '../ui/components';
 import { renderQnReadiness } from '../ui/readiness';
 
+interface BuildFundingResult {
+  time: number;
+  timeline: FundingRow[];
+  startingRate: number;
+}
+
 interface BuildResult {
   computable: boolean;
   ok: boolean;
@@ -43,93 +46,70 @@ interface BuildResult {
   average: number;
   grind: number;
   multiplier: number;
+  requiredRate: number;
+  rateAtReady: number;
+  productionFactorAtReady: 1 | 2;
+  funding: BuildFundingResult;
 }
 
-interface BuildFundingResult {
-  time: number;
-  timeline: FundingRow[];
-  startingRate: number;
+function qnPricing(): { base: number; growth: number } {
+  return {
+    base: Math.max(0, number(store.state.settings.qnBasePrice)),
+    growth: Math.max(1, number(store.state.settings.qnPriceGrowth, 1.15)),
+  };
 }
 
-function fundingForQns(targetQns: number): BuildFundingResult {
-  const quantumNode = getQuantumNodePreset();
-  const rateForQns = rateFactory(store.state.planner.rigs, store.state.planner.buffs, quantumNode);
-  const startingRate = rateForQns(0);
-  const target = Math.max(0, Math.floor(number(targetQns)));
-  const overclockSeconds = clamp(number(store.state.planner.vialHours), 0, 24) * HOUR;
-  const timeline = fundingTimeline({
-    currentQns: 0,
-    targetQns: target,
-    currentGrit: 0,
-    rateForQns,
-    overclockSeconds,
-  });
-  const finalRow = timeline.at(-1);
-  const time = target === 0
-    ? 0
-    : timeline.length === target && finalRow && !finalRow.unreachable
-      ? finalRow.time
-      : Number.POSITIVE_INFINITY;
-
-  return { time, timeline, startingRate };
+function invalidBuild(reason: string, buildMultiplier = 0): BuildResult {
+  return {
+    computable: false,
+    ok: false,
+    reason,
+    qns: null,
+    stats: null,
+    normal: 0,
+    overclock: 0,
+    average: 0,
+    grind: 0,
+    multiplier: buildMultiplier,
+    requiredRate: 0,
+    rateAtReady: 0,
+    productionFactorAtReady: 1,
+    funding: { time: Number.POSITIVE_INFINITY, timeline: [], startingRate: 0 },
+  };
 }
 
 function optimizeBuild(): BuildResult {
   const target = Math.max(0, number(store.state.planner.targetGrindPerDay));
   const refine = Math.max(0, number(store.state.settings.refineRate));
 
-  if (target <= 0) {
-    return { computable: false, ok: false, reason: 'Set a $GRIND / 24H target above 0.', qns: null, stats: null, normal: 0, overclock: 0, average: 0, grind: 0, multiplier: 0 };
-  }
-  if (refine < 1000) {
-    return { computable: false, ok: false, reason: 'Set a valid refinery rate under Settings.', qns: null, stats: null, normal: 0, overclock: 0, average: 0, grind: 0, multiplier: 0 };
-  }
+  if (target <= 0) return invalidBuild('Set a $GRIND / 24H rate target above 0.');
+  if (refine < 1000) return invalidBuild('Set a valid refinery rate under Settings.');
 
   const quantumNode = getQuantumNodePreset();
   const buildMultiplier = multiplier(store.state.planner.buffs);
   const vialHours = clamp(number(store.state.planner.vialHours), 0, 24);
-  const dayFactor = 1 + vialHours / 24;
-  const fixed = rigStats(store.state.planner.rigs, 0, quantumNode);
-  const requiredEffectiveRate = target * refine / DAY;
+  const pricing = qnPricing();
+  const solution = solveMinimumBuild({
+    targetGrindPerDay: target,
+    refineRate: refine,
+    vialHours,
+    rigs: store.state.planner.rigs,
+    buffs: store.state.planner.buffs,
+    quantumNode,
+    qnBasePrice: pricing.base,
+    qnPriceGrowth: pricing.growth,
+  });
 
-  const qnsForProductionFactor = (productionFactor: number): number | null => {
-    const requiredNormalRate = requiredEffectiveRate / Math.max(1, productionFactor);
-    const requiredBase = requiredNormalRate / buildMultiplier;
-    const requiredQnBase = Math.max(0, requiredBase - fixed.fixedBase);
-    if (requiredQnBase <= 0) return 0;
-    if (fixed.perQn <= 0) return null;
-    return Math.ceil(requiredQnBase / fixed.perQn);
-  };
-
-  const normalQns = qnsForProductionFactor(1);
-  const overclockQns = vialHours > 0 ? qnsForProductionFactor(2) : null;
-  let qns = normalQns;
-
-  if (vialHours > 0 && overclockQns !== null) {
-    const overclockSeconds = vialHours * HOUR;
-    const acceleratedFunding = fundingForQns(overclockQns);
-    if (Number.isFinite(acceleratedFunding.time) && acceleratedFunding.time <= overclockSeconds + 1e-6) {
-      qns = overclockQns;
-    }
+  if (solution.qns === null) {
+    return invalidBuild(
+      'This target requires Quantum Nodes, but the configured QN base rate plus fixed-rig +/QN synergy is 0/s. Set a positive QN rate or +/QN synergy under Settings/Rig Setup.',
+      buildMultiplier,
+    );
   }
 
-  if (qns === null) {
-    return {
-      computable: false,
-      ok: false,
-      reason: 'This target requires Quantum Nodes, but the configured QN base rate plus fixed-rig +/QN synergy is 0/s. Set a positive QN rate or +/QN synergy under Settings/Rig Setup.',
-      qns: null,
-      stats: null,
-      normal: 0,
-      overclock: 0,
-      average: 0,
-      grind: 0,
-      multiplier: buildMultiplier,
-    };
-  }
-
-  const stats = rigStats(store.state.planner.rigs, qns, quantumNode);
+  const stats = rigStats(store.state.planner.rigs, solution.qns, quantumNode);
   const normal = stats.base * buildMultiplier;
+  const dayFactor = 1 + vialHours / 24;
   const average = normal * dayFactor;
   const grind = average * DAY / refine;
   const cap = Math.max(0, number(store.state.settings.maxRackSlots));
@@ -139,22 +119,22 @@ function optimizeBuild(): BuildResult {
     computable: true,
     ok: fits,
     reason: fits ? '' : `Needs ${stats.slots} slots, above the configured ${cap}-slot cap.`,
-    qns,
+    qns: solution.qns,
     stats,
     normal,
     overclock: normal * 2,
     average,
     grind,
     multiplier: buildMultiplier,
+    requiredRate: solution.requiredRate,
+    rateAtReady: solution.rateAtReady,
+    productionFactorAtReady: solution.productionFactorAtReady,
+    funding: {
+      time: solution.fundingTime,
+      timeline: solution.timeline,
+      startingRate: solution.startingRate,
+    },
   };
-}
-
-function buildFunding(result: BuildResult): BuildFundingResult {
-  if (!result.computable || result.qns === null) {
-    return { time: Number.POSITIVE_INFINITY, timeline: [], startingRate: 0 };
-  }
-
-  return fundingForQns(result.qns);
 }
 
 function setupPanels(): string {
@@ -162,16 +142,16 @@ function setupPanels(): string {
 
   return `${intro(
     'BUILD PLANNER',
-    'Build from 0 QNs and 0 GRIT. Minimum QNs follow the production rate available when the build becomes ready, so extending a vial past readiness does not lower the minimum further.',
+    'Build from 0 QNs and 0 GRIT. The target is converted to a GRIT/s rate at build readiness; a vial can reduce minimum QNs only when it is still active when that build becomes ready.',
   )}${panel(
-    '1 // DAILY TARGET',
-    'Set the output rate the build should reach when ready.',
+    '1 // RATE TARGET',
+    'Set the $GRIND / 24H rate-equivalent the build should reach at readiness.',
     `<div class="module-grid two planner-target-grid">
-      ${field('state.planner.targetGrindPerDay', '$GRIND / 24H TARGET', store.state.planner.targetGrindPerDay)}
+      ${field('state.planner.targetGrindPerDay', '$GRIND / 24H RATE TARGET', store.state.planner.targetGrindPerDay)}
       <div class="hero-output compact">
         <small>BUILD MULTIPLIER</small>
         <strong>×${buildMultiplier.toFixed(3)}</strong>
-        <p>Vials accelerate GRIT funding while active. Once the minimum build is ready, a longer vial does not reduce its QN count.</p>
+        <p>Vials accelerate sequential GRIT funding. Extending a vial past build readiness does not lower the minimum QN count further.</p>
       </div>
     </div>`,
   )}${panel(
@@ -195,24 +175,24 @@ function setupPanels(): string {
 
 function outputView(result: BuildResult): string {
   if (!result.computable || result.qns === null || !result.stats) {
-    return panel('4 // MINIMUM BUILD', 'Minimum QNs and setup time for the selected target.', `<div class="warning">${escapeHtml(result.reason)}</div>`);
+    return panel('4 // MINIMUM BUILD', 'Minimum QNs and setup time for the selected rate target.', `<div class="warning">${escapeHtml(result.reason)}</div>`);
   }
 
-  const funding = buildFunding(result);
+  const funding = result.funding;
   const vialHours = clamp(number(store.state.planner.vialHours), 0, 24);
   const normalHours = 24 - vialHours;
   const dayFactor = 1 + vialHours / 24;
   const refine = Math.max(0, number(store.state.settings.refineRate));
+  const pricing = qnPricing();
   const qn = getQuantumNodePreset();
-  const qnSlots = Math.max(0, number(qn.slots, 1));
-  const qnCost = qnTotalCost(0, result.qns);
+  const qnSlots = Math.max(0, Math.floor(number(qn.slots, 1)));
+  const qnCost = qnTotalCost(0, result.qns, pricing.base, pricing.growth);
   const totalGrit = result.average * DAY;
   const overclockExtraGrit = result.normal * vialHours * HOUR;
-  const vialCoversBuild = vialHours > 0
-    && Number.isFinite(funding.time)
-    && funding.time <= vialHours * HOUR + 1e-6;
   const setupNote = Number.isFinite(funding.time)
-    ? `Starts from 0 QNs and 0 GRIT. Selected fixed rigs fund QNs sequentially${vialHours ? vialCoversBuild ? `; the ${vialHours}H vial covers the full build, so extending it further does not change the minimum` : `; the ${vialHours}H vial accelerates funding only while active` : ''}.`
+    ? result.productionFactorAtReady === 2
+      ? `Starts from 0 QNs and 0 GRIT. The selected ${vialHours}H vial is still active when the build becomes ready, so longer vial durations do not reduce the minimum further.`
+      : `Starts from 0 QNs and 0 GRIT. ${vialHours ? `The ${vialHours}H vial accelerates funding, but the minimum is sized for normal production because the vial is no longer active at readiness.` : 'QNs are funded sequentially at normal production.'}`
     : 'Setup time is unreachable from 0 GRIT with the current references. Add a producing fixed rig so QN 1 can be funded.';
 
   const extraQns = Math.max(0, Math.floor(number(store.state.planner.extraQns)));
@@ -223,7 +203,7 @@ function outputView(result: BuildResult): string {
   const finalTotalGrit = finalAverage * DAY;
   const finalGrind = refine >= 1000 ? finalTotalGrit / refine : 0;
   const finalOverclockExtraGrit = finalNormal * vialHours * HOUR;
-  const extraQnCost = qnTotalCost(result.qns, extraQns);
+  const extraQnCost = qnTotalCost(result.qns, extraQns, pricing.base, pricing.growth);
   const grindGain = finalGrind - result.grind;
   const rateGain = finalNormal - result.normal;
   const slotGain = finalStats.slots - result.stats.slots;
@@ -232,7 +212,7 @@ function outputView(result: BuildResult): string {
 
   return `${panel(
     '4 // MINIMUM BUILD',
-    'Minimum Quantum Nodes from the sequential GRIT funding path, setup time, and selected-vial 24H performance.',
+    'Minimum Quantum Nodes from sequential GRIT funding and the production rate available at build readiness.',
     `${!result.ok ? `<div class="warning">${escapeHtml(result.reason)}</div>` : ''}
     <div class="result-hero-pair optimized-build-heroes">
       <div class="result-hero current">
@@ -256,21 +236,22 @@ function outputView(result: BuildResult): string {
     <div class="final-performance minimum-performance">
       <div class="result-hero-pair final-output-heroes">
         <div class="result-hero simulated">
-          <small>SIMULATED 24H OUTPUT</small>
+          <small>COMPLETED-BUILD 24H BENCHMARK</small>
           <strong>${compact(totalGrit)}<em> GRIT</em></strong>
-          <p>${compact(result.grind)} $GRIND after refining at the configured rate.</p>
+          <p>${compact(result.grind)} $GRIND with the selected vial schedule. This benchmark is separate from the readiness-rate solver.</p>
         </div>
         <div class="result-hero current">
-          <small>EFFECTIVE 24H RATE</small>
-          <strong>${compact(result.average)}<em>/s</em></strong>
-          <p>${normalHours}h normal · ${vialHours}h at 2× overclock.</p>
+          <small>RATE AT BUILD READY</small>
+          <strong>${compact(result.rateAtReady)}<em>/s</em></strong>
+          <p>${result.productionFactorAtReady === 2 ? '2× overclock is active at readiness.' : 'Normal production rate at readiness.'}</p>
         </div>
       </div>
       <div class="metric-grid final-performance-metrics">
+        ${metric('TARGET RATE', `${compact(result.requiredRate)}/s`)}
+        ${metric('RATE AT BUILD READY', `${compact(result.rateAtReady)}/s`, result.rateAtReady + 1e-6 >= result.requiredRate ? 'green' : 'negative')}
         ${metric('NORMAL RATE', `${compact(result.normal)}/s`)}
-        ${metric('OVERCLOCK EXTRA OUTPUT', vialHours ? `+${compact(overclockExtraGrit)} GRIT` : '—', vialHours ? 'green' : '', vialHours ? `Extra GRIT contributed by ${vialHours}h at 2×.` : 'No vial selected.')}
-        ${metric('TOTAL $GRIND / 24H', `${compact(result.grind)} $GRIND`, 'gold')}
-        ${metric('TARGET', `${compact(store.state.planner.targetGrindPerDay)} $GRIND`, result.grind >= number(store.state.planner.targetGrindPerDay) ? 'green' : '')}
+        ${metric('OVERCLOCK EXTRA OUTPUT', vialHours ? `+${compact(overclockExtraGrit)} GRIT` : '—', vialHours ? 'green' : '', vialHours ? `Extra GRIT contributed by ${vialHours}h at 2× in the completed-build benchmark.` : 'No vial selected.')}
+        ${metric('SIMULATED $GRIND / 24H', `${compact(result.grind)} $GRIND`, 'gold')}
       </div>
       <div class="schedule">
         <span><b>${normalHours}h</b> normal production</span>
@@ -279,7 +260,7 @@ function outputView(result: BuildResult): string {
     </div>`,
   )}${panel(
     '5 // FINAL BUILD PERFORMANCE',
-    'Add QNs above the minimum and see the performance of the current planned build.',
+    'Add QNs above the minimum and see the completed-build 24H benchmark.',
     `<div class="sim-card final-qn-control">
       <div class="field-title">QNs ABOVE MINIMUM</div>
       <div class="quickadd qn-quick">
@@ -295,7 +276,7 @@ function outputView(result: BuildResult): string {
         <div class="result-hero simulated">
           <small>CURRENT BUILD $GRIND / 24H</small>
           <strong>${compact(finalGrind)}<em> $GRIND</em></strong>
-          <p>${grindGain > 0 ? `${signed(grindGain, ' $GRIND')} versus the minimum build.` : 'Matches the minimum target build.'}</p>
+          <p>${grindGain > 0 ? `${signed(grindGain, ' $GRIND')} versus the minimum build benchmark.` : 'Matches the minimum build benchmark.'}</p>
         </div>
         <div class="result-hero current">
           <small>CURRENT BUILD QNs</small>
@@ -309,7 +290,7 @@ function outputView(result: BuildResult): string {
         ${metric('TOTAL 24H OUTPUT', `${compact(finalTotalGrit)} GRIT`)}
         ${metric('EXTRA $GRIND / 24H', grindGain > 0 ? signed(grindGain, ' $GRIND') : '—', grindGain > 0 ? 'green' : '')}
         ${metric('EXTRA QN GRIT COST', extraQnCost > 0 ? `−${compact(extraQnCost)} GRIT` : '—', extraQnCost > 0 ? 'negative' : '', extraQns ? `Cost from QN ${result.qns + 1} through ${finalQns}.` : 'No QNs added above minimum.')}
-        ${metric('OVERCLOCK EXTRA OUTPUT', vialHours ? `+${compact(finalOverclockExtraGrit)} GRIT` : '—', vialHours ? 'green' : '', vialHours ? `${vialHours}h at 2× in the 24H estimate.` : 'No vial selected.')}
+        ${metric('OVERCLOCK EXTRA OUTPUT', vialHours ? `+${compact(finalOverclockExtraGrit)} GRIT` : '—', vialHours ? 'green' : '', vialHours ? `${vialHours}h at 2× in the 24H benchmark.` : 'No vial selected.')}
       </div>
       <div class="schedule">
         <span><b>${normalHours}h</b> normal production</span>
@@ -334,7 +315,7 @@ function readinessView(result: BuildResult): string {
     });
   }
 
-  const funding = buildFunding(result);
+  const funding = result.funding;
   const issues: Array<{ label: string; message: string }> = [];
   const unreachable = funding.timeline.find((row) => row.unreachable);
 
@@ -348,6 +329,7 @@ function readinessView(result: BuildResult): string {
   }
 
   const vialHours = clamp(number(store.state.planner.vialHours), 0, 24);
+  const pricing = qnPricing();
   return `${intro(
     'BUILD PLANNER',
     'QN readiness for the minimum build. This timeline is calculated from the Build Planner references only.',
@@ -362,7 +344,7 @@ function readinessView(result: BuildResult): string {
     introText: 'Starts from 0 QNs and 0 GRIT. Selected fixed rigs are available as the starting mining source; Deck Simulator values are not used.',
     rateLabel: 'STARTING FIXED-RIG RATE',
     issues,
-    pricingNote: `Pricing assumption: <b>${compact(QN_BASE_PRICE)} GRIT × ${QN_PRICE_GROWTH}^owned</b>. QNs are bought one at a time${vialHours ? `; the selected ${vialHours}H vial accelerates funding only while active` : ''}.`,
+    pricingNote: `QN pricing setting: <b>${compact(pricing.base)} GRIT × ${pricing.growth}^owned</b>. QNs are bought one at a time${vialHours ? `; the selected ${vialHours}H vial accelerates funding only while active` : ''}.`,
   })}`;
 }
 
@@ -374,8 +356,8 @@ function marketRigCost(): { total: number; rows: CostRow[] } {
     const key = rig.presetId ?? '';
     if (!(key in MARKET_DEFAULTS)) continue;
 
-    const quantity = Math.max(0, number(rig.qty));
-    const unit = Math.max(0, number(store.market[key] ?? 0));
+    const quantity = Math.max(0, Math.floor(number(rig.qty)));
+    const unit = Math.max(0, number(store.market[key] ?? MARKET_DEFAULTS[key] ?? 0));
     if (!quantity) continue;
 
     const cost = quantity * unit;
@@ -396,43 +378,61 @@ function costingView(result: BuildResult): string {
     return panel('4 // COSTING', 'Known investment for the minimum build.', `<div class="warning">${escapeHtml(result.reason || 'Set a valid target and build setup first.')}</div>`);
   }
 
-  const qnCost = qnTotalCost(0, result.qns);
-  const rack = rackExpansion(RACK_BASE_SLOTS, result.stats.slots);
+  const pricing = qnPricing();
+  const cap = Math.max(0, number(store.state.settings.maxRackSlots));
+  const rackTarget = cap > 0 ? Math.min(result.stats.slots, cap) : result.stats.slots;
+  const qnCost = qnTotalCost(0, result.qns, pricing.base, pricing.growth);
+  const rack = rackExpansion(RACK_BASE_SLOTS, rackTarget);
   const coolant = coolantUpgradeCost(0, store.state.planner.buffs.coolantLevel);
-  const vial = store.state.planner.vialHours ? store.vials[String(store.state.planner.vialHours)] ?? 0 : 0;
+  const vial = store.state.planner.vialHours ? Math.max(0, number(store.vials[String(store.state.planner.vialHours)] ?? 0)) : 0;
   const rigs = marketRigCost();
-  const frames: Array<[flag: 'bronze' | 'silver' | 'gold', cost: number, label: string]> = [
-    ['bronze', 1_250_000, 'BRONZE FRAME'],
-    ['silver', 2_500_000, 'SILVER FRAME'],
-    ['gold', 5_000_000, 'GOLD FRAME'],
+  const frames: Array<[flag: 'bronze' | 'silver' | 'gold', marketKey: string, label: string]> = [
+    ['bronze', 'bronze_frame', 'BRONZE FRAME'],
+    ['silver', 'silver_frame', 'SILVER FRAME'],
+    ['gold', 'gold_frame', 'GOLD FRAME'],
   ];
   let frameTotal = 0;
   const frameRows: CostRow[] = [];
+  let hasUnknownFrameCost = false;
 
-  if (!store.state.planner.buffs.mixed) {
-    for (const [flag, cost, label] of frames) {
-      if (store.state.planner.buffs[flag]) {
-        frameTotal += cost;
-        frameRows.push({ item: label, detail: 'Selected build buff', grind: cost, note: 'Direct frame price reference.' });
-      }
+  if (store.state.planner.buffs.mixed) {
+    hasUnknownFrameCost = true;
+    frameRows.push({
+      item: 'MIXED FRAME',
+      detail: 'Selected build buff',
+      note: 'No standalone Mixed Frame market reference is configured, so its acquisition cost is excluded from the total.',
+    });
+  } else {
+    for (const [flag, marketKey, label] of frames) {
+      if (!store.state.planner.buffs[flag]) continue;
+      const cost = Math.max(0, number(store.market[marketKey] ?? MARKET_DEFAULTS[marketKey] ?? 0));
+      frameTotal += cost;
+      frameRows.push({
+        item: label,
+        detail: 'Selected build buff',
+        grind: cost,
+        note: 'Editable Marketplace Reference under Settings.',
+      });
     }
   }
 
   const total = rack.total + coolant + vial + rigs.total + frameTotal;
   const rows: CostRow[] = [
-    { item: 'QUANTUM NODES', detail: `${result.qns} to buy · 0 → ${result.qns}`, grit: qnCost, note: `QN price assumption: ${compact(QN_BASE_PRICE)} × ${QN_PRICE_GROWTH}^owned.` },
-    { item: 'RACK SLOT EXPANSION', detail: rack.count ? `${rack.count} × +6 rack slots` : 'No expansion needed', grind: rack.total, note: 'Starts from the 12 base rack slots.' },
-    { item: 'COOLANT', detail: `Level 0 → ${Math.floor(number(store.state.planner.buffs.coolantLevel))}`, grind: coolant, note: 'Exact coolant level table.' },
+    { item: 'QUANTUM NODES', detail: `${result.qns} to buy · 0 → ${result.qns}`, grit: qnCost, note: `QN pricing setting: ${compact(pricing.base)} × ${pricing.growth}^owned.` },
+    { item: 'RACK SLOT EXPANSION', detail: rack.count ? `${rack.count} × +6 rack slots` : 'No expansion needed', grind: rack.total, note: result.ok ? 'Starts from the 12 base rack slots.' : `Costed only through the configured ${cap}-slot cap; the build itself needs ${result.stats.slots}.` },
+    ...(!result.ok ? [{ item: 'DECK SLOT CAP', detail: `${result.stats.slots} needed · ${cap} maximum`, note: 'This build does not fit the configured maximum deck slots.' } as CostRow] : []),
+    { item: 'COOLANT', detail: `Level 0 → ${Math.floor(number(store.state.planner.buffs.coolantLevel))}`, grind: coolant, note: 'Each level doubles in price from the 12K Level 1 reference.' },
     ...frameRows,
     { item: 'VIAL', detail: store.state.planner.vialHours ? `${store.state.planner.vialHours}H market reference` : 'No vial', grind: vial, note: 'Strictly uses Settings vial market reference.' },
     ...rigs.rows,
-    { item: 'TOTAL KNOWN COST', grind: total, grit: qnCost, note: 'Separate currencies; unknown prerequisites are not silently estimated.', total: true },
+    { item: 'TOTAL KNOWN COST', grind: total, grit: qnCost, note: hasUnknownFrameCost ? 'Separate currencies. Mixed Frame acquisition cost is unknown and excluded.' : 'Separate currencies; unknown prerequisites are not silently estimated.', total: true },
   ];
 
   return panel(
     '4 // COSTING',
-    'Known investment for the minimum build from scratch. No Deck Simulator ownership data is deducted.',
-    `<div class="cost-badges">
+    'Known investment for the minimum build from scratch. Frame prices use editable Marketplace References under Settings.',
+    `${!result.ok ? `<div class="warning">${escapeHtml(result.reason)}</div>` : ''}
+    <div class="cost-badges">
       <div><small>$GRIND</small><strong class="${total ? 'negative' : ''}">${total ? `−${compact(total)}` : '0'}</strong></div>
       <div><small>GRIT</small><strong class="${qnCost ? 'negative' : ''}">${qnCost ? `−${compact(qnCost)}` : '0'}</strong></div>
     </div>${costRows(rows)}`,

@@ -54,9 +54,10 @@ const DECK_VIEWS: DeckView[] = ['output', 'cost', 'readiness'];
 const PLANNER_VIEWS: PlannerView[] = ['output', 'cost', 'readiness'];
 const SCOPES: Scope[] = ['deck', 'planner'];
 
-type NumericBuffKey = 'tier' | 'coolantLevel' | 'prestigePct' | 'auraPct' | 'corePct' | 'otherMult';
+type NumericBuffKey = 'tier' | 'coolantLevel' | 'prestigePct' | 'auraPct' | 'corePct';
 type FrameKey = 'bronze' | 'silver' | 'gold' | 'mixed';
 type RigField = 'name' | 'qty' | 'rate' | 'synergy' | 'slots';
+type PresetNumericField = 'rate' | 'synergy' | 'slots';
 
 function isScope(value: string | undefined): value is Scope {
   return value !== undefined && SCOPES.includes(value as Scope);
@@ -78,8 +79,9 @@ function currentView(): string {
 }
 
 export function render(): void {
+  const body = currentView();
   saveAll();
-  app.innerHTML = shell(currentView());
+  app.innerHTML = shell(body);
 }
 
 function updateRigField(scope: Scope, id: string, key: RigField, rawValue: string): void {
@@ -97,7 +99,9 @@ function updateRigField(scope: Scope, id: string, key: RigField, rawValue: strin
 
   const parsed = parseHuman(rawValue);
   if (Number.isFinite(parsed)) {
-    const nextValue = Math.max(0, parsed);
+    const nextValue = key === 'qty' || key === 'slots'
+      ? Math.max(0, Math.floor(parsed))
+      : Math.max(0, parsed);
     if (rig[key] !== nextValue) {
       rig[key] = nextValue;
       resetPlannerExtraQns(scope);
@@ -107,7 +111,7 @@ function updateRigField(scope: Scope, id: string, key: RigField, rawValue: strin
 
 function setNumericBuff(buffs: BuffState, key: string, value: number): void {
   const numericKey = key as NumericBuffKey;
-  if (!['tier', 'coolantLevel', 'prestigePct', 'auraPct', 'corePct', 'otherMult'].includes(numericKey)) return;
+  if (!['tier', 'coolantLevel', 'prestigePct', 'auraPct', 'corePct'].includes(numericKey)) return;
   buffs[numericKey] = Math.max(0, value);
 }
 
@@ -115,7 +119,14 @@ function toggleFrame(buffs: BuffState, key: string): void {
   if (!['bronze', 'silver', 'gold', 'mixed'].includes(key)) return;
   const frame = key as FrameKey;
   buffs[frame] = !buffs[frame];
-  if (frame !== 'mixed' && buffs[frame]) buffs.mixed = false;
+
+  if (frame === 'mixed' && buffs.mixed) {
+    buffs.bronze = false;
+    buffs.silver = false;
+    buffs.gold = false;
+  } else if (frame !== 'mixed' && buffs[frame]) {
+    buffs.mixed = false;
+  }
 }
 
 function pickerRoot(scope: CashoutPickerScope): HTMLElement | null {
@@ -195,6 +206,14 @@ app.addEventListener('input', (event: Event) => {
     const parsed = parseHuman(input.value);
     if (Number.isFinite(parsed)) {
       updateInputPath(input.dataset.path, parsed);
+      if ([
+        'state.planner.targetGrindPerDay',
+        'state.settings.refineRate',
+        'state.settings.qnBasePrice',
+        'state.settings.qnPriceGrowth',
+      ].includes(input.dataset.path)) {
+        store.state.planner.extraQns = 0;
+      }
       saveAll();
     }
     return;
@@ -221,12 +240,20 @@ app.addEventListener('input', (event: Event) => {
   }
 
   if (input.dataset.preset) {
-    const [id, key] = input.dataset.preset.split(':');
+    const [id, keyValue] = input.dataset.preset.split(':');
     const preset = id ? store.state.settings.rigPresets[id] : undefined;
-    if (!preset || !key || !['rate', 'synergy', 'slots'].includes(key)) return;
+    if (!preset || !keyValue || !['rate', 'synergy', 'slots'].includes(keyValue)) return;
     const parsed = parseHuman(input.value);
-    if (Number.isFinite(parsed)) preset[key as 'rate' | 'synergy' | 'slots'] = Math.max(0, parsed);
-    saveAll();
+    if (Number.isFinite(parsed)) {
+      const key = keyValue as PresetNumericField;
+      const nextValue = key === 'slots' ? Math.max(0, Math.floor(parsed)) : Math.max(0, parsed);
+      preset[key] = nextValue;
+      for (const rig of [...store.deck.rigs, ...store.state.planner.rigs]) {
+        if (rig.presetId === id) rig[key] = nextValue;
+      }
+      store.state.planner.extraQns = 0;
+      saveAll();
+    }
     return;
   }
 
@@ -529,6 +556,16 @@ document.addEventListener('keydown', (event: KeyboardEvent) => {
 
 setInterval(() => {
   const remaining = cashoutRemainingSeconds();
+  const needsProjectionRefresh = remaining !== null
+    && (store.state.activeTab === 'reset' || store.state.activeTab === 'current')
+    && !app.querySelector('input:focus')
+    && !app.querySelector('[data-cashout-picker]:not([hidden])');
+
+  if (needsProjectionRefresh) {
+    render();
+    return;
+  }
+
   app.querySelectorAll<HTMLElement>('[data-live-cashout]').forEach((node) => {
     node.textContent = remaining !== null ? duration(remaining) : 'NOT SET';
   });
