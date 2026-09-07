@@ -186,6 +186,7 @@ function outputView(result: BuildResult): string {
   const hasVial = vialHours > 0;
   const refine = Math.max(0, number(store.state.settings.refineRate));
   const targetGrind = Math.max(0, number(store.state.planner.targetGrindPerDay));
+  const targetGrit = targetGrind * refine;
   const pricing = qnPricing();
   const qn = getQuantumNodePreset();
   const qnCost = qnTotalCost(0, result.qns, pricing.base, pricing.growth);
@@ -196,12 +197,18 @@ function outputView(result: BuildResult): string {
   const setupSaved = Number.isFinite(noVialSetup) && Number.isFinite(selectedSetup)
     ? Math.max(0, noVialSetup - selectedSetup)
     : 0;
+  const setupSavedPct = Number.isFinite(noVialSetup) && noVialSetup > 0 && Number.isFinite(selectedSetup)
+    ? setupSaved / noVialSetup * 100
+    : 0;
 
   const noVialTotalGrit = result.normal * DAY;
   const noVialGrind = refine >= 1000 ? noVialTotalGrit / refine : 0;
   const selectedVialTotalGrit = result.average * DAY;
   const selectedVialGrind = result.grind;
   const vialGainGrind = Math.max(0, selectedVialGrind - noVialGrind);
+  const vialGainGrit = Math.max(0, selectedVialTotalGrit - noVialTotalGrit);
+  const targetHeadroom = Math.max(0, noVialGrind - targetGrind);
+  const targetHeadroomPct = targetGrind > 0 ? targetHeadroom / targetGrind * 100 : 0;
 
   const extraQns = Math.max(0, Math.floor(number(store.state.planner.extraQns)));
   const finalQns = result.qns + extraQns;
@@ -214,24 +221,36 @@ function outputView(result: BuildResult): string {
   const finalVialGrind = refine >= 1000 ? finalVialGrit / refine : 0;
   const finalVialGain = Math.max(0, finalVialGrind - finalNoVialGrind);
   const extraQnCost = qnTotalCost(result.qns, extraQns, pricing.base, pricing.growth);
+  const finalRateGain = Math.max(0, finalNormal - result.normal);
+  const finalNoVialGainVsMinimum = Math.max(0, finalNoVialGrind - noVialGrind);
+  const finalVialGainVsMinimum = Math.max(0, finalVialGrind - selectedVialGrind);
+  const activeGainVsMinimum = hasVial ? finalVialGainVsMinimum : finalNoVialGainVsMinimum;
+  const gainPerAddedQn = extraQns > 0 ? activeGainVsMinimum / extraQns : 0;
+  const noVialGainPerAddedQn = extraQns > 0 ? finalNoVialGainVsMinimum / extraQns : 0;
   const cap = Math.max(0, number(store.state.settings.maxRackSlots));
   const finalFits = !(cap > 0 && finalStats.slots > cap);
 
   return `${panel(
     '4 // MINIMUM BUILD',
-    'One stable minimum build, compared with and without the selected vial.',
+    'Stable minimum hardware, target coverage, and the setup/earnings impact of the selected vial.',
     `${!result.ok ? `<div class="warning">${escapeHtml(result.reason)}</div>` : ''}
     <div class="result-hero-pair optimized-build-heroes">
       <div class="result-hero current">
         <small>MINIMUM QNs</small>
         <strong>${result.qns.toLocaleString()}</strong>
-        <p>${compact(result.stats.slots)} slots · ${qnCost > 0 ? `${compact(qnCost)} GRIT QN cost` : 'no QN cost'}</p>
+        <p>${compact(result.stats.slots)} total slots · ${compact(result.stats.fixedSlots)} fixed-rig slots</p>
       </div>
       <div class="result-hero ready">
         <small>DAILY TARGET</small>
         <strong>${compact(targetGrind)}<em> $GRIND</em></strong>
-        <p>${compact(result.normal)}/s normal rate · minimum stays fixed when vial changes.</p>
+        <p>${compact(targetGrit)} GRIT / 24H · ${compact(result.requiredRate)}/s required normal rate</p>
       </div>
+    </div>
+    <div class="metric-grid optimized-build-metrics">
+      ${metric('MINIMUM NORMAL RATE', `${compact(result.normal)}/s`, result.normal + 1e-6 >= result.requiredRate ? 'green' : 'negative')}
+      ${metric('TARGET HEADROOM', targetHeadroom > 0 ? `+${compact(targetHeadroom)} $GRIND` : 'ON TARGET', targetHeadroom > 0 ? 'green' : '', targetHeadroom > 0 ? `${targetHeadroomPct.toFixed(2)}% above target because QNs are whole units.` : 'Minimum output matches the target.')}
+      ${metric('QN GRIT COST', qnCost > 0 ? `−${compact(qnCost)} GRIT` : '—', qnCost > 0 ? 'negative' : '')}
+      ${metric('USED SLOTS', compact(result.stats.slots))}
     </div>
     ${!Number.isFinite(selectedSetup) && result.qns > 0 ? `<div class="warning optimized-build-warning">Setup is unreachable from 0 GRIT with the current fixed rigs. Add a producing fixed rig so QN 1 can be funded.</div>` : ''}
     <div class="result-hero-pair final-output-heroes">
@@ -244,14 +263,19 @@ function outputView(result: BuildResult): string {
         <small>${hasVial ? `${vialHours}H VIAL` : 'VIAL PERFORMANCE'}</small>
         <strong>${hasVial ? duration(selectedSetup) : 'NOT SELECTED'}</strong>
         <p>${hasVial
-          ? `setup time · ${compact(selectedVialGrind)} $GRIND / 24H · +${compact(vialGainGrind)} $GRIND`
+          ? `setup time · ${compact(selectedVialGrind)} $GRIND / 24H`
           : 'Select a vial under Buffs to compare setup speed and earnings on the same minimum build.'}</p>
       </div>
     </div>
-    ${hasVial ? `<div class="info-line">Same ${result.qns.toLocaleString()} QNs in both cases · vial saves <b>${duration(setupSaved)}</b> of setup time and adds <b>+${compact(vialGainGrind)} $GRIND / 24H</b>.</div>` : ''}`,
+    <div class="metric-grid final-performance-metrics">
+      ${metric('NO-VIAL 24H OUTPUT', `${compact(noVialTotalGrit)} GRIT`)}
+      ${metric('SELECTED-VIAL 24H OUTPUT', hasVial ? `${compact(selectedVialTotalGrit)} GRIT` : '—', hasVial ? 'green' : '')}
+      ${metric('SETUP TIME SAVED', hasVial ? duration(setupSaved) : '—', hasVial && setupSaved > 0 ? 'green' : '', hasVial ? `${setupSavedPct.toFixed(1)}% faster than the no-vial funding path.` : 'No vial selected.')}
+      ${metric('VIAL DAILY GAIN', hasVial ? `+${compact(vialGainGrind)} $GRIND` : '—', hasVial ? 'green' : '', hasVial ? `+${compact(vialGainGrit)} GRIT from ${vialHours}h at 2×.` : 'No vial selected.')}
+    </div>`,
   )}${panel(
     '5 // FINAL BUILD PERFORMANCE',
-    'Add QNs above the minimum, then compare the resulting build with and without the selected vial.',
+    'Add QNs above the minimum and see the added hardware, cost, and daily production gain.',
     `<div class="sim-card final-qn-control">
       <div class="field-title">QNs ABOVE MINIMUM</div>
       <div class="quickadd qn-quick">
@@ -259,26 +283,28 @@ function outputView(result: BuildResult): string {
         <button type="button" class="chip" data-add-planner-qn="-1" ${extraQns <= 0 ? 'disabled' : ''}>−1</button>
         <button type="button" class="chip" data-clear-planner-qn ${extraQns <= 0 ? 'disabled' : ''}>CLEAR</button>
       </div>
-      <p>${finalQns.toLocaleString()} total QNs · ${extraQns ? `+${extraQns.toLocaleString()} above minimum` : 'minimum build'}.</p>
+      <p>${result.qns.toLocaleString()} minimum → <b>${finalQns.toLocaleString()} total QNs</b>${extraQns ? ` · +${extraQns.toLocaleString()} added` : ''}.</p>
     </div>
     ${!finalFits ? `<div class="warning">Current build needs ${compact(finalStats.slots)} slots, above the configured ${compact(cap)}-slot cap.</div>` : ''}
     <div class="result-hero-pair final-output-heroes">
       <div class="result-hero current">
         <small>NO VIAL</small>
         <strong>${compact(finalNoVialGrind)}<em> $GRIND</em></strong>
-        <p>24H earnings · ${compact(finalNoVialGrit)} GRIT</p>
+        <p>${compact(finalNoVialGrit)} GRIT / 24H · ${signed(finalNoVialGainVsMinimum, ' $GRIND')} vs minimum</p>
       </div>
       <div class="result-hero simulated">
         <small>${hasVial ? `${vialHours}H VIAL` : 'VIAL PERFORMANCE'}</small>
         <strong>${hasVial ? `${compact(finalVialGrind)}<em> $GRIND</em>` : 'NOT SELECTED'}</strong>
-        <p>${hasVial ? `24H earnings · ${signed(finalVialGain, ' $GRIND')} from vial` : 'Select a vial to compare.'}</p>
+        <p>${hasVial ? `${compact(finalVialGrit)} GRIT / 24H · ${signed(finalVialGain, ' $GRIND')} vial-only gain` : 'Select a vial to compare the same final build.'}</p>
       </div>
     </div>
     <div class="metric-grid final-performance-metrics">
-      ${metric('CURRENT BUILD QNs', finalQns.toLocaleString())}
+      ${metric('CURRENT BUILD QNs', finalQns.toLocaleString(), extraQns > 0 ? 'green' : '')}
       ${metric('USED SLOTS', compact(finalStats.slots))}
-      ${metric('NORMAL RATE', `${compact(finalNormal)}/s`)}
+      ${metric('NORMAL RATE', `${compact(finalNormal)}/s`, finalRateGain > 0 ? 'green' : '', finalRateGain > 0 ? `${signed(finalRateGain, '/s')} above minimum.` : 'Minimum build rate.')}
       ${metric('EXTRA QN COST', extraQnCost > 0 ? `−${compact(extraQnCost)} GRIT` : '—', extraQnCost > 0 ? 'negative' : '')}
+      ${metric(hasVial ? 'VIAL GAIN VS MINIMUM' : 'GAIN VS MINIMUM', activeGainVsMinimum > 0 ? `+${compact(activeGainVsMinimum)} $GRIND` : '—', activeGainVsMinimum > 0 ? 'green' : '', hasVial ? `No-vial gain: +${compact(finalNoVialGainVsMinimum)} $GRIND / 24H.` : 'Additional no-vial production from added QNs.')}
+      ${metric('GAIN / ADDED QN', extraQns > 0 ? `+${compact(gainPerAddedQn)} $GRIND` : '—', extraQns > 0 ? 'green' : '', extraQns > 0 && hasVial ? `No-vial: +${compact(noVialGainPerAddedQn)} $GRIND per added QN.` : extraQns > 0 ? 'Daily gain per added QN.' : 'Add QNs to see marginal production.')}
     </div>`,
   )}`;
 }
