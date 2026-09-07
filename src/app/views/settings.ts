@@ -78,7 +78,7 @@ function refineDiscountSettings(): string {
       <div><small>GAME REFERENCE</small><strong>${REFINE_DISCOUNT_REFERENCE.dailyPct}% · ${REFINE_DISCOUNT_REFERENCE.weeklyPct}% · ${REFINE_DISCOUNT_REFERENCE.passPct}%</strong><span>Daily · Weekly · Seasonal Pass</span></div>
     </div>
     <div class="formgrid discount-reference-grid">
-      ${field('state.settings.refineDiscounts.passPrice', 'SEASONAL PASS PRICE · $GRIND', discounts.passPrice)}
+      ${field('state.settings.refineDiscounts.passPrice', 'SEASONAL PASS PRICE · $GRIND · REFERENCE ONLY', discounts.passPrice)}
     </div>
     ${binaryChoice(
       'state.settings.refineDiscounts.taskDiscountsEnabled',
@@ -88,7 +88,7 @@ function refineDiscountSettings(): string {
       'DISABLED',
     )}
     <div class="discount-reference-note">
-      Game reference: Daily Tasks make refining <b>${REFINE_DISCOUNT_REFERENCE.dailyPct}% cheaper</b>; Weekly Tasks make it <b>${REFINE_DISCOUNT_REFERENCE.weeklyPct}% cheaper</b>. Together they compound to <b>${dailyWeeklyPct.toFixed(1)}%</b>, not 15%. With the active <b>${REFINE_DISCOUNT_REFERENCE.passPct}% Seasonal Pass</b>, the full stack is <b>${allPct.toFixed(2)}% cheaper</b>. Every season reset clears both task sets, so those discounts must be earned again. These percentages are fixed game rules; only the Pass price remains an editable ROI input. ROI baseline selections are isolated and never change Build Planner or Deck Simulator output.
+      Game reference: Daily Tasks make refining <b>${REFINE_DISCOUNT_REFERENCE.dailyPct}% cheaper</b>; Weekly Tasks make it <b>${REFINE_DISCOUNT_REFERENCE.weeklyPct}% cheaper</b>. Together they compound to <b>${dailyWeeklyPct.toFixed(1)}%</b>, not 15%. With the active <b>${REFINE_DISCOUNT_REFERENCE.passPct}% Seasonal Pass</b>, the full stack is <b>${allPct.toFixed(2)}% cheaper</b>. Every season reset clears both task sets, so those discounts must be earned again. These percentages are fixed game rules. The Pass price is retained only as a personal reference; refinery ROI does not deduct it or issue a Pass worth-it verdict because crates and other Pass rewards are outside this model. ROI baseline selections are isolated and never change Build Planner or Deck Simulator output.
     </div>`;
 }
 
