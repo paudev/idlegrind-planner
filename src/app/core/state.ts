@@ -41,9 +41,7 @@ function defaultBuffs(): BuffState {
 
 function defaultDiscountCosts(): RefineDiscountCosts {
   return {
-    dailyGrit: 0,
     dailyGrind: 0,
-    weeklyGrit: 0,
     weeklyGrind: 0,
   };
 }
@@ -76,9 +74,7 @@ function normalizeDiscountSettings(discounts: RefineDiscountSettings): void {
 }
 
 function normalizeDiscountCosts(costs: RefineDiscountCosts): void {
-  costs.dailyGrit = Math.max(0, number(costs.dailyGrit));
   costs.dailyGrind = Math.max(0, number(costs.dailyGrind));
-  costs.weeklyGrit = Math.max(0, number(costs.weeklyGrit));
   costs.weeklyGrind = Math.max(0, number(costs.weeklyGrind));
 }
 

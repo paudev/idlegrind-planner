@@ -64,22 +64,16 @@ function scopeCosts(scope: Scope): RefineDiscountCosts {
 function taskCostInputs(scope: Scope, key: 'daily' | 'weekly'): string {
   const costs = scopeCosts(scope);
   const prefix = scope === 'planner' ? 'state.planner.discountCosts' : 'deck.discountCosts';
-  const grit = key === 'daily' ? costs.dailyGrit : costs.weeklyGrit;
   const grind = key === 'daily' ? costs.dailyGrind : costs.weeklyGrind;
-  const gritKey = key === 'daily' ? 'dailyGrit' : 'weeklyGrit';
   const grindKey = key === 'daily' ? 'dailyGrind' : 'weeklyGrind';
 
-  return `<div class="discount-cost-grid">
+  return `<div class="discount-cost-grid single">
     <label>
-      <span>CURRENT GRIT COST</span>
-      <input data-path="${prefix}.${gritKey}" data-num value="${inputText(grit)}">
-    </label>
-    <label>
-      <span>CURRENT $GRIND COST</span>
+      <span>CURRENT COST · $GRIND</span>
       <input data-path="${prefix}.${grindKey}" data-num value="${inputText(grind)}">
     </label>
   </div>
-  <p class="discount-cost-caption">Enter what it would cost you now to finish this task set. Leave a currency at 0 when it is not part of the current task cost.</p>`;
+  <p class="discount-cost-caption">Enter the current $GRIND cost to complete this task set. No GRIT cost is used in ROI.</p>`;
 }
 
 function passPriceInput(): string {
@@ -118,14 +112,12 @@ function discountCard(
   const costs = scopeCosts(scope);
   const taskEnabled = number(settings.taskDiscountsEnabled) >= 0.5;
   const pct = discountPct(settings, key);
-  const gritCost = key === 'daily' ? costs.dailyGrit : key === 'weekly' ? costs.weeklyGrit : 0;
   const grindCost = key === 'daily' ? costs.dailyGrind : key === 'weekly' ? costs.weeklyGrind : settings.passPrice;
   const result = refineDiscountRoi({
     candidate: key,
     baseRefineRate: store.state.settings.refineRate,
     settings,
     projectedGrit,
-    gritCost,
     grindCost,
     horizonSeconds: period.seconds,
   });
@@ -143,7 +135,7 @@ function discountCard(
     : '—';
   const costCopy = key === 'pass'
     ? `${compact(Math.max(0, number(settings.passPrice)))} $GRIND user-entered Season Pass price.`
-    : `${compact(Math.max(0, number(gritCost)))} GRIT + ${compact(Math.max(0, number(grindCost)))} $GRIND current completion cost.`;
+    : `${compact(Math.max(0, number(grindCost)))} $GRIND current completion cost.`;
 
   return `<article class="discount-roi-card ${status.tone}">
     <div class="discount-roi-head">
@@ -207,11 +199,11 @@ export function renderRefineDiscountRoi({
 
   return panel(
     `${panelNumber} // REFINE DISCOUNT ROI`,
-    'Compare the current cost to earn each discount against the production window it actually helps: 24H for Daily Tasks and 7D for Weekly Tasks / Seasonal Pass.',
+    'Compare the current $GRIND cost to earn each discount against the production window it actually helps: 24H for Daily Tasks and 7D for Weekly Tasks / Seasonal Pass.',
     `<div class="discount-stack-summary">
       <div><small>BASE REFINE RATE</small><strong>${compact(baseRate)}</strong><span>GRIT / $GRIND</span></div>
       <div class="effective"><small>ACTIVE-STACK RATE</small><strong>${compact(effectiveRate)}</strong><span>${combinedPct > 0 ? `${combinedPct.toFixed(2)}% cheaper after compounding` : 'no active discount'}</span></div>
-      <p>${projectionNote} ROI now uses fixed earning windows instead of “time until reset”: Daily = 24H; Weekly = 7D; Seasonal Pass = 7D. Enter the cost you would pay now to obtain each discount.</p>
+      <p>${projectionNote} Daily = 24H; Weekly = 7D; Seasonal Pass = 7D. Every ROI cost input is $GRIND only.</p>
     </div>
     <div class="discount-roi-grid">
       ${discountCard(scope, 'daily', dailyGrit, dailyPeriod)}

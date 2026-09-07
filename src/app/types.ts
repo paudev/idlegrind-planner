@@ -44,9 +44,7 @@ export interface RefineDiscountSettings {
 }
 
 export interface RefineDiscountCosts {
-  dailyGrit: number;
   dailyGrind: number;
-  weeklyGrit: number;
   weeklyGrind: number;
 }
 
