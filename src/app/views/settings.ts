@@ -1,4 +1,5 @@
 import { MARKET_DEFAULTS, MARKET_LABELS, VIAL_DEFAULTS } from '../config/economy';
+import { REFINE_DISCOUNT_REFERENCE } from '../config/game';
 import {
   cashoutCycle,
   deviceTimezone,
@@ -66,15 +67,17 @@ function refineDiscountSettings(): string {
   const base = Math.max(0, number(store.state.settings.refineRate));
   const effective = effectiveRefineRate(base, discounts);
   const totalPct = activeDiscountPct(base, discounts);
+  const dailyWeeklyPct = (1 - (1 - REFINE_DISCOUNT_REFERENCE.dailyPct / 100) * (1 - REFINE_DISCOUNT_REFERENCE.weeklyPct / 100)) * 100;
+  const allPct = (1 - (1 - REFINE_DISCOUNT_REFERENCE.dailyPct / 100)
+    * (1 - REFINE_DISCOUNT_REFERENCE.weeklyPct / 100)
+    * (1 - REFINE_DISCOUNT_REFERENCE.passPct / 100)) * 100;
 
   return `<div class="discount-settings-summary">
       <div><small>BASE RATE</small><strong>${compact(base)}</strong><span>GRIT / $GRIND</span></div>
       <div class="effective"><small>CURRENT ACTIVE STACK</small><strong>${compact(effective)}</strong><span>${totalPct > 0 ? `${totalPct.toFixed(2)}% cheaper after compounding` : 'no active discounts'}</span></div>
+      <div><small>GAME REFERENCE</small><strong>${REFINE_DISCOUNT_REFERENCE.dailyPct}% · ${REFINE_DISCOUNT_REFERENCE.weeklyPct}% · ${REFINE_DISCOUNT_REFERENCE.passPct}%</strong><span>Daily · Weekly · Seasonal Pass</span></div>
     </div>
     <div class="formgrid discount-reference-grid">
-      ${field('state.settings.refineDiscounts.dailyPct', 'DAILY TASK DISCOUNT %', discounts.dailyPct)}
-      ${field('state.settings.refineDiscounts.weeklyPct', 'WEEKLY TASK DISCOUNT %', discounts.weeklyPct)}
-      ${field('state.settings.refineDiscounts.passPct', 'SEASONAL PASS DISCOUNT %', discounts.passPct)}
       ${field('state.settings.refineDiscounts.passPrice', 'SEASONAL PASS PRICE · $GRIND', discounts.passPrice)}
     </div>
     ${binaryChoice(
@@ -85,7 +88,7 @@ function refineDiscountSettings(): string {
       'DISABLED',
     )}
     <div class="discount-reference-note">
-      Daily and Weekly percentages are server-provided by the game frontend, so enter the values shown in-game. Seasonal Pass defaults to 5%. Daily, Weekly, and Pass discounts compound rather than add. Active state is switched from the ROI cards in Build Planner or Deck Simulator.
+      Game reference: Daily Tasks make refining <b>${REFINE_DISCOUNT_REFERENCE.dailyPct}% cheaper</b>; Weekly Tasks make it <b>${REFINE_DISCOUNT_REFERENCE.weeklyPct}% cheaper</b>. Together they compound to <b>${dailyWeeklyPct.toFixed(1)}%</b>, not 15%. With the active <b>${REFINE_DISCOUNT_REFERENCE.passPct}% Seasonal Pass</b>, the full stack is <b>${allPct.toFixed(2)}% cheaper</b>. Every season reset clears both task sets, so those discounts must be earned again. These percentages are fixed game rules; only the Pass price remains an editable ROI input.
     </div>`;
 }
 
@@ -149,7 +152,7 @@ export function renderSettingsView(): string {
     ),
     panel(
       'REFINE DISCOUNT REFERENCES',
-      'References for Daily Tasks, Weekly Tasks, and Seasonal Pass refinery ROI. Active discounts change $GRIND conversion in Build Planner and Deck Simulator.',
+      'Fixed Daily, Weekly, and Seasonal Pass conversion discounts used by refinery ROI in Build Planner and Deck Simulator.',
       refineDiscountSettings(),
     ),
     panel(

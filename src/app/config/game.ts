@@ -1,6 +1,12 @@
 import { QN_BASE_PRICE, QN_PRICE_GROWTH } from './economy';
 import type { SettingsState } from '../types';
 
+export const REFINE_DISCOUNT_REFERENCE = {
+  dailyPct: 5,
+  weeklyPct: 10,
+  passPct: 5,
+} as const;
+
 export const DEFAULT_SETTINGS: SettingsState = {
   refineRate: 96_000,
   maxRackSlots: 0,
@@ -8,9 +14,9 @@ export const DEFAULT_SETTINGS: SettingsState = {
   qnPriceGrowth: QN_PRICE_GROWTH,
   refineDiscounts: {
     taskDiscountsEnabled: 1,
-    dailyPct: 0,
-    weeklyPct: 0,
-    passPct: 5,
+    dailyPct: REFINE_DISCOUNT_REFERENCE.dailyPct,
+    weeklyPct: REFINE_DISCOUNT_REFERENCE.weeklyPct,
+    passPct: REFINE_DISCOUNT_REFERENCE.passPct,
     passPrice: 0,
     dailyActive: 0,
     weeklyActive: 0,

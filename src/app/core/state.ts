@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, TIER_OPTIONS, VIAL_OPTIONS } from '../config/game';
+import { DEFAULT_SETTINGS, REFINE_DISCOUNT_REFERENCE, TIER_OPTIONS, VIAL_OPTIONS } from '../config/game';
 import {
   MARKET_DEFAULTS,
   RACK_BASE_SLOTS,
@@ -64,9 +64,11 @@ function normalizeBuffs(buffs: BuffState): void {
 
 function normalizeDiscountSettings(discounts: RefineDiscountSettings): void {
   discounts.taskDiscountsEnabled = number(discounts.taskDiscountsEnabled) >= 0.5 ? 1 : 0;
-  discounts.dailyPct = clamp(number(discounts.dailyPct), 0, 99.99);
-  discounts.weeklyPct = clamp(number(discounts.weeklyPct), 0, 99.99);
-  discounts.passPct = clamp(number(discounts.passPct, 5), 0, 99.99);
+  // Game reference: Daily 5%, Weekly 10%, Seasonal Pass 5%.
+  // These are fixed conversion rules, not marketplace assumptions.
+  discounts.dailyPct = REFINE_DISCOUNT_REFERENCE.dailyPct;
+  discounts.weeklyPct = REFINE_DISCOUNT_REFERENCE.weeklyPct;
+  discounts.passPct = REFINE_DISCOUNT_REFERENCE.passPct;
   discounts.passPrice = Math.max(0, number(discounts.passPrice));
   discounts.dailyActive = number(discounts.dailyActive) >= 0.5 ? 1 : 0;
   discounts.weeklyActive = number(discounts.weeklyActive) >= 0.5 ? 1 : 0;
@@ -241,7 +243,9 @@ export function resolveInputPath(path: string): [Record<string, unknown>, string
 
 function normalizedInputValue(path: string, value: number): number {
   if (path.startsWith('state.settings.refineDiscounts.')) {
-    if (path.endsWith('Pct')) return clamp(value, 0, 99.99);
+    if (path.endsWith('dailyPct')) return REFINE_DISCOUNT_REFERENCE.dailyPct;
+    if (path.endsWith('weeklyPct')) return REFINE_DISCOUNT_REFERENCE.weeklyPct;
+    if (path.endsWith('passPct')) return REFINE_DISCOUNT_REFERENCE.passPct;
     if (path.endsWith('Active') || path.endsWith('taskDiscountsEnabled')) return value >= 0.5 ? 1 : 0;
     return Math.max(0, value);
   }
