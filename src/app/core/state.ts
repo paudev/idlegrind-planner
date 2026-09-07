@@ -12,8 +12,6 @@ import type {
   ApplicationStore,
   BuffState,
   DeckState,
-  DeckView,
-  PlannerView,
   Rig,
   RigPreset,
   Scope,
@@ -22,8 +20,6 @@ import { clamp, clone, number } from './format';
 import { loadPositiveDefaults, mergeState, readJson, setPath, writeJson } from './storage';
 
 const ACTIVE_TABS: ActiveTab[] = ['target', 'reset', 'current', 'planner', 'costing', 'settings'];
-const PLANNER_VIEWS: PlannerView[] = ['output', 'cost', 'readiness'];
-const DECK_VIEWS: DeckView[] = ['output', 'cost', 'readiness'];
 const VALID_TIERS = new Set<number>(TIER_OPTIONS.map((tier) => tier.mult));
 const VALID_VIAL_HOURS = new Set<number>(VIAL_OPTIONS);
 
@@ -131,8 +127,11 @@ function loadStore(): ApplicationStore {
   );
 
   state.activeTab = ACTIVE_TABS.includes(state.activeTab) ? state.activeTab : 'target';
-  state.planner.view = PLANNER_VIEWS.includes(state.planner.view) ? state.planner.view : 'output';
-  deck.view = DECK_VIEWS.includes(deck.view) ? deck.view : 'output';
+  // Page/subview selection is transient UI state, not user data. A browser reload
+  // keeps all inputs but reopens simulator/planner modules on their primary output view.
+  state.planner.view = 'output';
+  deck.view = 'output';
+  ui.readinessPage = 1;
 
   state.settings.refineRate = Math.max(0, number(state.settings.refineRate, DEFAULT_SETTINGS.refineRate));
   state.settings.maxRackSlots = normalizeRackLimit(state.settings.maxRackSlots);
