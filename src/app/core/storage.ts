@@ -1,19 +1,49 @@
 import { clone, parseHuman } from './format';
 
-export function readJson<T>(key: string, fallback: T): T {
+type BrowserStorageName = 'localStorage' | 'sessionStorage';
+
+function browserStorage(name: BrowserStorageName): Storage | null {
   try {
-    const value: unknown = JSON.parse(localStorage.getItem(key) || 'null');
-    return value && typeof value === 'object' ? value as T : fallback;
+    const root = globalThis as typeof globalThis & Partial<Record<BrowserStorageName, Storage>>;
+    return root[name] ?? null;
   } catch {
-    return fallback;
+    return null;
   }
 }
 
+export function readJson<T>(key: string, fallback: T): T {
+  for (const name of ['localStorage', 'sessionStorage'] as const) {
+    const storage = browserStorage(name);
+    if (!storage) continue;
+    try {
+      const raw = storage.getItem(key);
+      if (raw === null) continue;
+      const value: unknown = JSON.parse(raw);
+      if (value && typeof value === 'object') return value as T;
+    } catch {
+      // Try the next browser storage backend before falling back to defaults.
+    }
+  }
+  return fallback;
+}
+
 export function writeJson<T>(key: string, value: T): void {
+  let serialized: string | undefined;
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    serialized = JSON.stringify(value);
   } catch {
-    // Local storage may be unavailable in private/restricted browser contexts.
+    return;
+  }
+  if (serialized === undefined) return;
+
+  for (const name of ['localStorage', 'sessionStorage'] as const) {
+    const storage = browserStorage(name);
+    if (!storage) continue;
+    try {
+      storage.setItem(key, serialized);
+    } catch {
+      // Keep the other storage backend as a reload-safe fallback.
+    }
   }
 }
 
@@ -59,17 +89,20 @@ export function setPath(root: Record<string, unknown>, path: string, value: unkn
 export function loadPositiveDefaults(
   key: string,
   defaults: Record<string, number>,
-  { repairZero = false }: { repairZero?: boolean } = {},
+  {
+    repairZero = false,
+    fallback = {},
+  }: { repairZero?: boolean; fallback?: Record<string, unknown> } = {},
 ): Record<string, number> {
-  const saved = readJson<Record<string, unknown>>(key, {});
+  const saved = readJson<Record<string, unknown>>(key, fallback);
   const values: Record<string, number> = {};
   let changed = false;
 
-  for (const [id, fallback] of Object.entries(defaults)) {
+  for (const [id, defaultValue] of Object.entries(defaults)) {
     const present = Object.prototype.hasOwnProperty.call(saved, id);
     const value = present ? parseHuman(saved[id]) : Number.NaN;
     const invalid = !present || !Number.isFinite(value) || (repairZero ? value <= 0 : value < 0);
-    values[id] = invalid ? fallback : value;
+    values[id] = invalid ? defaultValue : value;
     if (invalid) changed = true;
   }
 

@@ -31,16 +31,20 @@ Both the base price and growth multiplier are editable under **Settings → Econ
 
 ## Build Planner target model
 
-The Build Planner target is converted into the **normal 1× GRIT/s rate** the official minimum build must sustain. The official **Minimum QNs Required** is therefore independent of vial selection.
+The Build Planner target is converted into the **normal 1× GRIT/s rate** the official minimum build must sustain. The official **Minimum QNs** is therefore independent of vial selection.
 
-A selected vial affects two separate calculations without changing that official minimum:
+A selected vial changes only two things for that same hardware:
 
-- it accelerates sequential GRIT funding while the vial is active;
-- it increases the production estimate for the same completed hardware during the selected vial hours.
+- the sequential GRIT funding time while the vial is active;
+- the 24H production estimate during the selected vial hours.
 
-The Minimum Build output always shows the same target-derived metrics plus both **No-Vial $GRIND / 24H** and **Selected-Vial $GRIND / 24H** for the same minimum QN count.
+The Minimum Build section intentionally keeps the comparison compact: minimum QNs, target, **No Vial** setup/earnings, and **Selected Vial** setup/earnings. There is no alternate minimum-QN toggle in the primary UI.
 
-An optional **Vial-Assisted Minimum** what-if is available only when a vial is selected and is off by default. Turning it on shows how many fewer QNs could temporarily satisfy the target while 2× overclock is still active. It never replaces the official minimum, costing baseline, readiness target, or final-build QN baseline.
+## Persistence
+
+Planner state is saved immediately in browser storage. The app writes both the individual state keys and a complete recovery snapshot. `localStorage` is the durable primary store and `sessionStorage` is also written as a reload-safe fallback when the browser blocks or temporarily fails local storage access.
+
+Browser storage is scoped to the site origin. For continuity across deployments, use a stable project/custom domain such as `idlegrind.chilicodes.com` rather than opening a different unique `*.vercel.app` deployment hostname each time.
 
 ## Economy references
 
@@ -66,7 +70,7 @@ src/app/
 │   ├── cashout.ts         # rolling 24-hour cashout state and timezone display
 │   ├── format.ts          # number, duration, input and display formatting
 │   ├── state.ts           # central application state and domain mutations
-│   └── storage.ts         # typed localStorage persistence and migrations
+│   └── storage.ts         # browser-storage persistence, fallbacks, and migrations
 ├── ui/
 │   ├── components.ts      # reusable HTML components
 │   └── shell.ts           # top navigation, cashout header and application shell
@@ -86,7 +90,7 @@ There are no JavaScript runtime source files. Vite compiles the TypeScript entry
 
 ## Validation
 
-Strict TypeScript checking is enabled in `tsconfig.json`. Core calculation regression tests cover production windows, default and custom QN pricing, sequential funding across overclock expiry, coolant doubling, rack expansion, integer rig handling, the stable minimum-QN rule across vial durations, and the opt-in vial-assisted minimum.
+Strict TypeScript checking is enabled in `tsconfig.json`. Core regression tests cover production windows, default and custom QN pricing, sequential funding across overclock expiry, coolant doubling, rack expansion, integer rig handling, the stable minimum-QN rule across vial durations, and browser-storage fallback behavior.
 
 ```bash
 npm run typecheck

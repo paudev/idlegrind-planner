@@ -122,11 +122,12 @@ export function createDefaultDeck(): DeckState {
 }
 
 function loadStore(): ApplicationStore {
-  const state = mergeState(createDefaultState(), readJson<unknown>(STORAGE_KEYS.app, {}));
-  const deck = mergeState(createDefaultDeck(), readJson<unknown>(STORAGE_KEYS.deck, {}));
+  const snapshot = readJson<Partial<ApplicationStore>>(STORAGE_KEYS.snapshot, {});
+  const state = mergeState(createDefaultState(), readJson<unknown>(STORAGE_KEYS.app, snapshot.state ?? {}));
+  const deck = mergeState(createDefaultDeck(), readJson<unknown>(STORAGE_KEYS.deck, snapshot.deck ?? {}));
   const ui = mergeState(
     { readinessGroup: 1, readinessPage: 1, rackPage: 1 },
-    readJson<unknown>(STORAGE_KEYS.ui, {}),
+    readJson<unknown>(STORAGE_KEYS.ui, snapshot.ui ?? {}),
   );
 
   state.activeTab = ACTIVE_TABS.includes(state.activeTab) ? state.activeTab : 'target';
@@ -141,7 +142,7 @@ function loadStore(): ApplicationStore {
   state.reset.vialHours = normalizeVialHours(state.reset.vialHours);
   state.planner.extraQns = Math.max(0, Math.floor(number(state.planner.extraQns)));
   state.planner.vialHours = normalizeVialHours(state.planner.vialHours);
-  state.planner.showVialAssistedMinimum = Boolean(state.planner.showVialAssistedMinimum) && state.planner.vialHours > 0;
+  state.planner.showVialAssistedMinimum = false;
   normalizeBuffs(state.planner.buffs);
   normalizeRigs(state.planner.rigs);
 
@@ -158,11 +159,16 @@ function loadStore(): ApplicationStore {
   normalizeBuffs(deck.buffs);
   normalizeRigs(deck.rigs);
 
-  const market = loadPositiveDefaults(STORAGE_KEYS.market, MARKET_DEFAULTS);
-  const vials = loadPositiveDefaults(STORAGE_KEYS.vials, VIAL_DEFAULTS, { repairZero: true });
+  const market = loadPositiveDefaults(STORAGE_KEYS.market, MARKET_DEFAULTS, {
+    fallback: snapshot.market as Record<string, unknown> | undefined,
+  });
+  const vials = loadPositiveDefaults(STORAGE_KEYS.vials, VIAL_DEFAULTS, {
+    repairZero: true,
+    fallback: snapshot.vials as Record<string, unknown> | undefined,
+  });
   const costingReference = mergeState(
     { coolantLevel: 0, rackSlots: RACK_BASE_SLOTS },
-    readJson<unknown>(STORAGE_KEYS.costingReference, {}),
+    readJson<unknown>(STORAGE_KEYS.costingReference, snapshot.costingReference ?? {}),
   );
 
   costingReference.coolantLevel = clamp(Math.floor(number(costingReference.coolantLevel)), 0, 10);
@@ -184,6 +190,14 @@ export function saveAll(): void {
   writeJson(STORAGE_KEYS.market, store.market);
   writeJson(STORAGE_KEYS.vials, store.vials);
   writeJson(STORAGE_KEYS.costingReference, store.costingReference);
+  writeJson(STORAGE_KEYS.snapshot, {
+    state: store.state,
+    deck: store.deck,
+    ui: store.ui,
+    market: store.market,
+    vials: store.vials,
+    costingReference: store.costingReference,
+  });
 }
 
 export function resolveInputPath(path: string): [Record<string, unknown>, string] {

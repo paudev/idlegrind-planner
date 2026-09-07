@@ -13,7 +13,7 @@ import {
   rigStats,
   solveMinimumBuild,
 } from '../src/app/core/calculations';
-import { loadPositiveDefaults } from '../src/app/core/storage';
+import { loadPositiveDefaults, readJson, writeJson } from '../src/app/core/storage';
 import type { BuffState, Rig, RigPreset } from '../src/app/types';
 
 const buffs: BuffState = {
@@ -37,9 +37,8 @@ const quantumNode: RigPreset = {
   optimizerFill: true,
 };
 
-function installMemoryStorage(): Map<string, string> {
-  const memory = new Map<string, string>();
-  const storage: Storage = {
+function memoryStorage(memory: Map<string, string>): Storage {
+  return {
     get length() { return memory.size; },
     clear() { memory.clear(); },
     getItem(key: string) { return memory.get(key) ?? null; },
@@ -47,7 +46,11 @@ function installMemoryStorage(): Map<string, string> {
     removeItem(key: string) { memory.delete(key); },
     setItem(key: string, value: string) { memory.set(key, String(value)); },
   };
-  Object.defineProperty(globalThis, 'localStorage', { value: storage, configurable: true });
+}
+
+function installMemoryStorage(): Map<string, string> {
+  const memory = new Map<string, string>();
+  Object.defineProperty(globalThis, 'localStorage', { value: memoryStorage(memory), configurable: true });
   return memory;
 }
 
@@ -93,6 +96,24 @@ test('market defaults fill missing keys while preserving an explicit zero', () =
     bronze_frame: 0,
     silver_frame: 2_500_000,
   });
+});
+
+test('JSON persistence falls back to session storage when local storage is unavailable', () => {
+  const unavailable: Storage = {
+    get length() { return 0; },
+    clear() { throw new Error('blocked'); },
+    getItem() { throw new Error('blocked'); },
+    key() { return null; },
+    removeItem() { throw new Error('blocked'); },
+    setItem() { throw new Error('blocked'); },
+  };
+  const session = new Map<string, string>();
+  Object.defineProperty(globalThis, 'localStorage', { value: unavailable, configurable: true });
+  Object.defineProperty(globalThis, 'sessionStorage', { value: memoryStorage(session), configurable: true });
+
+  writeJson('persist-test', { target: 300_000, vial: 6 });
+  assert.deepEqual(readJson('persist-test', {}), { target: 300_000, vial: 6 });
+  assert.ok(session.has('persist-test'));
 });
 
 test('funding timeline splits correctly when overclock expires mid-purchase', () => {

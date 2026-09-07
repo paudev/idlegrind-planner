@@ -1,6 +1,5 @@
 import {
   DAY,
-  HOUR,
   MARKET_DEFAULTS,
   RACK_BASE_SLOTS,
 } from '../config/economy';
@@ -78,6 +77,21 @@ function invalidBuild(reason: string, buildMultiplier = 0): BuildResult {
   };
 }
 
+function solveOfficialMinimum(vialHours: number) {
+  const pricing = qnPricing();
+  return solveMinimumBuild({
+    targetGrindPerDay: Math.max(0, number(store.state.planner.targetGrindPerDay)),
+    refineRate: Math.max(0, number(store.state.settings.refineRate)),
+    vialHours,
+    rigs: store.state.planner.rigs,
+    buffs: store.state.planner.buffs,
+    quantumNode: getQuantumNodePreset(),
+    qnBasePrice: pricing.base,
+    qnPriceGrowth: pricing.growth,
+    allowVialToReduceMinimum: false,
+  });
+}
+
 function optimizeBuild(): BuildResult {
   const target = Math.max(0, number(store.state.planner.targetGrindPerDay));
   const refine = Math.max(0, number(store.state.settings.refineRate));
@@ -88,18 +102,7 @@ function optimizeBuild(): BuildResult {
   const quantumNode = getQuantumNodePreset();
   const buildMultiplier = multiplier(store.state.planner.buffs);
   const vialHours = clamp(number(store.state.planner.vialHours), 0, 24);
-  const pricing = qnPricing();
-  const solution = solveMinimumBuild({
-    targetGrindPerDay: target,
-    refineRate: refine,
-    vialHours,
-    rigs: store.state.planner.rigs,
-    buffs: store.state.planner.buffs,
-    quantumNode,
-    qnBasePrice: pricing.base,
-    qnPriceGrowth: pricing.growth,
-    allowVialToReduceMinimum: false,
-  });
+  const solution = solveOfficialMinimum(vialHours);
 
   if (solution.qns === null) {
     return invalidBuild(
@@ -143,7 +146,7 @@ function setupPanels(): string {
 
   return `${intro(
     'BUILD PLANNER',
-    'Build from 0 QNs and 0 GRIT. Minimum QNs are always sized from the normal 1× rate required by the target. A selected vial changes funding speed and production estimates, not the official minimum.',
+    'Build from 0 QNs and 0 GRIT. Minimum QNs are fixed by the normal 1× production needed for the target; vial selection only changes setup speed and earnings.',
   )}${panel(
     '1 // DAILY TARGET',
     'Set the $GRIND / 24H target the minimum build must sustain at normal production.',
@@ -152,7 +155,7 @@ function setupPanels(): string {
       <div class="hero-output compact">
         <small>BUILD MULTIPLIER</small>
         <strong>×${buildMultiplier.toFixed(3)}</strong>
-        <p>The target and official minimum QNs do not move when vial duration changes. Vials only accelerate funding and increase the selected-vial production estimate.</p>
+        <p>Changing vial duration never changes the official minimum QN count.</p>
       </div>
     </div>`,
   )}${panel(
@@ -176,54 +179,29 @@ function setupPanels(): string {
 
 function outputView(result: BuildResult): string {
   if (!result.computable || result.qns === null || !result.stats) {
-    return panel('4 // MINIMUM BUILD', 'Minimum QNs and setup time for the selected target.', `<div class="warning">${escapeHtml(result.reason)}</div>`);
+    return panel('4 // MINIMUM BUILD', 'Minimum QNs, setup time, and earnings for the selected target.', `<div class="warning">${escapeHtml(result.reason)}</div>`);
   }
 
-  const funding = result.funding;
   const vialHours = clamp(number(store.state.planner.vialHours), 0, 24);
   const hasVial = vialHours > 0;
-  const normalHours = 24 - vialHours;
-  const dayFactor = 1 + vialHours / 24;
   const refine = Math.max(0, number(store.state.settings.refineRate));
   const targetGrind = Math.max(0, number(store.state.planner.targetGrindPerDay));
-  const targetGrit = targetGrind * refine;
   const pricing = qnPricing();
   const qn = getQuantumNodePreset();
-  const qnSlots = Math.max(0, Math.floor(number(qn.slots, 1)));
   const qnCost = qnTotalCost(0, result.qns, pricing.base, pricing.growth);
+
+  const noVialSolution = solveOfficialMinimum(0);
+  const noVialSetup = noVialSolution.fundingTime;
+  const selectedSetup = result.funding.time;
+  const setupSaved = Number.isFinite(noVialSetup) && Number.isFinite(selectedSetup)
+    ? Math.max(0, noVialSetup - selectedSetup)
+    : 0;
+
   const noVialTotalGrit = result.normal * DAY;
   const noVialGrind = refine >= 1000 ? noVialTotalGrit / refine : 0;
   const selectedVialTotalGrit = result.average * DAY;
   const selectedVialGrind = result.grind;
-  const overclockExtraGrit = selectedVialTotalGrit - noVialTotalGrit;
-  const vialGainGrind = selectedVialGrind - noVialGrind;
-  const vialCoversFunding = hasVial
-    && Number.isFinite(funding.time)
-    && funding.time <= vialHours * HOUR + 1e-6;
-  const setupNote = Number.isFinite(funding.time)
-    ? hasVial
-      ? vialCoversFunding
-        ? `Starts from 0 QNs and 0 GRIT. The ${vialHours}H vial covers the full funding path at 2×; minimum QNs stay fixed at the normal target requirement.`
-        : `Starts from 0 QNs and 0 GRIT. The ${vialHours}H vial accelerates only the portion of funding before it expires; minimum QNs stay fixed.`
-      : 'Starts from 0 QNs and 0 GRIT. QNs are funded sequentially at normal production.'
-    : 'Setup time is unreachable from 0 GRIT with the current references. Add a producing fixed rig so QN 1 can be funded.';
-
-  const showAssisted = hasVial && Boolean(store.state.planner.showVialAssistedMinimum);
-  const assisted = showAssisted ? solveMinimumBuild({
-    targetGrindPerDay: targetGrind,
-    refineRate: refine,
-    vialHours,
-    rigs: store.state.planner.rigs,
-    buffs: store.state.planner.buffs,
-    quantumNode: qn,
-    qnBasePrice: pricing.base,
-    qnPriceGrowth: pricing.growth,
-    allowVialToReduceMinimum: true,
-  }) : null;
-  const assistedQns = assisted?.qns ?? result.qns;
-  const assistedSavings = Math.max(0, result.qns - assistedQns);
-  const assistedStats = showAssisted ? rigStats(store.state.planner.rigs, assistedQns, qn) : null;
-  const assistedCost = showAssisted ? qnTotalCost(0, assistedQns, pricing.base, pricing.growth) : 0;
+  const vialGainGrind = Math.max(0, selectedVialGrind - noVialGrind);
 
   const extraQns = Math.max(0, Math.floor(number(store.state.planner.extraQns)));
   const finalQns = result.qns + extraQns;
@@ -231,90 +209,49 @@ function outputView(result: BuildResult): string {
   const finalNormal = finalStats.base * result.multiplier;
   const finalNoVialGrit = finalNormal * DAY;
   const finalNoVialGrind = refine >= 1000 ? finalNoVialGrit / refine : 0;
-  const finalAverage = finalNormal * dayFactor;
-  const finalTotalGrit = finalAverage * DAY;
-  const finalGrind = refine >= 1000 ? finalTotalGrit / refine : 0;
-  const finalOverclockExtraGrit = finalTotalGrit - finalNoVialGrit;
+  const finalDayFactor = 1 + vialHours / 24;
+  const finalVialGrit = finalNormal * finalDayFactor * DAY;
+  const finalVialGrind = refine >= 1000 ? finalVialGrit / refine : 0;
+  const finalVialGain = Math.max(0, finalVialGrind - finalNoVialGrind);
   const extraQnCost = qnTotalCost(result.qns, extraQns, pricing.base, pricing.growth);
-  const grindGain = finalGrind - result.grind;
-  const rateGain = finalNormal - result.normal;
-  const slotGain = finalStats.slots - result.stats.slots;
   const cap = Math.max(0, number(store.state.settings.maxRackSlots));
   const finalFits = !(cap > 0 && finalStats.slots > cap);
 
-  const assistedBlock = `<div class="sim-card final-qn-control">
-    <div class="field-title">VIAL-ASSISTED MINIMUM · OPTIONAL WHAT-IF</div>
-    <div class="quickadd qn-quick">
-      <button type="button" class="chip ${showAssisted ? 'active' : ''}" data-toggle-planner-vial-assisted ${hasVial ? '' : 'disabled'}>${showAssisted ? 'ON' : 'OFF'}</button>
-    </div>
-    <p>${hasVial
-      ? `The official minimum remains ${result.qns.toLocaleString()} QNs. Turn this on only to see how low the build could go while the selected ${vialHours}H vial is still active.`
-      : 'Select a vial under Buffs to compare an optional vial-assisted minimum. The official minimum never changes.'}</p>
-  </div>
-  ${showAssisted && assisted && assisted.qns !== null && assistedStats ? `<div class="metric-grid optimized-build-metrics">
-    ${metric('OFFICIAL MINIMUM QNs', result.qns.toLocaleString())}
-    ${metric('VIAL-ASSISTED QNs', assisted.qns.toLocaleString(), assistedSavings > 0 ? 'green' : '', assistedSavings > 0 ? `${assistedSavings} fewer QNs while overclock is active.` : 'Selected vial does not reduce the minimum for this setup.')}
-    ${metric('VIAL-ASSISTED READY IN', duration(assisted.fundingTime))}
-    ${metric('VIAL-ASSISTED QN COST', assistedCost > 0 ? `−${compact(assistedCost)} GRIT` : '—', assistedCost > 0 ? 'negative' : '')}
-    ${metric('VIAL-ASSISTED SLOTS', compact(assistedStats.slots))}
-  </div>` : ''}`;
-
   return `${panel(
     '4 // MINIMUM BUILD',
-    'Official minimum hardware is based only on the normal 1× production required by the target. Vials affect funding time and production estimates separately.',
+    'One stable minimum build, compared with and without the selected vial.',
     `${!result.ok ? `<div class="warning">${escapeHtml(result.reason)}</div>` : ''}
     <div class="result-hero-pair optimized-build-heroes">
       <div class="result-hero current">
-        <small>MINIMUM QNs REQUIRED</small>
+        <small>MINIMUM QNs</small>
         <strong>${result.qns.toLocaleString()}</strong>
-        <p>Stable across NO VIAL / 3H / 6H / 8H / 12H / 24H. ${compact(result.stats.slots)} total slots.</p>
+        <p>${compact(result.stats.slots)} slots · ${qnCost > 0 ? `${compact(qnCost)} GRIT QN cost` : 'no QN cost'}</p>
       </div>
       <div class="result-hero ready">
-        <small>MINIMUM BUILD READY IN</small>
-        <strong>${duration(funding.time)}</strong>
-        <p>${setupNote}</p>
+        <small>DAILY TARGET</small>
+        <strong>${compact(targetGrind)}<em> $GRIND</em></strong>
+        <p>${compact(result.normal)}/s normal rate · minimum stays fixed when vial changes.</p>
       </div>
     </div>
-    ${!Number.isFinite(funding.time) && result.qns > 0 ? `<div class="warning optimized-build-warning">Add at least one fixed rig with base production, or reduce the target so the build does not require QNs. Build Planner never borrows GRIT or QNs from Deck Simulator.</div>` : ''}
-    <div class="metric-grid optimized-build-metrics">
-      ${metric('REQUIRED DECK SLOTS', compact(result.stats.slots))}
-      ${metric('QN SLOTS', compact(result.qns * qnSlots))}
-      ${metric('FIXED RIG SLOTS', compact(result.stats.fixedSlots))}
-      ${metric('QN GRIT COST', qnCost > 0 ? `−${compact(qnCost)} GRIT` : '—', qnCost > 0 ? 'negative' : '')}
+    ${!Number.isFinite(selectedSetup) && result.qns > 0 ? `<div class="warning optimized-build-warning">Setup is unreachable from 0 GRIT with the current fixed rigs. Add a producing fixed rig so QN 1 can be funded.</div>` : ''}
+    <div class="result-hero-pair final-output-heroes">
+      <div class="result-hero current">
+        <small>NO VIAL</small>
+        <strong>${duration(noVialSetup)}</strong>
+        <p>setup time · ${compact(noVialGrind)} $GRIND / 24H</p>
+      </div>
+      <div class="result-hero simulated">
+        <small>${hasVial ? `${vialHours}H VIAL` : 'VIAL PERFORMANCE'}</small>
+        <strong>${hasVial ? duration(selectedSetup) : 'NOT SELECTED'}</strong>
+        <p>${hasVial
+          ? `setup time · ${compact(selectedVialGrind)} $GRIND / 24H · +${compact(vialGainGrind)} $GRIND`
+          : 'Select a vial under Buffs to compare setup speed and earnings on the same minimum build.'}</p>
+      </div>
     </div>
-    ${assistedBlock}
-    <div class="final-performance minimum-performance">
-      <div class="metric-grid final-performance-metrics">
-        ${metric('TARGET $GRIND / 24H', `${compact(targetGrind)} $GRIND`, 'gold')}
-        ${metric('TARGET GRIT / 24H', `${compact(targetGrit)} GRIT`)}
-        ${metric('REQUIRED NORMAL RATE', `${compact(result.requiredRate)}/s`)}
-        ${metric('MINIMUM NORMAL RATE', `${compact(result.normal)}/s`, result.normal + 1e-6 >= result.requiredRate ? 'green' : 'negative')}
-      </div>
-      <div class="result-hero-pair final-output-heroes">
-        <div class="result-hero current">
-          <small>NO-VIAL $GRIND / 24H</small>
-          <strong>${compact(noVialGrind)}<em> $GRIND</em></strong>
-          <p>${compact(noVialTotalGrit)} GRIT from the same ${result.qns.toLocaleString()}-QN minimum build at normal production.</p>
-        </div>
-        <div class="result-hero simulated">
-          <small>${hasVial ? `${vialHours}H VIAL $GRIND / 24H` : 'SELECTED-VIAL $GRIND / 24H'}</small>
-          <strong>${compact(selectedVialGrind)}<em> $GRIND</em></strong>
-          <p>${hasVial ? `${compact(selectedVialTotalGrit)} GRIT · ${signed(vialGainGrind, ' $GRIND')} from the vial.` : 'No vial selected, so this matches the no-vial output.'}</p>
-        </div>
-      </div>
-      <div class="metric-grid final-performance-metrics">
-        ${metric('NO-VIAL 24H OUTPUT', `${compact(noVialTotalGrit)} GRIT`)}
-        ${metric('SELECTED-VIAL 24H OUTPUT', `${compact(selectedVialTotalGrit)} GRIT`, hasVial ? 'green' : '')}
-        ${metric('VIAL EXTRA OUTPUT', hasVial ? `+${compact(overclockExtraGrit)} GRIT` : '—', hasVial ? 'green' : '', hasVial ? `${vialHours}h at 2× on the same minimum hardware.` : 'No vial selected.')}
-      </div>
-      <div class="schedule">
-        <span><b>${normalHours}h</b> normal production</span>
-        <span class="orange"><b>${vialHours}h</b> 2× overclock</span>
-      </div>
-    </div>`,
+    ${hasVial ? `<div class="info-line">Same ${result.qns.toLocaleString()} QNs in both cases · vial saves <b>${duration(setupSaved)}</b> of setup time and adds <b>+${compact(vialGainGrind)} $GRIND / 24H</b>.</div>` : ''}`,
   )}${panel(
     '5 // FINAL BUILD PERFORMANCE',
-    'Add QNs above the stable minimum and compare the same build with and without the selected vial.',
+    'Add QNs above the minimum, then compare the resulting build with and without the selected vial.',
     `<div class="sim-card final-qn-control">
       <div class="field-title">QNs ABOVE MINIMUM</div>
       <div class="quickadd qn-quick">
@@ -322,34 +259,26 @@ function outputView(result: BuildResult): string {
         <button type="button" class="chip" data-add-planner-qn="-1" ${extraQns <= 0 ? 'disabled' : ''}>−1</button>
         <button type="button" class="chip" data-clear-planner-qn ${extraQns <= 0 ? 'disabled' : ''}>CLEAR</button>
       </div>
-      <p><b>+${extraQns.toLocaleString()} QNs</b> above minimum · ${result.qns.toLocaleString()} minimum → ${finalQns.toLocaleString()} current build QNs.</p>
+      <p>${finalQns.toLocaleString()} total QNs · ${extraQns ? `+${extraQns.toLocaleString()} above minimum` : 'minimum build'}.</p>
     </div>
     ${!finalFits ? `<div class="warning">Current build needs ${compact(finalStats.slots)} slots, above the configured ${compact(cap)}-slot cap.</div>` : ''}
-    <div class="final-performance">
-      <div class="result-hero-pair final-output-heroes">
-        <div class="result-hero current">
-          <small>NO-VIAL $GRIND / 24H</small>
-          <strong>${compact(finalNoVialGrind)}<em> $GRIND</em></strong>
-          <p>${compact(finalNoVialGrit)} GRIT at the current ${finalQns.toLocaleString()}-QN build.</p>
-        </div>
-        <div class="result-hero simulated">
-          <small>${hasVial ? `${vialHours}H VIAL $GRIND / 24H` : 'SELECTED-VIAL $GRIND / 24H'}</small>
-          <strong>${compact(finalGrind)}<em> $GRIND</em></strong>
-          <p>${hasVial ? `${signed(finalGrind - finalNoVialGrind, ' $GRIND')} from the selected vial.` : 'No vial selected.'}</p>
-        </div>
+    <div class="result-hero-pair final-output-heroes">
+      <div class="result-hero current">
+        <small>NO VIAL</small>
+        <strong>${compact(finalNoVialGrind)}<em> $GRIND</em></strong>
+        <p>24H earnings · ${compact(finalNoVialGrit)} GRIT</p>
       </div>
-      <div class="metric-grid final-performance-metrics">
-        ${metric('CURRENT BUILD QNs', finalQns.toLocaleString())}
-        ${metric('NORMAL RATE', `${compact(finalNormal)}/s`, rateGain > 0 ? 'green' : '', rateGain > 0 ? `${signed(rateGain, '/s')} vs minimum` : 'Minimum build rate')}
-        ${metric('SELECTED-VIAL 24H OUTPUT', `${compact(finalTotalGrit)} GRIT`)}
-        ${metric('EXTRA $GRIND VS MINIMUM', grindGain > 0 ? signed(grindGain, ' $GRIND') : '—', grindGain > 0 ? 'green' : '')}
-        ${metric('EXTRA QN GRIT COST', extraQnCost > 0 ? `−${compact(extraQnCost)} GRIT` : '—', extraQnCost > 0 ? 'negative' : '', extraQns ? `Cost from QN ${result.qns + 1} through ${finalQns}.` : 'No QNs added above minimum.')}
-        ${metric('VIAL EXTRA OUTPUT', hasVial ? `+${compact(finalOverclockExtraGrit)} GRIT` : '—', hasVial ? 'green' : '', hasVial ? `${vialHours}h at 2× on this same build.` : 'No vial selected.')}
+      <div class="result-hero simulated">
+        <small>${hasVial ? `${vialHours}H VIAL` : 'VIAL PERFORMANCE'}</small>
+        <strong>${hasVial ? `${compact(finalVialGrind)}<em> $GRIND</em>` : 'NOT SELECTED'}</strong>
+        <p>${hasVial ? `24H earnings · ${signed(finalVialGain, ' $GRIND')} from vial` : 'Select a vial to compare.'}</p>
       </div>
-      <div class="schedule">
-        <span><b>${normalHours}h</b> normal production</span>
-        <span class="orange"><b>${vialHours}h</b> 2× overclock</span>
-      </div>
+    </div>
+    <div class="metric-grid final-performance-metrics">
+      ${metric('CURRENT BUILD QNs', finalQns.toLocaleString())}
+      ${metric('USED SLOTS', compact(finalStats.slots))}
+      ${metric('NORMAL RATE', `${compact(finalNormal)}/s`)}
+      ${metric('EXTRA QN COST', extraQnCost > 0 ? `−${compact(extraQnCost)} GRIT` : '—', extraQnCost > 0 ? 'negative' : '')}
     </div>`,
   )}`;
 }
@@ -484,7 +413,7 @@ function costingView(result: BuildResult): string {
 
   return panel(
     '4 // COSTING',
-    'Known investment for the stable official minimum build from scratch. The optional vial-assisted what-if does not alter these costs.',
+    'Known investment for the stable official minimum build from scratch.',
     `${!result.ok ? `<div class="warning">${escapeHtml(result.reason)}</div>` : ''}
     <div class="cost-badges">
       <div><small>$GRIND</small><strong class="${total ? 'negative' : ''}">${total ? `−${compact(total)}` : '0'}</strong></div>

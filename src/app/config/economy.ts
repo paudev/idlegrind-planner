@@ -9,6 +9,7 @@ export const STORAGE_KEYS = {
   vials: 'idlegrind-vial-market-values-v1',
   costingReference: 'idlegrind-costing-reference-v1',
   ui: 'idlegrind-core-ui-v1',
+  snapshot: 'idlegrind-all-data-v1',
 } as const;
 
 export const QN_BASE_PRICE = 2_800_000;
