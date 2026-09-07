@@ -32,20 +32,28 @@ function periodFor(key: RefineDiscountKey): DiscountPeriod {
   return { seconds: WEEK, label: '7D', earningLabel: key === 'weekly' ? 'WEEKLY' : 'SEASON' };
 }
 
+function keyLabel(key: RefineDiscountKey): string {
+  if (key === 'daily') return 'DAILY';
+  if (key === 'weekly') return 'WEEKLY';
+  return 'PASS';
+}
+
 function activePath(key: RefineDiscountKey): string {
   return `state.settings.refineDiscounts.${key}Active`;
 }
 
-function activeChoice(key: RefineDiscountKey): string {
+function isActive(key: RefineDiscountKey): boolean {
   const settings = store.state.settings.refineDiscounts;
-  const active = key === 'daily'
-    ? number(settings.dailyActive) >= 0.5
-    : key === 'weekly'
-      ? number(settings.weeklyActive) >= 0.5
-      : number(settings.passActive) >= 0.5;
+  if (key === 'daily') return number(settings.dailyActive) >= 0.5;
+  if (key === 'weekly') return number(settings.weeklyActive) >= 0.5;
+  return number(settings.passActive) >= 0.5;
+}
+
+function activeChoice(key: RefineDiscountKey): string {
+  const active = isActive(key);
   const name = `refine-discount-${key}`;
-  return `<div class="discount-active-choice" role="group" aria-label="${key} discount ROI baseline state">
-    <span>ROI BASELINE</span>
+  return `<div class="discount-active-choice" role="group" aria-label="${key} discount current ROI stack state">
+    <span>CURRENT STACK</span>
     <label class="${!active ? 'active' : ''}">
       <input type="radio" name="${name}" data-path="${activePath(key)}" value="0" ${!active ? 'checked' : ''}>
       OFF
@@ -88,45 +96,102 @@ function taskVerdict(
   return { label: 'BREAK EVEN', tone: 'neutral' };
 }
 
-function requiredRateMetric(scope: Scope, withoutRate: number, withRate: number): string {
+function comparisonRates(
+  key: RefineDiscountKey,
+  withoutRate: number,
+  withRate: number,
+): { active: boolean; currentRate: number; alternativeRate: number; alternativeLabel: string } {
+  const active = isActive(key);
+  return {
+    active,
+    currentRate: active ? withRate : withoutRate,
+    alternativeRate: active ? withoutRate : withRate,
+    alternativeLabel: active ? `WITHOUT ${keyLabel(key)}` : `WITH ${keyLabel(key)}`,
+  };
+}
+
+function rateComparison(
+  key: RefineDiscountKey,
+  withoutRate: number,
+  withRate: number,
+): string {
+  const comparison = comparisonRates(key, withoutRate, withRate);
+  const currentClass = comparison.active ? 'with' : '';
+  const alternativeClass = comparison.active ? '' : 'with';
+
+  return `<div class="discount-rate-line">
+    <span class="${currentClass}"><small>CURRENT STACK</small><b>${comparison.currentRate > 0 ? `${compact(comparison.currentRate)} GRIT / $GRIND` : '—'}</b></span>
+    <span class="${alternativeClass}"><small>${comparison.alternativeLabel}</small><b>${comparison.alternativeRate > 0 ? `${compact(comparison.alternativeRate)} GRIT / $GRIND` : '—'}</b></span>
+  </div>`;
+}
+
+function requiredRateMetric(
+  scope: Scope,
+  key: RefineDiscountKey,
+  withoutRate: number,
+  withRate: number,
+): string {
   if (scope !== 'planner') return '';
   const target = Math.max(0, number(store.state.planner.targetGrindPerDay));
-  if (!(target > 0) || !(withoutRate > 0) || !(withRate > 0)) return '';
+  const comparison = comparisonRates(key, withoutRate, withRate);
+  if (!(target > 0) || !(comparison.currentRate > 0) || !(comparison.alternativeRate > 0)) return '';
 
-  const before = target * withoutRate / DAY;
-  const after = target * withRate / DAY;
-  const relief = Math.max(0, before - after);
-  const reliefPct = before > 0 ? relief / before * 100 : 0;
+  const current = target * comparison.currentRate / DAY;
+  const alternative = target * comparison.alternativeRate / DAY;
+  const difference = Math.abs(alternative - current);
+  const pct = current > 0 ? difference / current * 100 : 0;
+  const copy = comparison.active
+    ? `Removing ${keyLabel(key)} would require ${compact(difference)}/s more mining rate (${pct.toFixed(2)}%).`
+    : `Adding ${keyLabel(key)} would require ${compact(difference)}/s less mining rate (${pct.toFixed(2)}%).`;
 
   return `<div>
     <small>REQUIRED RATE FOR ${compact(target)} $GRIND / 24H</small>
-    <b>${compact(before)}/s → <span class="positive">${compact(after)}/s</span></b>
-    <span>Same target needs ${compact(relief)}/s less mining rate (${reliefPct.toFixed(2)}% relief).</span>
+    <b>${compact(current)}/s → <span class="${alternative < current ? 'positive' : ''}">${compact(alternative)}/s</span></b>
+    <span>${copy}</span>
   </div>`;
 }
 
 function revenueMetric(
+  key: RefineDiscountKey,
   period: DiscountPeriod,
-  withoutGrind: number,
-  withGrind: number,
+  projectedGrit: number,
+  withoutRate: number,
+  withRate: number,
 ): string {
+  const comparison = comparisonRates(key, withoutRate, withRate);
+  const current = comparison.currentRate > 0 ? projectedGrit / comparison.currentRate : 0;
+  const alternative = comparison.alternativeRate > 0 ? projectedGrit / comparison.alternativeRate : 0;
+  const difference = Math.abs(alternative - current);
+  const copy = comparison.active
+    ? `Removing ${keyLabel(key)} would reduce revenue by ${compact(difference)} $GRIND over ${period.label}.`
+    : `Adding ${keyLabel(key)} would increase revenue by ${compact(difference)} $GRIND over ${period.label}.`;
+
   return `<div>
     <small>${period.earningLabel} REVENUE</small>
-    <b>${compact(withoutGrind)} → <span class="positive">${compact(withGrind)} $GRIND</span></b>
-    <span>Same projected GRIT over ${period.label}, before versus after this discount.</span>
+    <b>${compact(current)} → <span class="${alternative > current ? 'positive' : ''}">${compact(alternative)} $GRIND</span></b>
+    <span>${copy}</span>
   </div>`;
 }
 
-function dailyCapacityMetric(projectedDailyGrit: number, withoutRate: number, withRate: number): string {
-  if (!(projectedDailyGrit > 0) || !(withoutRate > 0) || !(withRate > 0)) return '';
-  const before = projectedDailyGrit / withoutRate;
-  const after = projectedDailyGrit / withRate;
-  const gain = Math.max(0, after - before);
+function dailyCapacityMetric(
+  key: RefineDiscountKey,
+  projectedDailyGrit: number,
+  withoutRate: number,
+  withRate: number,
+): string {
+  const comparison = comparisonRates(key, withoutRate, withRate);
+  if (!(projectedDailyGrit > 0) || !(comparison.currentRate > 0) || !(comparison.alternativeRate > 0)) return '';
+  const current = projectedDailyGrit / comparison.currentRate;
+  const alternative = projectedDailyGrit / comparison.alternativeRate;
+  const difference = Math.abs(alternative - current);
+  const copy = comparison.active
+    ? `Removing ${keyLabel(key)} would lose ${compact(difference)} $GRIND of 24H conversion capacity.`
+    : `Adding ${keyLabel(key)} would add ${compact(difference)} $GRIND of 24H conversion capacity.`;
 
   return `<div>
     <small>24H CONVERSION CAPACITY</small>
-    <b>${compact(before)} → <span class="positive">${compact(after)} $GRIND</span></b>
-    <span>+${compact(gain)} $GRIND from the same projected 24H GRIT.</span>
+    <b>${compact(current)} → <span class="${alternative > current ? 'positive' : ''}">${compact(alternative)} $GRIND</span></b>
+    <span>${copy}</span>
   </div>`;
 }
 
@@ -151,11 +216,8 @@ function taskCard(
     horizonSeconds: period.seconds,
   });
   const status = taskVerdict(pct, result.netGain, taskEnabled);
-  const active = key === 'daily'
-    ? number(settings.dailyActive) >= 0.5
-    : number(settings.weeklyActive) >= 0.5;
+  const active = isActive(key);
   const label = key === 'daily' ? 'DAILY TASKS' : 'WEEKLY TASKS';
-  const withRevenue = result.withRate > 0 ? projectedGrit / result.withRate : 0;
   const averageDailyGain = key === 'weekly' ? result.grossGain / 7 : 0;
 
   return `<article class="discount-roi-card ${status.tone}">
@@ -167,18 +229,15 @@ function taskCard(
       <span class="discount-verdict ${status.tone}">${status.label}</span>
     </div>
     ${activeChoice(key)}
-    <div class="discount-rate-line">
-      <span><small>WITHOUT</small><b>${result.withoutRate > 0 ? `${compact(result.withoutRate)} GRIT / $GRIND` : '—'}</b></span>
-      <span class="with"><small>WITH</small><b>${result.withRate > 0 ? `${compact(result.withRate)} GRIT / $GRIND` : '—'}</b></span>
-    </div>
+    ${rateComparison(key, result.withoutRate, result.withRate)}
     <div class="discount-roi-metrics">
-      ${requiredRateMetric(scope, result.withoutRate, result.withRate)}
-      ${key === 'weekly' ? dailyCapacityMetric(projectedDailyGrit, result.withoutRate, result.withRate) : ''}
-      ${revenueMetric(period, result.withoutGrind, withRevenue)}
+      ${requiredRateMetric(scope, key, result.withoutRate, result.withRate)}
+      ${key === 'weekly' ? dailyCapacityMetric(key, projectedDailyGrit, result.withoutRate, result.withRate) : ''}
+      ${revenueMetric(key, period, projectedGrit, result.withoutRate, result.withRate)}
       <div>
         <small>DISCOUNT REVENUE</small>
         <b class="positive">${result.available ? `+${compact(result.grossGain)} $GRIND` : '—'}</b>
-        <span>${key === 'weekly' ? `+${compact(averageDailyGain)} $GRIND/day average. ` : ''}This is also the maximum task cost before the refinery discount alone stops paying back.</span>
+        <span>${key === 'weekly' ? `+${compact(averageDailyGain)} $GRIND/day average. ` : ''}Value created by having this discount; also the maximum task cost before refinery savings alone stop paying back.</span>
       </div>
       <div>
         <small>CURRENT TASK COST</small>
@@ -188,12 +247,12 @@ function taskCard(
       <div>
         <small>NET BENEFIT</small>
         <b class="${result.netGain >= 0 ? 'positive' : 'negative'}">${result.available ? `${result.netGain >= 0 ? '+' : '−'}${compact(Math.abs(result.netGain))} $GRIND` : '—'}</b>
-        <span>Discount revenue minus the current task cost.</span>
+        <span>Value of having the discount minus the current task cost.</span>
       </div>
     </div>
     ${taskCostInputs(scope, key)}
     <div class="discount-card-foot">
-      <span>${active ? 'IN ROI BASELINE · compounds with other baseline discounts in this section only.' : 'OUT OF ROI BASELINE · evaluated only when this card tests the candidate discount.'}</span>
+      <span>${active ? `ACTIVE IN CURRENT STACK · this card shows the impact of removing ${keyLabel(key)}.` : `NOT IN CURRENT STACK · this card shows the marginal value of adding ${keyLabel(key)}.`}</span>
       <time>${period.label} ROI window</time>
     </div>
   </article>`;
@@ -215,8 +274,7 @@ function passCard(
     grindCost: 0,
     horizonSeconds: period.seconds,
   });
-  const active = number(settings.passActive) >= 0.5;
-  const withRevenue = result.withRate > 0 ? projectedGrit / result.withRate : 0;
+  const active = isActive('pass');
   const averageDailyGain = result.grossGain / 7;
   const sameGritUplift = result.withoutRate > 0 && result.withRate > 0
     ? (result.withoutRate / result.withRate - 1) * 100
@@ -231,33 +289,30 @@ function passCard(
       <span class="discount-verdict neutral">REFINERY VALUE</span>
     </div>
     ${activeChoice('pass')}
-    <div class="discount-rate-line">
-      <span><small>WITHOUT</small><b>${result.withoutRate > 0 ? `${compact(result.withoutRate)} GRIT / $GRIND` : '—'}</b></span>
-      <span class="with"><small>WITH</small><b>${result.withRate > 0 ? `${compact(result.withRate)} GRIT / $GRIND` : '—'}</b></span>
-    </div>
+    ${rateComparison('pass', result.withoutRate, result.withRate)}
     <div class="discount-roi-metrics">
-      ${requiredRateMetric(scope, result.withoutRate, result.withRate)}
-      ${dailyCapacityMetric(projectedDailyGrit, result.withoutRate, result.withRate)}
-      ${revenueMetric(period, result.withoutGrind, withRevenue)}
+      ${requiredRateMetric(scope, 'pass', result.withoutRate, result.withRate)}
+      ${dailyCapacityMetric('pass', projectedDailyGrit, result.withoutRate, result.withRate)}
+      ${revenueMetric('pass', period, projectedGrit, result.withoutRate, result.withRate)}
       <div>
         <small>REFINERY REVENUE GAIN</small>
         <b class="positive">${result.available ? `+${compact(result.grossGain)} $GRIND / 7D` : '—'}</b>
-        <span>Additional $GRIND created by the Pass refinery discount only.</span>
+        <span>Marginal $GRIND value created by the Pass refinery discount.</span>
       </div>
       <div>
         <small>AVG DAILY GAIN</small>
         <b class="positive">${result.available ? `+${compact(averageDailyGain)} $GRIND` : '—'}</b>
-        <span>Average refinery-only gain per day across the 7D projection.</span>
+        <span>Average refinery-only value per day across the 7D projection.</span>
       </div>
       <div>
         <small>SAME-GRIT UPLIFT</small>
         <b class="positive">${result.available ? `+${sameGritUplift.toFixed(3).replace(/0+$/, '').replace(/\.$/, '')}%` : '—'}</b>
-        <span>Extra $GRIND from the same GRIT when adding the Pass discount.</span>
+        <span>Extra $GRIND from the same GRIT attributable to the Pass discount.</span>
       </div>
     </div>
     <p class="discount-cost-caption">Revenue view only. Seasonal Pass crates and other rewards are intentionally excluded, so no worth-it verdict or Pass-price deduction is shown here.</p>
     <div class="discount-card-foot">
-      <span>${active ? 'IN ROI BASELINE · the Pass discount compounds with other baseline discounts in this section only.' : 'OUT OF ROI BASELINE · this card shows the marginal refinery value of adding the Pass discount.'}</span>
+      <span>${active ? 'ACTIVE IN CURRENT STACK · this card shows the refinery value lost if the Pass discount is removed.' : 'NOT IN CURRENT STACK · this card shows the marginal refinery value of adding the Pass discount.'}</span>
       <time>${period.label} value window</time>
     </div>
   </article>`;
@@ -284,11 +339,11 @@ export function renderRefineDiscountRoi({
 
   return panel(
     `${panelNumber} // REFINE DISCOUNT ROI`,
-    'Isolated conversion analysis. Daily and Weekly compare their current $GRIND completion cost against discount revenue; Seasonal Pass reports refinery revenue only because its other rewards are outside this model.',
+    'Isolated conversion analysis. Every card is anchored to the same current discount stack; Daily and Weekly compare task cost against discount revenue, while Seasonal Pass reports refinery value only.',
     `<div class="discount-stack-summary">
       <div><small>BASE REFINE RATE</small><strong>${compact(baseRate)}</strong><span>GRIT / $GRIND</span></div>
-      <div class="effective"><small>ROI BASELINE RATE</small><strong>${compact(effectiveRate)}</strong><span>${combinedPct > 0 ? `${combinedPct.toFixed(2)}% cheaper after compounding` : 'no baseline discounts'}</span></div>
-      <p>${target > 0 ? `${compact(target)} $GRIND / 24H needs ${compact(targetRate)}/s at the current ROI baseline. ` : ''}${projectionNote} Daily = 24H; Weekly = 7D; Seasonal Pass = 7D. Discount baseline selections affect only this ROI section.</p>
+      <div class="effective"><small>CURRENT ROI STACK</small><strong>${compact(effectiveRate)}</strong><span>${combinedPct > 0 ? `${combinedPct.toFixed(2)}% cheaper after compounding` : 'no active ROI discounts'}</span></div>
+      <p>${target > 0 ? `${compact(target)} $GRIND / 24H needs ${compact(targetRate)}/s at the current ROI stack. ` : ''}${projectionNote} A card that is OFF shows the gain from adding it; a card that is ON shows what is lost by removing it. All cards share the same current stack.</p>
     </div>
     <div class="discount-roi-grid">
       ${taskCard(scope, 'daily', dailyGrit, dailyGrit, dailyPeriod)}
