@@ -35,6 +35,7 @@ export interface PlannerState {
   targetGrindPerDay: number;
   extraQns: number;
   vialHours: number;
+  showVialAssistedMinimum: boolean;
   buffs: BuffState;
   rigs: Rig[];
   view: PlannerView;

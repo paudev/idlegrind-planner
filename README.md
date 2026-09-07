@@ -7,7 +7,7 @@ A client-side TypeScript planner for IDLE//GRIND mining, build, cashout, and cos
 - **Target Rate** — convert a `$GRIND / 24H` target into the required GRIT/s rate.
 - **Potential Earning** — project production until the player's next rolling cashout eligibility and show a full 24H benchmark.
 - **Deck Simulator** — model the current deck, simulated QN/vial changes, funding-aware output, costing, and QN readiness timing.
-- **Build Planner** — plan from 0 QNs / 0 GRIT, solve the minimum QNs needed for a rate target at build readiness, estimate build-ready time, and show a separate completed-build 24H benchmark.
+- **Build Planner** — plan from 0 QNs / 0 GRIT, solve a stable normal-rate minimum QN build, estimate funding time with or without a vial, and compare no-vial versus selected-vial production.
 - **Costing** — interactive coolant, rack-slot expansion, and forge price references.
 - **Settings** — economy, cashout timing, rig presets, marketplace references, and local data controls.
 
@@ -31,16 +31,16 @@ Both the base price and growth multiplier are editable under **Settings → Econ
 
 ## Build Planner target model
 
-The Build Planner target is a **rate-equivalent** target. The entered `$GRIND / 24H` value is converted into the GRIT/s rate the build should reach when it becomes ready.
+The Build Planner target is converted into the **normal 1× GRIT/s rate** the official minimum build must sustain. The official **Minimum QNs Required** is therefore independent of vial selection.
 
-A selected vial affects two separate things:
+A selected vial affects two separate calculations without changing that official minimum:
 
-- it accelerates GRIT generation while QNs are being funded;
-- it can reduce the minimum QN count only when the vial is still active when the minimum build becomes ready.
+- it accelerates sequential GRIT funding while the vial is active;
+- it increases the production estimate for the same completed hardware during the selected vial hours.
 
-This means a 3H and 24H vial produce the same minimum QNs and setup time when the selected minimum build is already ready before the 3H vial expires. Extending the vial beyond readiness does not reduce that minimum further.
+The Minimum Build output always shows the same target-derived metrics plus both **No-Vial $GRIND / 24H** and **Selected-Vial $GRIND / 24H** for the same minimum QN count.
 
-The completed-build **24H benchmark** is displayed separately. It uses the selected vial duration across the benchmark window and should not be confused with the rate-at-readiness solver.
+An optional **Vial-Assisted Minimum** what-if is available only when a vial is selected and is off by default. Turning it on shows how many fewer QNs could temporarily satisfy the target while 2× overclock is still active. It never replaces the official minimum, costing baseline, readiness target, or final-build QN baseline.
 
 ## Economy references
 
@@ -86,7 +86,7 @@ There are no JavaScript runtime source files. Vite compiles the TypeScript entry
 
 ## Validation
 
-Strict TypeScript checking is enabled in `tsconfig.json`. Core calculation regression tests cover production windows, default and custom QN pricing, sequential funding across overclock expiry, coolant doubling, rack expansion, integer rig handling, and the Build Planner's 3H-vs-24H minimum-build invariant.
+Strict TypeScript checking is enabled in `tsconfig.json`. Core calculation regression tests cover production windows, default and custom QN pricing, sequential funding across overclock expiry, coolant doubling, rack expansion, integer rig handling, the stable minimum-QN rule across vial durations, and the opt-in vial-assisted minimum.
 
 ```bash
 npm run typecheck

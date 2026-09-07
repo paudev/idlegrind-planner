@@ -330,7 +330,7 @@ app.addEventListener('click', (event: MouseEvent) => {
     const vialHours = Math.max(0, Number(button.dataset.plVial));
     if (Math.max(0, number(store.state.planner.vialHours)) !== vialHours) {
       store.state.planner.vialHours = vialHours;
-      store.state.planner.extraQns = 0;
+      if (vialHours <= 0) store.state.planner.showVialAssistedMinimum = false;
     }
     render();
     return;
@@ -358,6 +358,15 @@ app.addEventListener('click', (event: MouseEvent) => {
 
   if (button.hasAttribute('data-clear-planner-qn')) {
     store.state.planner.extraQns = 0;
+    render();
+    return;
+  }
+
+  if (button.hasAttribute('data-toggle-planner-vial-assisted')) {
+    const hasVial = Math.max(0, number(store.state.planner.vialHours)) > 0;
+    store.state.planner.showVialAssistedMinimum = hasVial
+      ? !store.state.planner.showVialAssistedMinimum
+      : false;
     render();
     return;
   }

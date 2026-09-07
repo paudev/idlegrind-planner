@@ -95,6 +95,7 @@ export function createDefaultState(): ApplicationStore['state'] {
       targetGrindPerDay: 0,
       extraQns: 0,
       vialHours: 0,
+      showVialAssistedMinimum: false,
       buffs: defaultBuffs(),
       rigs: [],
       view: 'output',
@@ -140,6 +141,7 @@ function loadStore(): ApplicationStore {
   state.reset.vialHours = normalizeVialHours(state.reset.vialHours);
   state.planner.extraQns = Math.max(0, Math.floor(number(state.planner.extraQns)));
   state.planner.vialHours = normalizeVialHours(state.planner.vialHours);
+  state.planner.showVialAssistedMinimum = Boolean(state.planner.showVialAssistedMinimum) && state.planner.vialHours > 0;
   normalizeBuffs(state.planner.buffs);
   normalizeRigs(state.planner.rigs);
 

@@ -258,6 +258,7 @@ interface MinimumBuildInput {
   quantumNode?: RigPreset;
   qnBasePrice?: number;
   qnPriceGrowth?: number;
+  allowVialToReduceMinimum?: boolean;
 }
 
 export function solveMinimumBuild({
@@ -269,6 +270,7 @@ export function solveMinimumBuild({
   quantumNode = defaultQuantumNode(),
   qnBasePrice = QN_BASE_PRICE,
   qnPriceGrowth = QN_PRICE_GROWTH,
+  allowVialToReduceMinimum = false,
 }: MinimumBuildInput): MinimumBuildSolution {
   const target = Math.max(0, number(targetGrindPerDay));
   const refine = Math.max(0, number(refineRate));
@@ -315,7 +317,7 @@ export function solveMinimumBuild({
     ? { time: Number.POSITIVE_INFINITY, timeline: [] as FundingRow[] }
     : fundingFor(normalQns);
 
-  if (overclockSeconds > 0) {
+  if (allowVialToReduceMinimum && overclockSeconds > 0) {
     const overclockQns = qnsForFactor(2);
     if (overclockQns !== null) {
       const overclockFunding = fundingFor(overclockQns);

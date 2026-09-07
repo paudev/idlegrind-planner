@@ -140,7 +140,7 @@ test('rig stats defend against fractional quantities and slot counts', () => {
   assert.equal(stats.slots, 3);
 });
 
-test('3H and 24H vials produce the same minimum when the build is ready inside 3H', () => {
+test('3H and 24H vials keep the official minimum fixed when both cover funding', () => {
   const fixedRig: Rig = {
     id: 'starter',
     name: 'STARTER',
@@ -150,7 +150,7 @@ test('3H and 24H vials produce the same minimum when the build is ready inside 3
     slots: 1,
     accent: 'green',
   };
-  const targetGrindPerDay = 2520; // 2,800 GRIT/s rate-equivalent at 96K refine.
+  const targetGrindPerDay = 2520; // 2,800 GRIT/s normal-rate target at 96K refine.
 
   const threeHour = solveMinimumBuild({
     targetGrindPerDay,
@@ -169,13 +169,49 @@ test('3H and 24H vials produce the same minimum when the build is ready inside 3
     quantumNode,
   });
 
-  assert.equal(threeHour.qns, 1);
-  assert.equal(twentyFourHour.qns, 1);
-  assert.equal(threeHour.productionFactorAtReady, 2);
-  assert.equal(twentyFourHour.productionFactorAtReady, 2);
+  assert.equal(threeHour.qns, 2);
+  assert.equal(twentyFourHour.qns, 2);
+  assert.equal(threeHour.productionFactorAtReady, 1);
+  assert.equal(twentyFourHour.productionFactorAtReady, 1);
   assert.ok(Math.abs(threeHour.fundingTime - twentyFourHour.fundingTime) < 1e-6);
   assert.ok(threeHour.fundingTime < 3 * 3600);
   assert.ok(threeHour.rateAtReady >= threeHour.requiredRate);
+});
+
+test('vial-assisted minimum reduction is opt-in', () => {
+  const fixedRig: Rig = {
+    id: 'starter',
+    name: 'STARTER',
+    qty: 1,
+    rate: 1000,
+    synergy: 0,
+    slots: 1,
+    accent: 'green',
+  };
+
+  const official = solveMinimumBuild({
+    targetGrindPerDay: 2520,
+    refineRate: 96_000,
+    vialHours: 3,
+    rigs: [fixedRig],
+    buffs,
+    quantumNode,
+  });
+  const assisted = solveMinimumBuild({
+    targetGrindPerDay: 2520,
+    refineRate: 96_000,
+    vialHours: 3,
+    rigs: [fixedRig],
+    buffs,
+    quantumNode,
+    allowVialToReduceMinimum: true,
+  });
+
+  assert.equal(official.qns, 2);
+  assert.equal(assisted.qns, 1);
+  assert.equal(assisted.productionFactorAtReady, 2);
+  assert.ok(assisted.fundingTime < 3 * 3600);
+  assert.ok(assisted.rateAtReady >= assisted.requiredRate);
 });
 
 test('no vial uses the normal-rate QN requirement', () => {
