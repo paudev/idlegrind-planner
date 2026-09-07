@@ -203,7 +203,9 @@ app.addEventListener('input', (event: Event) => {
   }
 
   if (input.dataset.path) {
-    const parsed = parseHuman(input.value);
+    const parsed = input.type === 'checkbox'
+      ? (input.checked ? 1 : 0)
+      : parseHuman(input.value);
     if (Number.isFinite(parsed)) {
       updateInputPath(input.dataset.path, parsed);
       if ([
