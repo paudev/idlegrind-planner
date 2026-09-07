@@ -154,6 +154,13 @@ export function renderRefineDiscountRoi({
   const selectedRequiredRate = target > 0 && selectedRate > 0 ? target * selectedRate / DAY : 0;
   const requiredRateSaved = Math.max(0, baseRequiredRate - selectedRequiredRate);
 
+  const costs = scopeCosts(scope);
+  const dailyTaskCost7d = isActive('daily') ? Math.max(0, number(costs.dailyGrind)) * 7 : 0;
+  const weeklyTaskCost7d = isActive('weekly') ? Math.max(0, number(costs.weeklyGrind)) : 0;
+  const taskCost7d = dailyTaskCost7d + weeklyTaskCost7d;
+  const netWeeklyGain = weeklyGain - taskCost7d;
+  const netTone = netWeeklyGain >= 0 ? 'positive' : 'negative';
+
   const breakdown = [
     taskDecision(scope, 'daily', dailyGrit),
     taskDecision(scope, 'weekly', weeklyGrit),
@@ -162,7 +169,7 @@ export function renderRefineDiscountRoi({
 
   return panel(
     `${panelNumber} // REFINE DISCOUNT ROI`,
-    'Check the discounts you want to analyze together. Every number below uses exactly that selected combination.',
+    'Check the discounts you want to analyze together. The summary answers how much extra $GRIND the selected stack creates.',
     `<div class="discount-selector">
       <div class="discount-selector-head">
         <div><small>SELECT DISCOUNTS</small><strong>BUILD YOUR CONVERSION STACK</strong></div>
@@ -172,6 +179,31 @@ export function renderRefineDiscountRoi({
         ${stackCheckbox('daily')}
         ${stackCheckbox('weekly')}
         ${stackCheckbox('pass')}
+      </div>
+    </div>
+
+    <div class="discount-total-summary">
+      <div class="discount-total-primary">
+        <small>TOTAL EXTRA FROM SELECTED STACK</small>
+        <strong class="${selectedKeys.length ? 'positive' : ''}">${selectedKeys.length ? '+' : ''}${compact(dailyGain)} <span>$GRIND / 24H</span></strong>
+        <p>${compact(baseDailyGrind)} base → ${compact(selectedDailyGrind)} with ${selectedKeys.length ? selectedLabel : 'base conversion'}</p>
+      </div>
+      <div class="discount-total-metrics">
+        <div>
+          <small>TOTAL EXTRA / 7D</small>
+          <strong class="positive">+${compact(weeklyGain)} $GRIND</strong>
+          <span>${compact(baseWeeklyGrind)} base → ${compact(selectedWeeklyGrind)} selected</span>
+        </div>
+        <div>
+          <small>DAILY + WEEKLY TASK COST / 7D</small>
+          <strong class="${taskCost7d > 0 ? 'negative' : ''}">${taskCost7d > 0 ? `−${compact(taskCost7d)}` : '0'} $GRIND</strong>
+          <span>${isActive('daily') ? 'Daily cost ×7' : 'Daily not selected'} · ${isActive('weekly') ? 'Weekly cost ×1' : 'Weekly not selected'}</span>
+        </div>
+        <div>
+          <small>NET EXTRA / 7D</small>
+          <strong class="${netTone}">${netWeeklyGain >= 0 ? '+' : '−'}${compact(Math.abs(netWeeklyGain))} $GRIND</strong>
+          <span>Selected-stack gain minus Daily/Weekly task costs. Pass price is excluded.</span>
+        </div>
       </div>
     </div>
 
@@ -188,22 +220,12 @@ export function renderRefineDiscountRoi({
       </div>
     </div>
 
-    <div class="discount-combined-grid">
+    <div class="discount-combined-grid compact-grid">
       ${target > 0 ? `<div class="discount-combined-metric">
         <small>RATE NEEDED FOR ${compact(target)} $GRIND / 24H</small>
         <strong>${compact(selectedRequiredRate)}/s</strong>
         <span>${compact(baseRequiredRate)}/s at base · <b>−${compact(requiredRateSaved)}/s required</b></span>
       </div>` : ''}
-      <div class="discount-combined-metric">
-        <small>24H $GRIND EARNINGS</small>
-        <strong>${compact(selectedDailyGrind)} $GRIND</strong>
-        <span>${compact(baseDailyGrind)} at base · <b>+${compact(dailyGain)} from selected stack</b></span>
-      </div>
-      <div class="discount-combined-metric">
-        <small>7D $GRIND EARNINGS</small>
-        <strong>${compact(selectedWeeklyGrind)} $GRIND</strong>
-        <span>${compact(baseWeeklyGrind)} at base · <b>+${compact(weeklyGain)} from selected stack</b></span>
-      </div>
       <div class="discount-combined-metric">
         <small>SAME-GRIT UPLIFT</small>
         <strong>${baseRate > 0 && selectedRate > 0 ? `+${((baseRate / selectedRate - 1) * 100).toFixed(2)}%` : '—'}</strong>
@@ -211,13 +233,13 @@ export function renderRefineDiscountRoi({
       </div>
     </div>
 
-    <p class="discount-projection-note">${projectionNote} The 24H and 7D totals above use the full checked stack. If Daily is checked in the 7D view, it assumes the Daily discount is maintained each day.</p>
+    <p class="discount-projection-note">${projectionNote} The totals above use the full checked stack. The 7D view assumes a checked Daily discount is maintained each day, so its entered Daily task cost is counted seven times. Seasonal Pass price is never deducted.</p>
 
     <div class="discount-selected-breakdown">
       <div class="discount-selected-breakdown-head">
-        <small>SELECTED BONUS VALUE</small>
+        <small>DETAILS</small>
         <strong>${selectedKeys.length ? 'WHAT EACH CHECKED BONUS CONTRIBUTES' : 'SELECT A DISCOUNT ABOVE'}</strong>
-        <span>${selectedKeys.length ? 'Daily and Weekly keep their own task-cost ROI. Seasonal Pass remains revenue-only.' : 'The combined conversion, required rate, and earnings will update immediately.'}</span>
+        <span>${selectedKeys.length ? 'These cards explain the total above. Daily and Weekly keep their own task-cost ROI; Seasonal Pass remains revenue-only.' : 'The total extra $GRIND will appear above as soon as a discount is selected.'}</span>
       </div>
       ${breakdown ? `<div class="discount-breakdown-grid">${breakdown}</div>` : ''}
     </div>`,
