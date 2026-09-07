@@ -22,7 +22,6 @@ import {
   rateFactory,
   rigStats,
 } from '../core/calculations';
-import { effectiveRefineRate } from '../core/refine-discounts';
 import { clamp, compact, duration, money, number, signed } from '../core/format';
 import { getQuantumNodePreset, store } from '../core/state';
 import type {
@@ -85,10 +84,7 @@ function qnPricing(): { base: number; growth: number } {
 }
 
 function deckRefineRate(): number {
-  return effectiveRefineRate(
-    store.state.settings.refineRate,
-    store.state.settings.refineDiscounts,
-  );
+  return Math.max(0, number(store.state.settings.refineRate));
 }
 
 function deckScenario(): DeckScenario {
@@ -352,7 +348,7 @@ function outputView(scenario: DeckScenario): string {
 
   const outputPanel = panel(
     '4 // OUTPUT',
-    'Current versus simulated output. Active refinery discounts are included in $GRIND conversion; vial acquisition cost remains separate.',
+    'Current versus simulated output using the base refinery rate from Settings. Refinery discounts are evaluated only in the separate ROI section; vial acquisition cost remains separate.',
     `${!scenario.fullFitsCap ? `<div class="warning">Simulated build requires ${compact(scenario.fullStats.slots)} slots but the configured maximum is ${compact(scenario.slotCap)}. The output below is informational only until the slot cap is increased or the build is reduced.</div>` : ''}
     <div class="output-ready-strip">
       <div>
@@ -391,7 +387,7 @@ function outputView(scenario: DeckScenario): string {
       qnBasePrice: pricing.base,
       qnPriceGrowth: pricing.growth,
     }).balance,
-    projectionNote: `Funding-aware projection starts with ${compact(scenario.currentGrit)} GRIT, buys the simulated ${scenario.addedQns} QNs sequentially, and applies existing plus added vial time before measuring convertible GRIT at each reset.`,
+    projectionNote: `Funding-aware projection starts with ${compact(scenario.currentGrit)} GRIT, buys the simulated ${scenario.addedQns} QNs sequentially, and applies existing plus added vial time. Discount choices affect only this ROI section; Deck Simulator output stays on the base refinery rate.`,
   });
 
   return `${intro(

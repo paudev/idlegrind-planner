@@ -44,8 +44,8 @@ function activeChoice(key: RefineDiscountKey): string {
       ? number(settings.weeklyActive) >= 0.5
       : number(settings.passActive) >= 0.5;
   const name = `refine-discount-${key}`;
-  return `<div class="discount-active-choice" role="group" aria-label="${key} discount active state">
-    <span>APPLY TO OUTPUT</span>
+  return `<div class="discount-active-choice" role="group" aria-label="${key} discount ROI baseline state">
+    <span>ROI BASELINE</span>
     <label class="${!active ? 'active' : ''}">
       <input type="radio" name="${name}" data-path="${activePath(key)}" value="0" ${!active ? 'checked' : ''}>
       OFF
@@ -174,7 +174,7 @@ function discountCard(
     </div>
     ${key === 'daily' || key === 'weekly' ? taskCostInputs(scope, key) : passPriceInput()}
     <div class="discount-card-foot">
-      <span>${active ? 'ACTIVE NOW · included in Build Planner and Deck Simulator $GRIND output.' : 'WHAT-IF ONLY · does not change output until switched ON.'}</span>
+      <span>${active ? 'IN ROI BASELINE · compounds with other baseline discounts in this section only.' : 'OUT OF ROI BASELINE · evaluated only when this card tests the candidate discount.'}</span>
       <time>${period.label} ROI window</time>
     </div>
   </article>`;
@@ -199,11 +199,11 @@ export function renderRefineDiscountRoi({
 
   return panel(
     `${panelNumber} // REFINE DISCOUNT ROI`,
-    'Compare the current $GRIND cost to earn each discount against the production window it actually helps: 24H for Daily Tasks and 7D for Weekly Tasks / Seasonal Pass.',
+    'Isolated what-if analysis: compare the current $GRIND cost to earn each discount against 24H Daily or 7D Weekly/Season production. These selections never change Build Planner or Deck Simulator output.',
     `<div class="discount-stack-summary">
       <div><small>BASE REFINE RATE</small><strong>${compact(baseRate)}</strong><span>GRIT / $GRIND</span></div>
-      <div class="effective"><small>ACTIVE-STACK RATE</small><strong>${compact(effectiveRate)}</strong><span>${combinedPct > 0 ? `${combinedPct.toFixed(2)}% cheaper after compounding` : 'no active discount'}</span></div>
-      <p>${projectionNote} Daily = 24H; Weekly = 7D; Seasonal Pass = 7D. Every ROI cost input is $GRIND only.</p>
+      <div class="effective"><small>ROI BASELINE RATE</small><strong>${compact(effectiveRate)}</strong><span>${combinedPct > 0 ? `${combinedPct.toFixed(2)}% cheaper after compounding` : 'no baseline discounts'}</span></div>
+      <p>${projectionNote} Daily = 24H; Weekly = 7D; Seasonal Pass = 7D. Every ROI cost input is $GRIND only, and discount state is scoped to this ROI analysis.</p>
     </div>
     <div class="discount-roi-grid">
       ${discountCard(scope, 'daily', dailyGrit, dailyPeriod)}

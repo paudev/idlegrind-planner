@@ -74,7 +74,7 @@ function refineDiscountSettings(): string {
 
   return `<div class="discount-settings-summary">
       <div><small>BASE RATE</small><strong>${compact(base)}</strong><span>GRIT / $GRIND</span></div>
-      <div class="effective"><small>CURRENT ACTIVE STACK</small><strong>${compact(effective)}</strong><span>${totalPct > 0 ? `${totalPct.toFixed(2)}% cheaper after compounding` : 'no active discounts'}</span></div>
+      <div class="effective"><small>ROI BASELINE STACK</small><strong>${compact(effective)}</strong><span>${totalPct > 0 ? `${totalPct.toFixed(2)}% cheaper after compounding` : 'no baseline discounts'}</span></div>
       <div><small>GAME REFERENCE</small><strong>${REFINE_DISCOUNT_REFERENCE.dailyPct}% · ${REFINE_DISCOUNT_REFERENCE.weeklyPct}% · ${REFINE_DISCOUNT_REFERENCE.passPct}%</strong><span>Daily · Weekly · Seasonal Pass</span></div>
     </div>
     <div class="formgrid discount-reference-grid">
@@ -88,7 +88,7 @@ function refineDiscountSettings(): string {
       'DISABLED',
     )}
     <div class="discount-reference-note">
-      Game reference: Daily Tasks make refining <b>${REFINE_DISCOUNT_REFERENCE.dailyPct}% cheaper</b>; Weekly Tasks make it <b>${REFINE_DISCOUNT_REFERENCE.weeklyPct}% cheaper</b>. Together they compound to <b>${dailyWeeklyPct.toFixed(1)}%</b>, not 15%. With the active <b>${REFINE_DISCOUNT_REFERENCE.passPct}% Seasonal Pass</b>, the full stack is <b>${allPct.toFixed(2)}% cheaper</b>. Every season reset clears both task sets, so those discounts must be earned again. These percentages are fixed game rules; only the Pass price remains an editable ROI input.
+      Game reference: Daily Tasks make refining <b>${REFINE_DISCOUNT_REFERENCE.dailyPct}% cheaper</b>; Weekly Tasks make it <b>${REFINE_DISCOUNT_REFERENCE.weeklyPct}% cheaper</b>. Together they compound to <b>${dailyWeeklyPct.toFixed(1)}%</b>, not 15%. With the active <b>${REFINE_DISCOUNT_REFERENCE.passPct}% Seasonal Pass</b>, the full stack is <b>${allPct.toFixed(2)}% cheaper</b>. Every season reset clears both task sets, so those discounts must be earned again. These percentages are fixed game rules; only the Pass price remains an editable ROI input. ROI baseline selections are isolated and never change Build Planner or Deck Simulator output.
     </div>`;
 }
 
@@ -152,7 +152,7 @@ export function renderSettingsView(): string {
     ),
     panel(
       'REFINE DISCOUNT REFERENCES',
-      'Fixed Daily, Weekly, and Seasonal Pass conversion discounts used by refinery ROI in Build Planner and Deck Simulator.',
+      'Fixed Daily, Weekly, and Seasonal Pass conversion discounts used only by the refinery ROI sections in Build Planner and Deck Simulator.',
       refineDiscountSettings(),
     ),
     panel(

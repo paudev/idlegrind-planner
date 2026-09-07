@@ -13,7 +13,6 @@ import {
   rigStats,
   solveMinimumBuild,
 } from '../core/calculations';
-import { effectiveRefineRate } from '../core/refine-discounts';
 import { clamp, compact, duration, escapeHtml, number, signed } from '../core/format';
 import { getQuantumNodePreset, store } from '../core/state';
 import type { CostRow, FundingRow, RigStats } from '../types';
@@ -63,10 +62,7 @@ function qnPricing(): { base: number; growth: number } {
 }
 
 function plannerRefineRate(): number {
-  return effectiveRefineRate(
-    store.state.settings.refineRate,
-    store.state.settings.refineDiscounts,
-  );
+  return Math.max(0, number(store.state.settings.refineRate));
 }
 
 function invalidBuild(reason: string, buildMultiplier = 0): BuildResult {
@@ -158,7 +154,7 @@ function setupPanels(): string {
 
   return `${intro(
     'BUILD PLANNER',
-    'Build from 0 QNs and 0 GRIT. Minimum QNs are fixed by the normal 1× production needed for the target; vial selection only changes setup speed and earnings. Active refinery discounts reduce the GRIT required for the same $GRIND target.',
+    'Build from 0 QNs and 0 GRIT. Minimum QNs are fixed by the normal 1× production needed for the target; vial selection only changes setup speed and earnings. Refinery discounts are evaluated separately in the ROI section and never change Minimum or Final Build output.',
   )}${panel(
     '1 // DAILY TARGET',
     'Set the $GRIND / 24H target the minimum build must sustain at normal production.',
@@ -167,7 +163,7 @@ function setupPanels(): string {
       <div class="hero-output compact">
         <small>BUILD MULTIPLIER</small>
         <strong>×${buildMultiplier.toFixed(3)}</strong>
-        <p>Effective refinery: ${compact(refine)} GRIT / $GRIND. Vial duration never changes the official minimum QN count.</p>
+        <p>Base refinery: ${compact(refine)} GRIT / $GRIND. Vials and refinery discounts never change the official minimum QN count.</p>
       </div>
     </div>`,
   )}${panel(
@@ -326,7 +322,7 @@ function outputView(result: BuildResult): string {
     scope: 'planner',
     panelNumber: 6,
     projectGrit: (seconds) => production(finalNormal, seconds, vialHours * HOUR).grit,
-    projectionNote: `Projection uses the current Final Build (${finalQns.toLocaleString()} QNs) and selected vial from now until each reset.`,
+    projectionNote: `Projection uses the current Final Build (${finalQns.toLocaleString()} QNs) and selected vial. Discount choices affect only this ROI section; Minimum and Final Build outputs stay on the base refinery rate.`,
   });
 
   return `${minimumPanel}${finalPanel}${discountRoi}`;
