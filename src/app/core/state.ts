@@ -12,6 +12,8 @@ import type {
   ApplicationStore,
   BuffState,
   DeckState,
+  RefineDiscountCosts,
+  RefineDiscountSettings,
   Rig,
   RigPreset,
   Scope,
@@ -37,6 +39,15 @@ function defaultBuffs(): BuffState {
   };
 }
 
+function defaultDiscountCosts(): RefineDiscountCosts {
+  return {
+    dailyGrit: 0,
+    dailyGrind: 0,
+    weeklyGrit: 0,
+    weeklyGrind: 0,
+  };
+}
+
 function normalizeBuffs(buffs: BuffState): void {
   const tier = number(buffs.tier, 1);
   buffs.tier = VALID_TIERS.has(tier) ? tier : 1;
@@ -49,6 +60,24 @@ function normalizeBuffs(buffs: BuffState): void {
     buffs.silver = false;
     buffs.gold = false;
   }
+}
+
+function normalizeDiscountSettings(discounts: RefineDiscountSettings): void {
+  discounts.taskDiscountsEnabled = number(discounts.taskDiscountsEnabled) >= 0.5 ? 1 : 0;
+  discounts.dailyPct = clamp(number(discounts.dailyPct), 0, 99.99);
+  discounts.weeklyPct = clamp(number(discounts.weeklyPct), 0, 99.99);
+  discounts.passPct = clamp(number(discounts.passPct, 5), 0, 99.99);
+  discounts.passPrice = Math.max(0, number(discounts.passPrice));
+  discounts.dailyActive = number(discounts.dailyActive) >= 0.5 ? 1 : 0;
+  discounts.weeklyActive = number(discounts.weeklyActive) >= 0.5 ? 1 : 0;
+  discounts.passActive = number(discounts.passActive) >= 0.5 ? 1 : 0;
+}
+
+function normalizeDiscountCosts(costs: RefineDiscountCosts): void {
+  costs.dailyGrit = Math.max(0, number(costs.dailyGrit));
+  costs.dailyGrind = Math.max(0, number(costs.dailyGrind));
+  costs.weeklyGrit = Math.max(0, number(costs.weeklyGrit));
+  costs.weeklyGrind = Math.max(0, number(costs.weeklyGrind));
 }
 
 function normalizeVialHours(value: unknown): number {
@@ -95,6 +124,7 @@ export function createDefaultState(): ApplicationStore['state'] {
       buffs: defaultBuffs(),
       rigs: [],
       view: 'output',
+      discountCosts: defaultDiscountCosts(),
     },
   };
 }
@@ -109,6 +139,7 @@ export function createDefaultDeck(): DeckState {
     buffs: defaultBuffs(),
     rigs: [],
     view: 'output',
+    discountCosts: defaultDiscountCosts(),
     baseline: {
       currentDeckSlots: RACK_BASE_SLOTS,
       currentGrit: 0,
@@ -137,6 +168,7 @@ function loadStore(): ApplicationStore {
   state.settings.maxRackSlots = normalizeRackLimit(state.settings.maxRackSlots);
   state.settings.qnBasePrice = Math.max(0, number(state.settings.qnBasePrice, DEFAULT_SETTINGS.qnBasePrice));
   state.settings.qnPriceGrowth = Math.max(1, number(state.settings.qnPriceGrowth, DEFAULT_SETTINGS.qnPriceGrowth));
+  normalizeDiscountSettings(state.settings.refineDiscounts);
   Object.values(state.settings.rigPresets).forEach(normalizePreset);
   state.reset.vialHours = normalizeVialHours(state.reset.vialHours);
   state.planner.extraQns = Math.max(0, Math.floor(number(state.planner.extraQns)));
@@ -144,6 +176,7 @@ function loadStore(): ApplicationStore {
   state.planner.showVialAssistedMinimum = false;
   normalizeBuffs(state.planner.buffs);
   normalizeRigs(state.planner.rigs);
+  normalizeDiscountCosts(state.planner.discountCosts);
 
   deck.qns = Math.max(0, Math.floor(number(deck.qns)));
   deck.addedQns = Math.max(0, Math.floor(number(deck.addedQns)));
@@ -157,6 +190,7 @@ function loadStore(): ApplicationStore {
   deck.baseline.currentGrit = Math.max(0, number(deck.baseline.currentGrit));
   normalizeBuffs(deck.buffs);
   normalizeRigs(deck.rigs);
+  normalizeDiscountCosts(deck.discountCosts);
 
   const market = loadPositiveDefaults(STORAGE_KEYS.market, MARKET_DEFAULTS, {
     fallback: snapshot.market as Record<string, unknown> | undefined,
@@ -206,6 +240,15 @@ export function resolveInputPath(path: string): [Record<string, unknown>, string
 }
 
 function normalizedInputValue(path: string, value: number): number {
+  if (path.startsWith('state.settings.refineDiscounts.')) {
+    if (path.endsWith('Pct')) return clamp(value, 0, 99.99);
+    if (path.endsWith('Active') || path.endsWith('taskDiscountsEnabled')) return value >= 0.5 ? 1 : 0;
+    return Math.max(0, value);
+  }
+  if (path.startsWith('state.planner.discountCosts.') || path.startsWith('deck.discountCosts.')) {
+    return Math.max(0, value);
+  }
+
   switch (path) {
     case 'deck.qns':
     case 'deck.addedQns':

@@ -3,6 +3,7 @@ export type PlannerView = 'output' | 'cost' | 'readiness';
 export type DeckView = 'output' | 'cost' | 'readiness';
 export type Scope = 'deck' | 'planner';
 export type Accent = 'green' | 'purple' | 'gold' | string;
+export type RefineDiscountKey = 'daily' | 'weekly' | 'pass';
 
 export interface RigPreset {
   name: string;
@@ -31,6 +32,24 @@ export interface BuffState {
   corePct: number;
 }
 
+export interface RefineDiscountSettings {
+  taskDiscountsEnabled: number;
+  dailyPct: number;
+  weeklyPct: number;
+  passPct: number;
+  passPrice: number;
+  dailyActive: number;
+  weeklyActive: number;
+  passActive: number;
+}
+
+export interface RefineDiscountCosts {
+  dailyGrit: number;
+  dailyGrind: number;
+  weeklyGrit: number;
+  weeklyGrind: number;
+}
+
 export interface PlannerState {
   targetGrindPerDay: number;
   extraQns: number;
@@ -39,6 +58,7 @@ export interface PlannerState {
   buffs: BuffState;
   rigs: Rig[];
   view: PlannerView;
+  discountCosts: RefineDiscountCosts;
 }
 
 export interface SettingsState {
@@ -46,6 +66,7 @@ export interface SettingsState {
   maxRackSlots: number;
   qnBasePrice: number;
   qnPriceGrowth: number;
+  refineDiscounts: RefineDiscountSettings;
   rigPresets: Record<string, RigPreset>;
 }
 
@@ -66,6 +87,7 @@ export interface DeckState {
   buffs: BuffState;
   rigs: Rig[];
   view: DeckView;
+  discountCosts: RefineDiscountCosts;
   baseline: {
     currentDeckSlots: number;
     currentGrit: number;

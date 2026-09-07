@@ -13,8 +13,15 @@ import {
   rigStats,
   solveMinimumBuild,
 } from '../src/app/core/calculations';
+import {
+  activeDiscountPct,
+  effectiveRefineRate,
+  nextDailyTaskReset,
+  nextWeeklyTaskReset,
+  refineDiscountRoi,
+} from '../src/app/core/refine-discounts';
 import { loadPositiveDefaults, readJson, writeJson } from '../src/app/core/storage';
-import type { BuffState, Rig, RigPreset } from '../src/app/types';
+import type { BuffState, RefineDiscountSettings, Rig, RigPreset } from '../src/app/types';
 
 const buffs: BuffState = {
   tier: 1,
@@ -35,6 +42,17 @@ const quantumNode: RigPreset = {
   slots: 1,
   accent: 'green',
   optimizerFill: true,
+};
+
+const discountSettings: RefineDiscountSettings = {
+  taskDiscountsEnabled: 1,
+  dailyPct: 10,
+  weeklyPct: 20,
+  passPct: 5,
+  passPrice: 1_000,
+  dailyActive: 1,
+  weeklyActive: 1,
+  passActive: 1,
 };
 
 function memoryStorage(memory: Map<string, string>): Storage {
@@ -171,7 +189,7 @@ test('3H and 24H vials keep the official minimum fixed when both cover funding',
     slots: 1,
     accent: 'green',
   };
-  const targetGrindPerDay = 2520; // 2,800 GRIT/s normal-rate target at 96K refine.
+  const targetGrindPerDay = 2520;
 
   const threeHour = solveMinimumBuild({
     targetGrindPerDay,
@@ -258,4 +276,96 @@ test('no vial uses the normal-rate QN requirement', () => {
   assert.equal(result.qns, 2);
   assert.equal(result.productionFactorAtReady, 1);
   assert.ok(result.rateAtReady >= result.requiredRate);
+});
+
+test('daily, weekly, and pass refinery discounts compound rather than add', () => {
+  const rate = effectiveRefineRate(96_000, discountSettings);
+  assert.equal(rate, 65_664);
+  assert.ok(Math.abs(activeDiscountPct(96_000, discountSettings) - 31.6) < 1e-9);
+});
+
+test('5% Seasonal Pass gives 5.263% more $GRIND from the same GRIT before price', () => {
+  const settings: RefineDiscountSettings = {
+    ...discountSettings,
+    dailyActive: 0,
+    weeklyActive: 0,
+    passActive: 0,
+    passPrice: 0,
+  };
+  const roi = refineDiscountRoi({
+    candidate: 'pass',
+    baseRefineRate: 96_000,
+    settings,
+    projectedGrit: 96_000_000,
+    horizonSeconds: 86_400,
+  });
+  assert.ok(Math.abs(roi.grossGain - 52.631578947368325) < 1e-9);
+});
+
+test('Seasonal Pass break-even is 19x its price in baseline $GRIND for a 5% discount', () => {
+  const settings: RefineDiscountSettings = {
+    ...discountSettings,
+    dailyActive: 0,
+    weeklyActive: 0,
+    passActive: 0,
+    passPrice: 1_000,
+  };
+  const roi = refineDiscountRoi({
+    candidate: 'pass',
+    baseRefineRate: 96_000,
+    settings,
+    projectedGrit: 96_000_000,
+    grindCost: settings.passPrice,
+    horizonSeconds: 86_400,
+  });
+  assert.ok(Math.abs(roi.breakEvenGrind - 19_000) < 1e-6);
+});
+
+test('marginal ROI keeps other active discounts in the comparison', () => {
+  const settings: RefineDiscountSettings = {
+    ...discountSettings,
+    passActive: 0,
+    passPrice: 100,
+  };
+  const roi = refineDiscountRoi({
+    candidate: 'pass',
+    baseRefineRate: 96_000,
+    settings,
+    projectedGrit: 69_120_000,
+    grindCost: settings.passPrice,
+    horizonSeconds: 86_400,
+  });
+  assert.equal(roi.withoutRate, 69_120);
+  assert.equal(roi.withRate, 65_664);
+  assert.ok(Math.abs(roi.breakEvenGrind - 1_900) < 1e-6);
+});
+
+test('task boost switch disables daily and weekly discounts without disabling pass', () => {
+  const settings: RefineDiscountSettings = {
+    ...discountSettings,
+    taskDiscountsEnabled: 0,
+  };
+  assert.equal(effectiveRefineRate(96_000, settings), 91_200);
+});
+
+test('daily reset follows 6:05 PM Pacific across daylight and standard time', () => {
+  assert.equal(
+    new Date(nextDailyTaskReset(Date.parse('2026-09-07T10:00:00Z'))).toISOString(),
+    '2026-09-08T01:05:00.000Z',
+  );
+  assert.equal(
+    new Date(nextDailyTaskReset(Date.parse('2026-01-05T10:00:00Z'))).toISOString(),
+    '2026-01-06T02:05:00.000Z',
+  );
+});
+
+test('weekly reset is Sunday 6:05 PM Pacific and rolls to the next Sunday after cutoff', () => {
+  assert.equal(
+    new Date(nextWeeklyTaskReset(Date.parse('2026-09-06T23:00:00Z'))).toISOString(),
+    '2026-09-07T01:05:00.000Z',
+  );
+  assert.equal(
+    new Date(nextWeeklyTaskReset(Date.parse('2026-09-07T02:00:00Z'))).toISOString(),
+    '2026-09-14T01:05:00.000Z',
+  );
 });

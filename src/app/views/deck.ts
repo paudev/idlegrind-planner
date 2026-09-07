@@ -22,6 +22,7 @@ import {
   rateFactory,
   rigStats,
 } from '../core/calculations';
+import { effectiveRefineRate } from '../core/refine-discounts';
 import { clamp, compact, duration, money, number, signed } from '../core/format';
 import { getQuantumNodePreset, store } from '../core/state';
 import type {
@@ -50,6 +51,7 @@ import {
   table,
 } from '../ui/components';
 import { renderQnReadiness } from '../ui/readiness';
+import { renderRefineDiscountRoi } from '../ui/refine-discount-roi';
 
 interface DeckScenario {
   cycle: CashoutCycle;
@@ -80,6 +82,13 @@ function qnPricing(): { base: number; growth: number } {
     base: Math.max(0, number(store.state.settings.qnBasePrice)),
     growth: Math.max(1, number(store.state.settings.qnPriceGrowth, 1.15)),
   };
+}
+
+function deckRefineRate(): number {
+  return effectiveRefineRate(
+    store.state.settings.refineRate,
+    store.state.settings.refineDiscounts,
+  );
 }
 
 function deckScenario(): DeckScenario {
@@ -162,7 +171,7 @@ function deckScenario(): DeckScenario {
     progress,
     timeline,
     fullBuildTime,
-    refine: Math.max(0, number(store.state.settings.refineRate)),
+    refine: deckRefineRate(),
   };
 }
 
@@ -341,12 +350,9 @@ function outputView(scenario: DeckScenario): string {
     </div>
   </div>` : '';
 
-  return `${intro(
-    'DECK SIMULATOR',
-    'Start with your current deck, add Quantum Nodes and/or vial time, then compare the realistic result. QNs are funded sequentially when GRIT becomes available.',
-  )}${setupPanels(scenario)}${panel(
+  const outputPanel = panel(
     '4 // OUTPUT',
-    'Current versus simulated output. Gross mining stays visible; when a simulated vial has acquisition costing enabled, the net 24H row and vial economics deduct its market cost separately.',
+    'Current versus simulated output. Active refinery discounts are included in $GRIND conversion; vial acquisition cost remains separate.',
     `${!scenario.fullFitsCap ? `<div class="warning">Simulated build requires ${compact(scenario.fullStats.slots)} slots but the configured maximum is ${compact(scenario.slotCap)}. The output below is informational only until the slot cap is increased or the build is reduced.</div>` : ''}
     <div class="output-ready-strip">
       <div>
@@ -369,7 +375,29 @@ function outputView(scenario: DeckScenario): string {
     netSimulatedDayGrind !== null
       ? `${compact(netSimulatedDayGrind, 2)} ${includeVialCost ? 'NET ' : ''}$GRIND / 24H`
       : 'SET REFINE RATE',
-  )}`;
+  );
+
+  const pricing = qnPricing();
+  const discountRoi = renderRefineDiscountRoi({
+    scope: 'deck',
+    panelNumber: 5,
+    projectGrit: (seconds) => fundingHorizon({
+      currentQns: scenario.currentQns,
+      targetQns: scenario.targetQns,
+      currentGrit: scenario.currentGrit,
+      rateForQns: scenario.rateForQns,
+      horizon: seconds,
+      overclockSeconds: scenario.simulatedOverclock,
+      qnBasePrice: pricing.base,
+      qnPriceGrowth: pricing.growth,
+    }).balance,
+    projectionNote: `Funding-aware projection starts with ${compact(scenario.currentGrit)} GRIT, buys the simulated ${scenario.addedQns} QNs sequentially, and applies existing plus added vial time before measuring convertible GRIT at each reset.`,
+  });
+
+  return `${intro(
+    'DECK SIMULATOR',
+    'Start with your current deck, add Quantum Nodes and/or vial time, then compare the realistic result. QNs are funded sequentially when GRIT becomes available.',
+  )}${setupPanels(scenario)}${outputPanel}${discountRoi}`;
 }
 
 function costingView(scenario: DeckScenario): string {

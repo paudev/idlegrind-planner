@@ -6,6 +6,16 @@ export const DEFAULT_SETTINGS: SettingsState = {
   maxRackSlots: 0,
   qnBasePrice: QN_BASE_PRICE,
   qnPriceGrowth: QN_PRICE_GROWTH,
+  refineDiscounts: {
+    taskDiscountsEnabled: 1,
+    dailyPct: 0,
+    weeklyPct: 0,
+    passPct: 5,
+    passPrice: 0,
+    dailyActive: 0,
+    weeklyActive: 0,
+    passActive: 0,
+  },
   rigPresets: {
     quantum_node: { name: 'QUANTUM NODE', rate: 1400, synergy: 0, slots: 1, accent: 'green', optimizerFill: true },
     data_center: { name: 'DATA CENTER', rate: 260, synergy: 0, slots: 1, accent: 'green' },

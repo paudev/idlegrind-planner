@@ -1,16 +1,19 @@
 import {
   DAY,
+  HOUR,
   MARKET_DEFAULTS,
   RACK_BASE_SLOTS,
 } from '../config/economy';
 import {
   coolantUpgradeCost,
   multiplier,
+  production,
   qnTotalCost,
   rackExpansion,
   rigStats,
   solveMinimumBuild,
 } from '../core/calculations';
+import { effectiveRefineRate } from '../core/refine-discounts';
 import { clamp, compact, duration, escapeHtml, number, signed } from '../core/format';
 import { getQuantumNodePreset, store } from '../core/state';
 import type { CostRow, FundingRow, RigStats } from '../types';
@@ -27,6 +30,7 @@ import {
   subTabs,
 } from '../ui/components';
 import { renderQnReadiness } from '../ui/readiness';
+import { renderRefineDiscountRoi } from '../ui/refine-discount-roi';
 
 interface BuildFundingResult {
   time: number;
@@ -58,6 +62,13 @@ function qnPricing(): { base: number; growth: number } {
   };
 }
 
+function plannerRefineRate(): number {
+  return effectiveRefineRate(
+    store.state.settings.refineRate,
+    store.state.settings.refineDiscounts,
+  );
+}
+
 function invalidBuild(reason: string, buildMultiplier = 0): BuildResult {
   return {
     computable: false,
@@ -81,7 +92,7 @@ function solveOfficialMinimum(vialHours: number) {
   const pricing = qnPricing();
   return solveMinimumBuild({
     targetGrindPerDay: Math.max(0, number(store.state.planner.targetGrindPerDay)),
-    refineRate: Math.max(0, number(store.state.settings.refineRate)),
+    refineRate: plannerRefineRate(),
     vialHours,
     rigs: store.state.planner.rigs,
     buffs: store.state.planner.buffs,
@@ -94,7 +105,7 @@ function solveOfficialMinimum(vialHours: number) {
 
 function optimizeBuild(): BuildResult {
   const target = Math.max(0, number(store.state.planner.targetGrindPerDay));
-  const refine = Math.max(0, number(store.state.settings.refineRate));
+  const refine = plannerRefineRate();
 
   if (target <= 0) return invalidBuild('Set a $GRIND / 24H target above 0.');
   if (refine < 1000) return invalidBuild('Set a valid refinery rate under Settings.');
@@ -143,10 +154,11 @@ function optimizeBuild(): BuildResult {
 
 function setupPanels(): string {
   const buildMultiplier = multiplier(store.state.planner.buffs);
+  const refine = plannerRefineRate();
 
   return `${intro(
     'BUILD PLANNER',
-    'Build from 0 QNs and 0 GRIT. Minimum QNs are fixed by the normal 1× production needed for the target; vial selection only changes setup speed and earnings.',
+    'Build from 0 QNs and 0 GRIT. Minimum QNs are fixed by the normal 1× production needed for the target; vial selection only changes setup speed and earnings. Active refinery discounts reduce the GRIT required for the same $GRIND target.',
   )}${panel(
     '1 // DAILY TARGET',
     'Set the $GRIND / 24H target the minimum build must sustain at normal production.',
@@ -155,7 +167,7 @@ function setupPanels(): string {
       <div class="hero-output compact">
         <small>BUILD MULTIPLIER</small>
         <strong>×${buildMultiplier.toFixed(3)}</strong>
-        <p>Changing vial duration never changes the official minimum QN count.</p>
+        <p>Effective refinery: ${compact(refine)} GRIT / $GRIND. Vial duration never changes the official minimum QN count.</p>
       </div>
     </div>`,
   )}${panel(
@@ -184,7 +196,7 @@ function outputView(result: BuildResult): string {
 
   const vialHours = clamp(number(store.state.planner.vialHours), 0, 24);
   const hasVial = vialHours > 0;
-  const refine = Math.max(0, number(store.state.settings.refineRate));
+  const refine = plannerRefineRate();
   const targetGrind = Math.max(0, number(store.state.planner.targetGrindPerDay));
   const targetGrit = targetGrind * refine;
   const pricing = qnPricing();
@@ -230,7 +242,7 @@ function outputView(result: BuildResult): string {
   const cap = Math.max(0, number(store.state.settings.maxRackSlots));
   const finalFits = !(cap > 0 && finalStats.slots > cap);
 
-  return `${panel(
+  const minimumPanel = panel(
     '4 // MINIMUM BUILD',
     'Stable minimum hardware, target coverage, and the setup/earnings impact of the selected vial.',
     `${!result.ok ? `<div class="warning">${escapeHtml(result.reason)}</div>` : ''}
@@ -273,7 +285,9 @@ function outputView(result: BuildResult): string {
       ${metric('SETUP TIME SAVED', hasVial ? duration(setupSaved) : '—', hasVial && setupSaved > 0 ? 'green' : '', hasVial ? `${setupSavedPct.toFixed(1)}% faster than the no-vial funding path.` : 'No vial selected.')}
       ${metric('VIAL DAILY GAIN', hasVial ? `+${compact(vialGainGrind)} $GRIND` : '—', hasVial ? 'green' : '', hasVial ? `+${compact(vialGainGrit)} GRIT from ${vialHours}h at 2×.` : 'No vial selected.')}
     </div>`,
-  )}${panel(
+  );
+
+  const finalPanel = panel(
     '5 // FINAL BUILD PERFORMANCE',
     'Add QNs above the minimum and see the added hardware, cost, and daily production gain.',
     `<div class="sim-card final-qn-control">
@@ -306,7 +320,16 @@ function outputView(result: BuildResult): string {
       ${metric(hasVial ? 'VIAL GAIN VS MINIMUM' : 'GAIN VS MINIMUM', activeGainVsMinimum > 0 ? `+${compact(activeGainVsMinimum)} $GRIND` : '—', activeGainVsMinimum > 0 ? 'green' : '', hasVial ? `No-vial gain: +${compact(finalNoVialGainVsMinimum)} $GRIND / 24H.` : 'Additional no-vial production from added QNs.')}
       ${metric('GAIN / ADDED QN', extraQns > 0 ? `+${compact(gainPerAddedQn)} $GRIND` : '—', extraQns > 0 ? 'green' : '', extraQns > 0 && hasVial ? `No-vial: +${compact(noVialGainPerAddedQn)} $GRIND per added QN.` : extraQns > 0 ? 'Daily gain per added QN.' : 'Add QNs to see marginal production.')}
     </div>`,
-  )}`;
+  );
+
+  const discountRoi = renderRefineDiscountRoi({
+    scope: 'planner',
+    panelNumber: 6,
+    projectGrit: (seconds) => production(finalNormal, seconds, vialHours * HOUR).grit,
+    projectionNote: `Projection uses the current Final Build (${finalQns.toLocaleString()} QNs) and selected vial from now until each reset.`,
+  });
+
+  return `${minimumPanel}${finalPanel}${discountRoi}`;
 }
 
 function readinessView(result: BuildResult): string {

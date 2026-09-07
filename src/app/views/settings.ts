@@ -5,7 +5,8 @@ import {
   formatLocalTime,
   nextCashoutAt,
 } from '../core/cashout';
-import { escapeHtml, inputText } from '../core/format';
+import { activeDiscountPct, effectiveRefineRate } from '../core/refine-discounts';
+import { compact, escapeHtml, inputText, number } from '../core/format';
 import { store } from '../core/state';
 import { cashoutPickerPopover } from '../ui/cashout-picker';
 import { field, intro, pageStack, panel } from '../ui/components';
@@ -50,6 +51,42 @@ function marketRows(): string {
     </tr>`);
 
   return [...marketPrices, ...vialPrices].join('');
+}
+
+function binaryChoice(path: string, name: string, enabled: boolean, onLabel = 'ON', offLabel = 'OFF'): string {
+  return `<div class="discount-setting-choice" role="group" aria-label="${name}">
+    <span>${name}</span>
+    <label class="${!enabled ? 'active' : ''}"><input type="radio" name="${path}" data-path="${path}" value="0" ${!enabled ? 'checked' : ''}>${offLabel}</label>
+    <label class="${enabled ? 'active' : ''}"><input type="radio" name="${path}" data-path="${path}" value="1" ${enabled ? 'checked' : ''}>${onLabel}</label>
+  </div>`;
+}
+
+function refineDiscountSettings(): string {
+  const discounts = store.state.settings.refineDiscounts;
+  const base = Math.max(0, number(store.state.settings.refineRate));
+  const effective = effectiveRefineRate(base, discounts);
+  const totalPct = activeDiscountPct(base, discounts);
+
+  return `<div class="discount-settings-summary">
+      <div><small>BASE RATE</small><strong>${compact(base)}</strong><span>GRIT / $GRIND</span></div>
+      <div class="effective"><small>CURRENT ACTIVE STACK</small><strong>${compact(effective)}</strong><span>${totalPct > 0 ? `${totalPct.toFixed(2)}% cheaper after compounding` : 'no active discounts'}</span></div>
+    </div>
+    <div class="formgrid discount-reference-grid">
+      ${field('state.settings.refineDiscounts.dailyPct', 'DAILY TASK DISCOUNT %', discounts.dailyPct)}
+      ${field('state.settings.refineDiscounts.weeklyPct', 'WEEKLY TASK DISCOUNT %', discounts.weeklyPct)}
+      ${field('state.settings.refineDiscounts.passPct', 'SEASONAL PASS DISCOUNT %', discounts.passPct)}
+      ${field('state.settings.refineDiscounts.passPrice', 'SEASONAL PASS PRICE · $GRIND', discounts.passPrice)}
+    </div>
+    ${binaryChoice(
+      'state.settings.refineDiscounts.taskDiscountsEnabled',
+      'TASK DISCOUNT SYSTEM',
+      number(discounts.taskDiscountsEnabled) >= 0.5,
+      'ENABLED',
+      'DISABLED',
+    )}
+    <div class="discount-reference-note">
+      Daily and Weekly percentages are server-provided by the game frontend, so enter the values shown in-game. Seasonal Pass defaults to 5%. Daily, Weekly, and Pass discounts compound rather than add. Active state is switched from the ROI cards in Build Planner or Deck Simulator.
+    </div>`;
 }
 
 function cashoutTimingEditor(): string {
@@ -104,11 +141,16 @@ export function renderSettingsView(): string {
       'ECONOMY',
       'Global values shared by every module. QN pricing remains an editable planner assumption.',
       `<div class="formgrid">
-        ${field('state.settings.refineRate', 'GRIT PER 1 $GRIND · e.g. 96K', store.state.settings.refineRate)}
+        ${field('state.settings.refineRate', 'BASE GRIT PER 1 $GRIND · e.g. 96K', store.state.settings.refineRate)}
         ${field('state.settings.maxRackSlots', 'MAX DECK SLOTS · 0 = NO CAP', store.state.settings.maxRackSlots)}
         ${field('state.settings.qnBasePrice', 'QN BASE PRICE · GRIT', store.state.settings.qnBasePrice)}
         ${field('state.settings.qnPriceGrowth', 'QN PRICE GROWTH · e.g. 1.15', store.state.settings.qnPriceGrowth)}
       </div>`,
+    ),
+    panel(
+      'REFINE DISCOUNT REFERENCES',
+      'References for Daily Tasks, Weekly Tasks, and Seasonal Pass refinery ROI. Active discounts change $GRIND conversion in Build Planner and Deck Simulator.',
+      refineDiscountSettings(),
     ),
     panel(
       'CASHOUT TIMING',
