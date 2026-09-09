@@ -1,5 +1,5 @@
 import { DAY, HOUR } from '../config/economy';
-import { VIAL_OPTIONS } from '../config/game';
+import { TIER_OPTIONS, VIAL_OPTIONS } from '../config/game';
 import {
   cashoutCycle,
   cashoutRemainingSeconds,
@@ -9,6 +9,7 @@ import {
 } from '../core/cashout';
 import { production } from '../core/calculations';
 import { clamp, compact, duration, number } from '../core/format';
+import { holderTierRefineDiscountPct, holderTierRefineRate } from '../core/refine-discounts';
 import { store } from '../core/state';
 import { chip, choiceRow, field, intro, metric, pageStack, panel } from '../ui/components';
 
@@ -19,7 +20,10 @@ export function renderPotentialView(): string {
   const ready = remaining !== null && remaining <= 0;
   const rate = Math.max(0, number(store.state.reset.finalRate));
   const vialHours = clamp(number(store.state.reset.vialHours), 0, 24);
-  const refine = Math.max(0, number(store.state.settings.refineRate));
+  const currentRefine = Math.max(0, number(store.state.settings.refineRate));
+  const tier = number(store.state.reset.tier, 1);
+  const tierPct = holderTierRefineDiscountPct(tier);
+  const refine = holderTierRefineRate(currentRefine, tier);
   const windowProjection = remaining !== null
     ? production(rate, remaining, vialHours * HOUR)
     : null;
@@ -35,10 +39,18 @@ export function renderPotentialView(): string {
     hours ? 'orange' : '',
   )).join('');
 
+  const tierChoices = TIER_OPTIONS.map((option) => {
+    const label = option.refinePct ? `${option.label} · −${option.refinePct}% REFINE` : option.label;
+    return `<label class="chip ${Math.abs(tier - option.mult) < 1e-9 ? 'active' : ''}">
+      <input type="radio" hidden name="potential-holder-tier" data-path="state.reset.tier" value="${option.mult}" ${Math.abs(tier - option.mult) < 1e-9 ? 'checked' : ''}>
+      ${label}
+    </label>`;
+  }).join('');
+
   return pageStack(
     intro(
       'POTENTIAL EARNING',
-      'Project production until your personal rolling cashout becomes available. The cashout window is 24 hours after your last withdrawal, not a server clock.',
+      'Project production until your personal rolling cashout becomes available using the current game refine rate and selected holder-tier refinery discount.',
     ),
     panel(
       '1 // CASHOUT WINDOW',
@@ -63,9 +75,14 @@ export function renderPotentialView(): string {
     ),
     panel(
       '2 // PRODUCTION INPUT',
-      'Use your expected normal production rate and optional overclock vial.',
+      'Use your expected normal production rate, holder tier, and optional overclock vial.',
       `<div class="input-section">
         ${field('state.reset.finalRate', 'NORMAL GRIT / SECOND', rate)}
+        ${choiceRow(
+          'HOLDER TIER',
+          tierChoices,
+          'This changes GRIT → $GRIND conversion only. Enter NORMAL GRIT / SECOND as your already-final normal production rate so the tier hash multiplier is not double-counted.',
+        )}
         ${choiceRow('OVERCLOCK', vialButtons, 'Vial hours run at 2× from now.')}
       </div>`,
     ),
@@ -89,7 +106,7 @@ export function renderPotentialView(): string {
       <div class="metric-grid">
         ${metric('NORMAL RATE', `${compact(rate)}/s`)}
         ${metric('2× RATE', `${compact(rate * 2)}/s`, 'orange')}
-        ${metric('TIME TO CASHOUT', next !== null ? duration(remaining) : '—')}
+        ${metric('HOLDER REFINE', refine >= 1000 ? `${compact(refine)} GRIT` : '—', tierPct ? 'green' : '', tierPct ? `${compact(currentRefine)} current rate − ${tierPct}% holder discount.` : 'Current game refine rate; no holder discount on this tier.')}
         ${metric('EST. $GRIND BY NEXT CASHOUT', cashoutGrind !== null ? compact(cashoutGrind) : '—', 'green')}
       </div>`,
       cashoutGrind !== null ? `${compact(cashoutGrind, 2)} $GRIND` : '',

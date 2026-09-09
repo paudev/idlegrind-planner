@@ -71,8 +71,8 @@ export interface SettingsState {
 export interface AppState {
   activeTab: ActiveTab;
   settings: SettingsState;
-  target: { grindPerDay: number };
-  reset: { finalRate: number; vialHours: number };
+  target: { grindPerDay: number; tier: number };
+  reset: { finalRate: number; vialHours: number; tier: number };
   planner: PlannerState;
 }
 

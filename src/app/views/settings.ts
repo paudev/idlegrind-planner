@@ -64,17 +64,17 @@ function binaryChoice(path: string, name: string, enabled: boolean, onLabel = 'O
 
 function refineDiscountSettings(): string {
   const discounts = store.state.settings.refineDiscounts;
-  const base = Math.max(0, number(store.state.settings.refineRate));
-  const effective = effectiveRefineRate(base, discounts);
-  const totalPct = activeDiscountPct(base, discounts);
+  const currentRate = Math.max(0, number(store.state.settings.refineRate));
+  const optionalStackRate = effectiveRefineRate(currentRate, discounts);
+  const totalPct = activeDiscountPct(currentRate, discounts);
   const dailyWeeklyPct = (1 - (1 - REFINE_DISCOUNT_REFERENCE.dailyPct / 100) * (1 - REFINE_DISCOUNT_REFERENCE.weeklyPct / 100)) * 100;
   const allPct = (1 - (1 - REFINE_DISCOUNT_REFERENCE.dailyPct / 100)
     * (1 - REFINE_DISCOUNT_REFERENCE.weeklyPct / 100)
     * (1 - REFINE_DISCOUNT_REFERENCE.passPct / 100)) * 100;
 
   return `<div class="discount-settings-summary">
-      <div><small>BASE RATE</small><strong>${compact(base)}</strong><span>GRIT / $GRIND</span></div>
-      <div class="effective"><small>ROI BASELINE STACK</small><strong>${compact(effective)}</strong><span>${totalPct > 0 ? `${totalPct.toFixed(2)}% cheaper after compounding` : 'no baseline discounts'}</span></div>
+      <div><small>CURRENT GAME RATE</small><strong>${compact(currentRate)}</strong><span>GRIT / $GRIND · editable as the game rate changes</span></div>
+      <div class="effective"><small>OPTIONAL ROI STACK</small><strong>${compact(optionalStackRate)}</strong><span>${totalPct > 0 ? `${totalPct.toFixed(2)}% cheaper after checked task/pass compounding` : 'no task/pass discounts checked'}</span></div>
       <div><small>GAME REFERENCE</small><strong>${REFINE_DISCOUNT_REFERENCE.dailyPct}% · ${REFINE_DISCOUNT_REFERENCE.weeklyPct}% · ${REFINE_DISCOUNT_REFERENCE.passPct}%</strong><span>Daily · Weekly · Seasonal Pass</span></div>
     </div>
     <div class="formgrid discount-reference-grid">
@@ -88,7 +88,7 @@ function refineDiscountSettings(): string {
       'DISABLED',
     )}
     <div class="discount-reference-note">
-      Game reference: Daily Tasks make refining <b>${REFINE_DISCOUNT_REFERENCE.dailyPct}% cheaper</b>; Weekly Tasks make it <b>${REFINE_DISCOUNT_REFERENCE.weeklyPct}% cheaper</b>. Together they compound to <b>${dailyWeeklyPct.toFixed(1)}%</b>, not 15%. With the active <b>${REFINE_DISCOUNT_REFERENCE.passPct}% Seasonal Pass</b>, the full stack is <b>${allPct.toFixed(2)}% cheaper</b>. Every season reset clears both task sets, so those discounts must be earned again. These percentages are fixed game rules. The Pass price is retained only as a personal reference; refinery ROI does not deduct it or issue a Pass worth-it verdict because crates and other Pass rewards are outside this model. ROI baseline selections are isolated and never change Build Planner or Deck Simulator output.
+      The current game rate is not a permanent constant; update it whenever the refinery rate changes. Holder-tier discounts are then applied automatically to that current rate inside Target Rate, Potential Earning, Build Planner, and Deck Simulator. Daily Tasks make refining <b>${REFINE_DISCOUNT_REFERENCE.dailyPct}% cheaper</b>; Weekly Tasks make it <b>${REFINE_DISCOUNT_REFERENCE.weeklyPct}% cheaper</b>. Together they compound to <b>${dailyWeeklyPct.toFixed(1)}%</b>, not 15%. With the <b>${REFINE_DISCOUNT_REFERENCE.passPct}% Seasonal Pass</b>, the task/pass stack is <b>${allPct.toFixed(2)}% cheaper</b>. Those optional task/pass discounts remain isolated to the ROI sections and compound on top of the selected holder-tier rate. The Pass price is retained only as a personal reference; refinery ROI does not deduct it or issue a Pass worth-it verdict because crates and other Pass rewards are outside this model.
     </div>`;
 }
 
@@ -138,13 +138,13 @@ export function renderSettingsView(): string {
   return pageStack(
     intro(
       'SETTINGS',
-      'Stable economy and rig configuration, personal cashout timing, and editable current marketplace references.',
+      'Current economy and rig configuration, personal cashout timing, and editable marketplace references.',
     ),
     panel(
       'ECONOMY',
-      'Global values shared by every module. QN pricing remains an editable planner assumption.',
+      'Global values shared by every module. Update the current refinery rate when the game changes it; holder-tier discounts apply automatically from that value.',
       `<div class="formgrid">
-        ${field('state.settings.refineRate', 'BASE GRIT PER 1 $GRIND · e.g. 96K', store.state.settings.refineRate)}
+        ${field('state.settings.refineRate', 'CURRENT GRIT PER 1 $GRIND · e.g. 104K', store.state.settings.refineRate)}
         ${field('state.settings.maxRackSlots', 'MAX DECK SLOTS · 0 = NO CAP', store.state.settings.maxRackSlots)}
         ${field('state.settings.qnBasePrice', 'QN BASE PRICE · GRIT', store.state.settings.qnBasePrice)}
         ${field('state.settings.qnPriceGrowth', 'QN PRICE GROWTH · e.g. 1.15', store.state.settings.qnPriceGrowth)}
@@ -152,7 +152,7 @@ export function renderSettingsView(): string {
     ),
     panel(
       'REFINE DISCOUNT REFERENCES',
-      'Fixed Daily, Weekly, and Seasonal Pass conversion discounts used only by the refinery ROI sections in Build Planner and Deck Simulator.',
+      'Holder-tier discounts are automatic account modifiers. Daily, Weekly, and Seasonal Pass are fixed optional discounts used only by refinery ROI.',
       refineDiscountSettings(),
     ),
     panel(

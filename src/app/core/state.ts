@@ -46,9 +46,13 @@ function defaultDiscountCosts(): RefineDiscountCosts {
   };
 }
 
+function normalizeTier(value: unknown): number {
+  const tier = number(value, 1);
+  return VALID_TIERS.has(tier) ? tier : 1;
+}
+
 function normalizeBuffs(buffs: BuffState): void {
-  const tier = number(buffs.tier, 1);
-  buffs.tier = VALID_TIERS.has(tier) ? tier : 1;
+  buffs.tier = normalizeTier(buffs.tier);
   buffs.coolantLevel = clamp(Math.floor(number(buffs.coolantLevel)), 0, 10);
   buffs.prestigePct = Math.max(0, number(buffs.prestigePct));
   buffs.auraPct = Math.max(0, number(buffs.auraPct));
@@ -112,8 +116,8 @@ export function createDefaultState(): ApplicationStore['state'] {
   return {
     activeTab: 'target',
     settings: clone(DEFAULT_SETTINGS),
-    target: { grindPerDay: 0 },
-    reset: { finalRate: 0, vialHours: 0 },
+    target: { grindPerDay: 0, tier: 1 },
+    reset: { finalRate: 0, vialHours: 0, tier: 1 },
     planner: {
       targetGrindPerDay: 0,
       extraQns: 0,
@@ -168,6 +172,8 @@ function loadStore(): ApplicationStore {
   state.settings.qnPriceGrowth = Math.max(1, number(state.settings.qnPriceGrowth, DEFAULT_SETTINGS.qnPriceGrowth));
   normalizeDiscountSettings(state.settings.refineDiscounts);
   Object.values(state.settings.rigPresets).forEach(normalizePreset);
+  state.target.tier = normalizeTier(state.target.tier);
+  state.reset.tier = normalizeTier(state.reset.tier);
   state.reset.vialHours = normalizeVialHours(state.reset.vialHours);
   state.planner.extraQns = Math.max(0, Math.floor(number(state.planner.extraQns)));
   state.planner.vialHours = normalizeVialHours(state.planner.vialHours);
@@ -261,6 +267,9 @@ function normalizedInputValue(path: string, value: number): number {
       return Math.max(0, value);
     case 'deck.currentOverclockMinutes':
       return clamp(value, 0, 59);
+    case 'state.target.tier':
+    case 'state.reset.tier':
+      return normalizeTier(value);
     case 'state.settings.maxRackSlots':
       return normalizeRackLimit(value);
     case 'state.settings.qnPriceGrowth':
