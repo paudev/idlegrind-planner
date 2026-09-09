@@ -14,6 +14,7 @@ import {
   solveMinimumBuild,
 } from '../core/calculations';
 import { clamp, compact, duration, escapeHtml, number, signed } from '../core/format';
+import { holderTierRefineDiscountPct, holderTierRefineRate } from '../core/refine-discounts';
 import { getQuantumNodePreset, store } from '../core/state';
 import type { CostRow, FundingRow, RigStats } from '../types';
 import {
@@ -62,7 +63,10 @@ function qnPricing(): { base: number; growth: number } {
 }
 
 function plannerRefineRate(): number {
-  return Math.max(0, number(store.state.settings.refineRate));
+  return holderTierRefineRate(
+    Math.max(0, number(store.state.settings.refineRate)),
+    store.state.planner.buffs.tier,
+  );
 }
 
 function invalidBuild(reason: string, buildMultiplier = 0): BuildResult {
@@ -150,11 +154,13 @@ function optimizeBuild(): BuildResult {
 
 function setupPanels(): string {
   const buildMultiplier = multiplier(store.state.planner.buffs);
+  const baseRefine = Math.max(0, number(store.state.settings.refineRate));
   const refine = plannerRefineRate();
+  const tierRefinePct = holderTierRefineDiscountPct(store.state.planner.buffs.tier);
 
   return `${intro(
     'BUILD PLANNER',
-    'Build from 0 QNs and 0 GRIT. Minimum QNs are fixed by the normal 1× production needed for the target; vial selection only changes setup speed and earnings. Refinery discounts are evaluated separately in the ROI section and never change Minimum or Final Build output.',
+    'Build from 0 QNs and 0 GRIT. Holder tier affects both production and the permanent refinery rate used by Minimum and Final Build calculations. Vials only change setup speed/earnings; Daily, Weekly, and Seasonal Pass discounts remain isolated to ROI.',
   )}${panel(
     '1 // DAILY TARGET',
     'Set the $GRIND / 24H target the minimum build must sustain at normal production.',
@@ -163,12 +169,12 @@ function setupPanels(): string {
       <div class="hero-output compact">
         <small>BUILD MULTIPLIER</small>
         <strong>×${buildMultiplier.toFixed(3)}</strong>
-        <p>Base refinery: ${compact(refine)} GRIT / $GRIND. Vials and refinery discounts never change the official minimum QN count.</p>
+        <p>Refinery: ${compact(baseRefine)} → ${compact(refine)} GRIT / $GRIND${tierRefinePct ? ` from ${tierRefinePct}% holder-tier discount` : ''}. Task/Pass discounts do not alter the official minimum.</p>
       </div>
     </div>`,
   )}${panel(
     '2 // BUFFS',
-    'Reference buffs the planned build will use.',
+    'Reference buffs the planned build will use. Holder tier also applies its permanent refinery discount.',
     buffsUi(store.state.planner.buffs, 'planner', {
       withVial: true,
       vialHours: store.state.planner.vialHours,
@@ -322,7 +328,7 @@ function outputView(result: BuildResult): string {
     scope: 'planner',
     panelNumber: 6,
     projectGrit: (seconds) => production(finalNormal, seconds, vialHours * HOUR).grit,
-    projectionNote: `Projection uses the current Final Build (${finalQns.toLocaleString()} QNs) and selected vial. Discount choices affect only this ROI section; Minimum and Final Build outputs stay on the base refinery rate.`,
+    projectionNote: `Projection uses the current Final Build (${finalQns.toLocaleString()} QNs), selected vial, and holder-tier refinery baseline. Daily/Weekly/Pass choices affect only this ROI section.`,
   });
 
   return `${minimumPanel}${finalPanel}${discountRoi}`;

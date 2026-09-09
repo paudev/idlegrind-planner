@@ -8,7 +8,7 @@ export const REFINE_DISCOUNT_REFERENCE = {
 } as const;
 
 export const DEFAULT_SETTINGS: SettingsState = {
-  refineRate: 96_000,
+  refineRate: 104_000,
   maxRackSlots: 0,
   qnBasePrice: QN_BASE_PRICE,
   qnPriceGrowth: QN_PRICE_GROWTH,
@@ -35,13 +35,13 @@ export const DEFAULT_SETTINGS: SettingsState = {
 };
 
 export const TIER_OPTIONS = [
-  { label: 'VISITOR', mult: 0.5 },
-  { label: 'MINER', mult: 1 },
-  { label: 'DRILLER', mult: 1.2 },
-  { label: 'OPERATOR', mult: 1.4 },
-  { label: 'WHALE', mult: 1.6 },
-  { label: 'KINGPIN', mult: 1.8 },
-  { label: 'OVERLORD', mult: 2 },
+  { label: 'VISITOR', mult: 0.5, refinePct: 0, dailyCap: 0 },
+  { label: 'MINER', mult: 1, refinePct: 0, dailyCap: 0 },
+  { label: 'DRILLER', mult: 1.2, refinePct: 0, dailyCap: 0 },
+  { label: 'OPERATOR', mult: 1.4, refinePct: 5, dailyCap: 600_000 },
+  { label: 'WHALE', mult: 1.6, refinePct: 7, dailyCap: 1_000_000 },
+  { label: 'KINGPIN', mult: 1.8, refinePct: 10, dailyCap: 1_500_000 },
+  { label: 'OVERLORD', mult: 2, refinePct: 20, dailyCap: 2_000_000 },
 ] as const;
 
 export const COOLANT_LEVELS = Array.from({ length: 11 }, (_, level) => level);

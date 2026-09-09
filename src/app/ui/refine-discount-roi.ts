@@ -3,6 +3,8 @@ import {
   activeDiscountPct,
   discountPct,
   effectiveRefineRate,
+  holderTierRefineDiscountPct,
+  holderTierRefineRate,
   refineDiscountRoi,
 } from '../core/refine-discounts';
 import { compact, inputText, number } from '../core/format';
@@ -57,6 +59,14 @@ function scopeCosts(scope: Scope): RefineDiscountCosts {
   return scope === 'planner' ? store.state.planner.discountCosts : store.deck.discountCosts;
 }
 
+function scopeTier(scope: Scope): number {
+  return scope === 'planner' ? number(store.state.planner.buffs.tier, 1) : number(store.deck.buffs.tier, 1);
+}
+
+function scopeHolderRefineRate(scope: Scope): number {
+  return holderTierRefineRate(Math.max(0, number(store.state.settings.refineRate)), scopeTier(scope));
+}
+
 function taskDetail(scope: Scope, key: 'daily' | 'weekly', projectedGrit: number): string {
   if (!isActive(key)) return '';
 
@@ -69,7 +79,7 @@ function taskDetail(scope: Scope, key: 'daily' | 'weekly', projectedGrit: number
   const periodLabel = key === 'daily' ? '24H' : '7D';
   const result = refineDiscountRoi({
     candidate: key,
-    baseRefineRate: store.state.settings.refineRate,
+    baseRefineRate: scopeHolderRefineRate(scope),
     settings,
     projectedGrit,
     grindCost,
@@ -93,13 +103,13 @@ function taskDetail(scope: Scope, key: 'daily' | 'weekly', projectedGrit: number
   </div>`;
 }
 
-function passDetail(projectedGrit: number): string {
+function passDetail(scope: Scope, projectedGrit: number): string {
   if (!isActive('pass')) return '';
 
   const settings = store.state.settings.refineDiscounts;
   const result = refineDiscountRoi({
     candidate: 'pass',
-    baseRefineRate: store.state.settings.refineRate,
+    baseRefineRate: scopeHolderRefineRate(scope),
     settings,
     projectedGrit,
     grindCost: 0,
@@ -126,7 +136,10 @@ export function renderRefineDiscountRoi({
   projectionNote,
 }: RefineDiscountProjection): string {
   const settings = store.state.settings.refineDiscounts;
-  const baseRate = Math.max(0, number(store.state.settings.refineRate));
+  const rawBaseRate = Math.max(0, number(store.state.settings.refineRate));
+  const tier = scopeTier(scope);
+  const tierPct = holderTierRefineDiscountPct(tier);
+  const baseRate = holderTierRefineRate(rawBaseRate, tier);
   const selectedRate = effectiveRefineRate(baseRate, settings);
   const combinedPct = activeDiscountPct(baseRate, settings);
   const dailyGrit = Math.max(0, number(projectGrit(DAY)));
@@ -155,16 +168,16 @@ export function renderRefineDiscountRoi({
   const details = [
     taskDetail(scope, 'daily', dailyGrit),
     taskDetail(scope, 'weekly', weeklyGrit),
-    passDetail(weeklyGrit),
+    passDetail(scope, weeklyGrit),
   ].filter(Boolean).join('');
 
   return panel(
     `${panelNumber} // REFINE DISCOUNT ROI`,
-    'Select the discounts to analyze together. The first row shows the combined $GRIND gain.',
+    'Holder-tier refinery discount is already included in the baseline. Check Daily, Weekly, and Seasonal Pass to analyze their compounded gain on top.',
     `<div class="discount-selector compact">
       <div class="discount-selector-head">
         <div><small>SELECT DISCOUNTS</small><strong>CONVERSION STACK</strong></div>
-        <p>Compounds together · ROI section only</p>
+        <p>Task + Pass only · holder tier is always baseline</p>
       </div>
       <div class="discount-checkbox-grid">
         ${stackCheckbox('daily')}
@@ -190,17 +203,17 @@ export function renderRefineDiscountRoi({
       <div>
         <small>CONVERSION</small>
         <strong>${compact(baseRate)} <span>→</span> <b>${compact(selectedRate)}</b></strong>
-        <p>GRIT / $GRIND · ${combinedPct.toFixed(2)}% cheaper</p>
+        <p>Tier baseline${tierPct ? ` · ${compact(rawBaseRate)} base − ${tierPct}% holder` : ''} · optional stack ${combinedPct.toFixed(2)}% cheaper</p>
       </div>
       ${target > 0 ? `<div>
         <small>RATE NEEDED FOR ${compact(target)} / 24H</small>
         <strong>${compact(baseRequiredRate)}/s <span>→</span> <b>${compact(selectedRequiredRate)}/s</b></strong>
-        <p>−${compact(requiredRateSaved)}/s required</p>
+        <p>−${compact(requiredRateSaved)}/s from checked task/pass discounts</p>
       </div>` : ''}
       <div>
         <small>SAME-GRIT UPLIFT</small>
         <strong><b>+${sameGritUplift.toFixed(2)}%</b></strong>
-        <p>More $GRIND from the same GRIT</p>
+        <p>Additional uplift from checked task/pass discounts beyond holder tier</p>
       </div>
     </div>
 
@@ -209,6 +222,6 @@ export function renderRefineDiscountRoi({
       ${details}
     </div>` : ''}
 
-    <p class="discount-footer-note">${projectionNote} Daily cost is counted ×7 in the 7D net. Weekly cost is counted once. Seasonal Pass price is never deducted.</p>`,
+    <p class="discount-footer-note">${projectionNote} Daily cost is counted ×7 in the 7D net. Weekly cost is counted once. Seasonal Pass price is never deducted. Holder-tier discount is permanent baseline and is never counted as task/pass ROI.</p>`,
   );
 }

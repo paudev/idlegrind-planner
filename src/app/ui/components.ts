@@ -118,7 +118,7 @@ export function buffsUi(
   { withVial = false, vialHours = 0 }: { withVial?: boolean; vialHours?: number } = {},
 ): string {
   const tiers = TIER_OPTIONS.map((tier) => chip(
-    `${tier.label} ×${tier.mult}`,
+    `${tier.label} ×${tier.mult}${tier.refinePct ? ` · REFINE −${tier.refinePct}%` : ''}`,
     buffs.tier === tier.mult,
     `data-buff="${scope}:tier:${tier.mult}"`,
     tier.mult >= 1.6 ? 'gold' : '',
@@ -145,7 +145,7 @@ export function buffsUi(
   ];
 
   let html = `<div class="buffdeck">
-    ${choiceRow('TIER', tiers)}
+    ${choiceRow('TIER', tiers, 'Operator+ also reduces GRIT required per $GRIND.')}
     ${choiceRow('COOLANT', coolant)}
     ${choiceRow('PRESTIGE', prestige)}
     ${choiceRow('FRAMES', frames.map(([key, label, tone]) => chip(label, buffs[key], `data-frame="${scope}:${key}"`, tone)).join(''), 'Mixed replaces the normal frame layer.')}

@@ -23,6 +23,7 @@ import {
   rigStats,
 } from '../core/calculations';
 import { clamp, compact, duration, money, number, signed } from '../core/format';
+import { holderTierRefineRate } from '../core/refine-discounts';
 import { getQuantumNodePreset, store } from '../core/state';
 import type {
   CashoutCycle,
@@ -84,7 +85,10 @@ function qnPricing(): { base: number; growth: number } {
 }
 
 function deckRefineRate(): number {
-  return Math.max(0, number(store.state.settings.refineRate));
+  return holderTierRefineRate(
+    Math.max(0, number(store.state.settings.refineRate)),
+    store.deck.buffs.tier,
+  );
 }
 
 function deckScenario(): DeckScenario {
@@ -216,7 +220,7 @@ function setupPanels(scenario: DeckScenario): string {
     ${rigList(store.deck.rigs, 'deck')}`,
   )}${panel(
     '2 // CURRENT BUFFS',
-    'Buffs currently active on the deck.',
+    'Buffs currently active on the deck. Holder tier also applies its permanent refinery discount to $GRIND conversions.',
     buffsUi(store.deck.buffs, 'deck'),
     `×${multiplier(store.deck.buffs).toFixed(2)}`,
   )}${panel(
@@ -348,7 +352,7 @@ function outputView(scenario: DeckScenario): string {
 
   const outputPanel = panel(
     '4 // OUTPUT',
-    'Current versus simulated output using the base refinery rate from Settings. Refinery discounts are evaluated only in the separate ROI section; vial acquisition cost remains separate.',
+    'Current versus simulated output using the holder-tier-adjusted refinery rate. Daily, Weekly, and Seasonal Pass discounts remain isolated to ROI; vial acquisition cost remains separate.',
     `${!scenario.fullFitsCap ? `<div class="warning">Simulated build requires ${compact(scenario.fullStats.slots)} slots but the configured maximum is ${compact(scenario.slotCap)}. The output below is informational only until the slot cap is increased or the build is reduced.</div>` : ''}
     <div class="output-ready-strip">
       <div>
@@ -387,7 +391,7 @@ function outputView(scenario: DeckScenario): string {
       qnBasePrice: pricing.base,
       qnPriceGrowth: pricing.growth,
     }).balance,
-    projectionNote: `Funding-aware projection starts with ${compact(scenario.currentGrit)} GRIT, buys the simulated ${scenario.addedQns} QNs sequentially, and applies existing plus added vial time. Discount choices affect only this ROI section; Deck Simulator output stays on the base refinery rate.`,
+    projectionNote: `Funding-aware projection starts with ${compact(scenario.currentGrit)} GRIT, buys the simulated ${scenario.addedQns} QNs sequentially, and applies existing plus added vial time. Holder-tier refinery discount is already in the ROI baseline; Daily/Weekly/Pass choices affect only this ROI section.`,
   });
 
   return `${intro(
