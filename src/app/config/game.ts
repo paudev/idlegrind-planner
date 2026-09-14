@@ -1,11 +1,25 @@
 import { QN_BASE_PRICE, QN_PRICE_GROWTH } from './economy';
-import type { SettingsState } from '../types';
+import type { SettingsState, StakingNodeId } from '../types';
 
 export const REFINE_DISCOUNT_REFERENCE = {
   dailyPct: 5,
   weeklyPct: 10,
   passPct: 5,
 } as const;
+
+export const STAKING_NODE_OPTIONS: ReadonlyArray<{
+  id: StakingNodeId;
+  label: string;
+  refinePct: number;
+  hashPct: number;
+  dailyBoostHours: number;
+}> = [
+  { id: 0, label: 'NONE', refinePct: 0, hashPct: 0, dailyBoostHours: 0 },
+  { id: 1, label: 'NODE 1', refinePct: 2, hashPct: 0, dailyBoostHours: 0 },
+  { id: 2, label: 'NODE 2', refinePct: 3, hashPct: 2.5, dailyBoostHours: 1 },
+  { id: 3, label: 'NODE 3', refinePct: 4, hashPct: 5, dailyBoostHours: 1 },
+  { id: 4, label: 'NODE 4', refinePct: 5, hashPct: 7.5, dailyBoostHours: 2 },
+] as const;
 
 export const DEFAULT_SETTINGS: SettingsState = {
   refineRate: 104_000,
