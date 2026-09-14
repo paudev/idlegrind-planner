@@ -40,6 +40,27 @@ A selected vial changes only two things for that same hardware:
 
 The Minimum Build section intentionally keeps the comparison compact: minimum QNs, target, **No Vial** setup/earnings, and **Selected Vial** setup/earnings. There is no alternate minimum-QN toggle in the primary UI.
 
+## Staking Nodes
+
+Staking Nodes are modeled as buffs in both Deck Simulator and Build Planner.
+
+- Node hashpower is a permanent multiplicative production layer while the selected Node is active.
+- Node refinery discounts compound with the holder-tier refinery discount.
+- The Node daily boost is temporary 2× time. It affects boosted/funding projections, but it does **not** reduce the Build Planner's stable minimum-QN requirement.
+- Deck Simulator keeps the current Node separate from an optional simulated Node override so users can compare a current build against a staking change without changing the baseline.
+
+Planner-relevant Node reference:
+
+| Node | Refine | Hashpower | Daily boost |
+| --- | ---: | ---: | ---: |
+| None | 0% | 0% | 0h |
+| Node 1 | -2% | 0% | 0h |
+| Node 2 | -3% | +2.5% | 1h |
+| Node 3 | -4% | +5% | 1h |
+| Node 4 | -5% | +7.5% | 2h |
+
+Core Mass, box discount, and pending/wallet split are intentionally excluded from Deck/Build calculations because they do not affect the planner's mining/refinery output model.
+
 ## Persistence
 
 Planner state is saved immediately in browser storage. The app writes both the individual state keys and a complete recovery snapshot. `localStorage` is the durable primary store and `sessionStorage` is also written as a reload-safe fallback when the browser blocks or temporarily fails local storage access.
@@ -90,7 +111,7 @@ There are no JavaScript runtime source files. Vite compiles the TypeScript entry
 
 ## Validation
 
-Strict TypeScript checking is enabled in `tsconfig.json`. Core regression tests cover production windows, default and custom QN pricing, sequential funding across overclock expiry, coolant doubling, rack expansion, integer rig handling, the stable minimum-QN rule across vial durations, and browser-storage fallback behavior.
+Strict TypeScript checking is enabled in `tsconfig.json`. Core regression tests cover production windows, default and custom QN pricing, sequential funding across overclock expiry, coolant doubling, rack expansion, integer rig handling, the stable minimum-QN rule across vial durations, staking-node compounding, and browser-storage fallback behavior.
 
 ```bash
 npm run typecheck
