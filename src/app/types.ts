@@ -4,6 +4,7 @@ export type DeckView = 'output' | 'cost' | 'readiness';
 export type Scope = 'deck' | 'planner';
 export type Accent = 'green' | 'purple' | 'gold' | string;
 export type RefineDiscountKey = 'daily' | 'weekly' | 'pass';
+export type StakingNodeId = 0 | 1 | 2 | 3 | 4;
 
 export interface RigPreset {
   name: string;
@@ -30,6 +31,7 @@ export interface BuffState {
   mixed: boolean;
   auraPct: number;
   corePct: number;
+  stakingNode: StakingNodeId;
 }
 
 export interface RefineDiscountSettings {
@@ -52,7 +54,6 @@ export interface PlannerState {
   targetGrindPerDay: number;
   extraQns: number;
   vialHours: number;
-  showVialAssistedMinimum: boolean;
   buffs: BuffState;
   rigs: Rig[];
   view: PlannerView;
@@ -83,6 +84,8 @@ export interface DeckState {
   currentOverclockMinutes: number;
   vialHours: number;
   buffs: BuffState;
+  simulatedNode: StakingNodeId | null;
+  includeDailyNodeBoost: boolean;
   rigs: Rig[];
   view: DeckView;
   discountCosts: RefineDiscountCosts;
@@ -168,7 +171,7 @@ export interface RackExpansionRow {
 
 export interface RackExpansionResult {
   total: number;
-  rows: RackExpansionRow[];
+  rows: RackExpansionResult['rows'];
   count: number;
 }
 
