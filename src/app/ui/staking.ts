@@ -2,7 +2,6 @@ import { STAKING_NODE_OPTIONS } from '../config/game';
 import { compact, number } from '../core/format';
 import { permanentRefineRate, stakingNode } from '../core/staking';
 import type { BuffState, Scope } from '../types';
-import { choiceRow } from './components';
 
 function pathFor(scope: Scope): string {
   return scope === 'deck' ? 'deck.buffs.stakingNode' : 'state.planner.buffs.stakingNode';
@@ -10,17 +9,18 @@ function pathFor(scope: Scope): string {
 
 function nodeEffectParts(id: number): string[] {
   const node = stakingNode(id);
-  if (!node.id) return ['No staking effects'];
+  if (!node.id) return [];
   return [
-    node.refinePct ? `REFINE −${node.refinePct}%` : '',
     node.hashPct ? `HASH +${node.hashPct}%` : '',
-    node.dailyBoostHours ? `${node.dailyBoostHours}H DAILY 2×` : '',
+    node.refinePct ? `REFINE −${node.refinePct}%` : '',
+    node.dailyBoostHours ? `DAILY 2× · ${node.dailyBoostHours}H` : '',
   ].filter(Boolean);
 }
 
 function nodeTitle(id: number): string {
   const node = stakingNode(id);
-  return `${node.label}${node.id ? ` · ${nodeEffectParts(id).join(' · ')}` : ''}`;
+  const effects = nodeEffectParts(id);
+  return effects.length ? `${node.label} · ${effects.join(' · ')}` : node.label;
 }
 
 function nodeShortLabel(id: number): string {
@@ -42,12 +42,32 @@ function radioChip(
   </label>`;
 }
 
-function selectionSummary(id: number, prefix = ''): string {
+function selectedNodeSummary(id: number, inherited = false): string {
   const node = stakingNode(id);
-  const parts = nodeEffectParts(node.id);
-  return `<div class="staking-selection-summary">
-    <strong>${prefix}${node.label}</strong>
-    <span class="staking-effect-list">${parts.map((part) => `<b>${part}</b>`).join('')}</span>
+  const effects = nodeEffectParts(node.id);
+  return `<div class="staking-selected-row ${node.id ? 'active' : ''}">
+    <div class="staking-selected-name">
+      <small>${inherited ? 'USING CURRENT NODE' : 'SELECTED'}</small>
+      <strong>${node.label}</strong>
+    </div>
+    <div class="staking-effect-list">
+      ${effects.length
+        ? effects.map((part) => `<b>${part}</b>`).join('')
+        : '<span>No staking bonuses</span>'}
+    </div>
+  </div>`;
+}
+
+function stakingBlock(label: string, help: string, chips: string, summary: string): string {
+  return `<div class="staking-block">
+    <div class="staking-block-head">
+      <div>
+        <b>${label}</b>
+        <small>${help}</small>
+      </div>
+    </div>
+    <div class="staking-chips">${chips}</div>
+    ${summary}
   </div>`;
 }
 
@@ -63,13 +83,11 @@ export function stakingNodeRow(buffs: BuffState, scope: Scope): string {
     nodeTitle(node.id),
   )).join('');
 
-  return choiceRow(
+  return stakingBlock(
     'STAKING NODE',
-    `<div class="staking-control">
-      <div class="staking-chips">${chips}</div>
-      ${selectionSummary(selected)}
-    </div>`,
-    'Permanent hash + refine. Daily 2× time is shown separately.',
+    'Permanent hash/refine while the node is active.',
+    chips,
+    selectedNodeSummary(selected),
   );
 }
 
@@ -79,30 +97,31 @@ export function simulatedNodeRow(currentBuffs: BuffState, simulatedNodeValue: un
   const selectedOverride = raw >= 0 && raw <= 4 ? Math.floor(raw) : -1;
   const effective = selectedOverride >= 0 ? selectedOverride : current;
   const path = 'deck.simulatedNode';
-  const inherit = radioChip(
-    path,
-    -1,
-    selectedOverride === -1,
-    'CURRENT',
-    '',
-    `Use current staking Node (${stakingNode(current).label})`,
-  );
-  const options = STAKING_NODE_OPTIONS.map((node) => radioChip(
-    path,
-    node.id,
-    selectedOverride === node.id,
-    nodeShortLabel(node.id),
-    node.id >= 4 ? 'gold' : node.id >= 2 ? 'purple' : '',
-    nodeTitle(node.id),
-  )).join('');
 
-  return choiceRow(
+  const chips = [
+    radioChip(
+      path,
+      -1,
+      selectedOverride === -1,
+      'CURRENT',
+      '',
+      `Use current staking Node (${stakingNode(current).label})`,
+    ),
+    ...STAKING_NODE_OPTIONS.map((node) => radioChip(
+      path,
+      node.id,
+      selectedOverride === node.id,
+      nodeShortLabel(node.id),
+      node.id >= 4 ? 'gold' : node.id >= 2 ? 'purple' : '',
+      nodeTitle(node.id),
+    )),
+  ].join('');
+
+  return stakingBlock(
     'SIMULATED NODE',
-    `<div class="staking-control">
-      <div class="staking-chips">${inherit}${options}</div>
-      ${selectionSummary(effective, selectedOverride < 0 ? 'INHERITS · ' : '')}
-    </div>`,
-    'Changes only the simulated side.',
+    'Only changes the simulated result.',
+    chips,
+    selectedNodeSummary(effective, selectedOverride < 0),
   );
 }
 
@@ -111,14 +130,16 @@ export function dailyNodeBoostToggle(nodeId: unknown, enabled: unknown): string 
   if (node.dailyBoostHours <= 0) return '';
   const checked = number(enabled, 1) >= 0.5;
 
-  return choiceRow(
-    'DAILY NODE BOOST',
-    `<label class="chip staking-toggle ${checked ? 'active' : ''}">
+  return `<div class="staking-boost-option">
+    <div>
+      <b>DAILY NODE BOOST</b>
+      <small>${node.dailyBoostHours}h/day at 2× in forward projections.</small>
+    </div>
+    <label class="chip staking-toggle ${checked ? 'active' : ''}">
       <input type="checkbox" data-path="deck.includeDailyNodeBoost" ${checked ? 'checked' : ''}>
-      <span>USE ${node.dailyBoostHours}H / DAY @ 2×</span>
-    </label>`,
-    'Forward projections only. Current overclock remains factual.',
-  );
+      <span>${checked ? 'INCLUDED' : 'EXCLUDED'}</span>
+    </label>
+  </div>`;
 }
 
 export function productionMultiplierText(buffs: BuffState): string {
