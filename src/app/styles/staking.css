@@ -23,19 +23,154 @@
   opacity: 0.55;
 }
 
+.staking-control {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.staking-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.staking-chips .chip {
+  min-width: 58px;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.staking-selection-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px 10px;
+  min-height: 32px;
+  padding: 7px 9px;
+  border: 1px solid #26322a;
+  border-radius: 5px;
+  background: rgba(8, 12, 9, 0.72);
+}
+
+.staking-selection-summary > strong {
+  color: #d5ded7;
+  font-size: 10px;
+  letter-spacing: .08em;
+  white-space: nowrap;
+}
+
+.staking-effect-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-width: 0;
+}
+
+.staking-effect-list b {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  border: 1px solid #2b3a30;
+  background: #0b110d;
+  color: #8f9d93;
+  font-size: 9px;
+  letter-spacing: .045em;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.staking-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+/* Keep staking math readable as one compact summary strip instead of large cards. */
 .staking-breakdown {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  gap: 0;
+  margin-top: 10px;
+  overflow: hidden;
+  border: 1px solid #26322a;
+  border-radius: 6px;
+  background: #090e0a;
 }
 
 .staking-breakdown .metric {
   min-width: 0;
+  min-height: 62px;
+  border: 0;
+  border-right: 1px solid #202b23;
+  border-radius: 0;
+  background: transparent;
+  padding: 9px 11px;
 }
 
-@media (max-width: 720px) {
+.staking-breakdown .metric:last-child {
+  border-right: 0;
+}
+
+.staking-breakdown .metric small {
+  margin-bottom: 3px;
+  font-size: 8.5px;
+}
+
+.staking-breakdown .metric strong {
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.staking-breakdown .metric span {
+  display: block;
+  margin-top: 4px;
+  color: #667269;
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+/* Node rows are denser than normal buff rows and should not create tall empty columns. */
+.buffrow:has(.staking-control),
+.buffrow:has(.staking-toggle) {
+  align-items: start;
+}
+
+.buffrow:has(.staking-control) .bufflabel,
+.buffrow:has(.staking-toggle) .bufflabel {
+  padding-top: 6px;
+}
+
+@media (max-width: 900px) {
+  .staking-breakdown {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .staking-breakdown .metric:nth-child(2n) {
+    border-right: 0;
+  }
+}
+
+@media (max-width: 560px) {
   .staking-breakdown {
     grid-template-columns: 1fr;
+  }
+
+  .staking-breakdown .metric {
+    border-right: 0;
+    border-bottom: 1px solid #202b23;
+  }
+
+  .staking-breakdown .metric:last-child {
+    border-bottom: 0;
+  }
+
+  .staking-selection-summary {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
