@@ -31,7 +31,7 @@ export interface BuffState {
   mixed: boolean;
   auraPct: number;
   corePct: number;
-  stakingNode: StakingNodeId;
+  stakingNode?: StakingNodeId;
 }
 
 export interface RefineDiscountSettings {
@@ -54,6 +54,7 @@ export interface PlannerState {
   targetGrindPerDay: number;
   extraQns: number;
   vialHours: number;
+  showVialAssistedMinimum: boolean;
   buffs: BuffState;
   rigs: Rig[];
   view: PlannerView;
@@ -84,8 +85,8 @@ export interface DeckState {
   currentOverclockMinutes: number;
   vialHours: number;
   buffs: BuffState;
-  simulatedNode: StakingNodeId | null;
-  includeDailyNodeBoost: boolean;
+  simulatedNode?: number;
+  includeDailyNodeBoost?: boolean | number;
   rigs: Rig[];
   view: DeckView;
   discountCosts: RefineDiscountCosts;
