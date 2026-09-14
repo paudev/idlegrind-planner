@@ -37,11 +37,7 @@ import {
 } from '../ui/components';
 import { renderQnReadiness } from '../ui/readiness';
 import { renderRefineDiscountRoi } from '../ui/refine-discount-roi';
-import {
-  permanentMathSummary,
-  productionMultiplierText,
-  stakingNodeRow,
-} from '../ui/staking';
+import { stakingNodeRow } from '../ui/staking';
 
 interface BuildFundingResult {
   time: number;
@@ -184,8 +180,6 @@ function setupPanels(): string {
   const refine = plannerRefineRate();
   const tierRefinePct = holderTierRefineDiscountPct(store.state.planner.buffs.tier);
   const node = stakingNode(store.state.planner.buffs.stakingNode);
-  const math = permanentMathSummary(baseRefine, store.state.planner.buffs);
-  const multiplierBreakdown = productionMultiplierText(store.state.planner.buffs);
 
   return `${intro(
     'BUILD PLANNER',
@@ -196,7 +190,7 @@ function setupPanels(): string {
     `<div class="module-grid two planner-target-grid">
       ${field('state.planner.targetGrindPerDay', '$GRIND / 24H TARGET', store.state.planner.targetGrindPerDay)}
       <div class="hero-output compact">
-        <small>PERMANENT BUILD MULTIPLIER</small>
+        <small>BUILD MULTIPLIER</small>
         <strong>×${buildMultiplier.toFixed(3)}</strong>
         <p>Refinery: ${compact(baseRefine)} → ${compact(refine)} GRIT / $GRIND${tierRefinePct ? ` · holder −${tierRefinePct}%` : ''}${node.refinePct ? ` · ${node.label} −${node.refinePct}%` : ''}. Task/Pass discounts do not alter the official minimum.</p>
       </div>
@@ -208,12 +202,7 @@ function setupPanels(): string {
       withVial: true,
       vialHours: store.state.planner.vialHours,
     })}
-    ${stakingNodeRow(store.state.planner.buffs, 'planner')}
-    <div class="staking-breakdown">
-      ${metric('PERMANENT MULTIPLIER', `×${buildMultiplier.toFixed(3)}`, '', multiplierBreakdown)}
-      ${metric('PERMANENT REFINERY', `${compact(math.refineRate)} GRIT / $GRIND`, '', node.refinePct ? `${node.label} compounds −${node.refinePct}% refine after holder tier.` : 'No Node refine discount.')}
-      ${metric('DAILY NODE BOOST', node.dailyBoostHours ? `${node.dailyBoostHours}H @ 2× / DAY` : 'NONE', node.dailyBoostHours ? 'green' : '', 'Repeats every 24 hours in multi-day setup/ROI projections; never lowers the stable minimum QNs.')}
-    </div>`,
+    ${stakingNodeRow(store.state.planner.buffs, 'planner')}`,
     `×${buildMultiplier.toFixed(2)}`,
   )}${panel(
     '3 // RIG SETUP',
@@ -336,12 +325,11 @@ function outputView(result: BuildResult): string {
       ${metric('QN GRIT COST', qnCost > 0 ? `−${compact(qnCost)} GRIT` : '—', qnCost > 0 ? 'negative' : '')}
       ${metric('USED SLOTS', compact(result.stats.slots))}
     </div>
-    <div class="staking-breakdown">
-      ${metric('STAKING NODE', node.label, node.id ? 'green' : '', node.id ? `${node.hashPct ? `+${node.hashPct}% hash · ` : ''}−${node.refinePct}% refine${node.dailyBoostHours ? ` · ${node.dailyBoostHours}h daily 2×` : ''}` : 'No staking bonuses selected.')}
-      ${metric('NODE PERMANENT GAIN', node.id ? `+${compact(nodePermanentGain)} $GRIND / 24H` : '—', nodePermanentGain > 0 ? 'green' : '', 'Same minimum hardware compared with Node disabled; includes Node hash + refine only.')}
-      ${metric('NODE DAILY BOOST GAIN', dailyNodeHours ? `+${compact(nodeDailyGain)} $GRIND / 24H` : '—', nodeDailyGain > 0 ? 'green' : '', dailyNodeHours ? `${dailyNodeHours}h/day at 2×; excluded from the minimum-QN requirement.` : 'Selected Node has no daily boost.')}
-      ${metric('NODE REFINE SAVED', nodeRefineSaved > 0 ? `${compact(nodeRefineSaved)} GRIT / $GRIND` : '—', nodeRefineSaved > 0 ? 'green' : '', 'Savings versus the same holder tier with Node disabled.')}
-    </div>
+    ${node.id ? `<div class="staking-breakdown node-impact-strip">
+      ${metric('NODE EFFECT', node.label, 'green', `${node.hashPct ? `+${node.hashPct}% hash · ` : ''}−${node.refinePct}% refine${nodeRefineSaved > 0 ? ` · saves ${compact(nodeRefineSaved)} GRIT/$GRIND` : ''}`)}
+      ${metric('PERMANENT OUTPUT GAIN', `+${compact(nodePermanentGain)} $GRIND / 24H`, nodePermanentGain > 0 ? 'green' : '', 'Same minimum hardware with Node disabled vs enabled.')}
+      ${metric('DAILY BOOST GAIN', dailyNodeHours ? `+${compact(nodeDailyGain)} $GRIND / 24H` : 'NONE', nodeDailyGain > 0 ? 'green' : '', dailyNodeHours ? `${dailyNodeHours}h/day at 2× · never lowers minimum QNs.` : 'This Node has no daily boost.')}
+    </div>` : ''}
     ${!Number.isFinite(selectedSetup) && result.qns > 0 ? `<div class="warning optimized-build-warning">Setup is unreachable from 0 GRIT with the current fixed rigs. Add a producing fixed rig so QN 1 can be funded.</div>` : ''}
     <div class="result-hero-pair final-output-heroes">
       <div class="result-hero current">

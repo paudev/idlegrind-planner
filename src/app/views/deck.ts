@@ -60,8 +60,6 @@ import { renderQnReadiness } from '../ui/readiness';
 import { renderRefineDiscountRoi } from '../ui/refine-discount-roi';
 import {
   dailyNodeBoostToggle,
-  permanentMathSummary,
-  productionMultiplierText,
   simulatedNodeRow,
   stakingNodeRow,
 } from '../ui/staking';
@@ -227,11 +225,6 @@ function setupPanels(scenario: DeckScenario): string {
   const vialCostControl = hasSelectedVial
     ? chip('INCLUDE VIAL ACQUISITION', Boolean(store.deck.baseline.includeVialCost), 'data-toggle-vial-cost')
     : '<button type="button" class="chip" disabled aria-disabled="true" title="Select a vial first">INCLUDE VIAL ACQUISITION</button>';
-  const baseRefine = Math.max(0, number(store.state.settings.refineRate));
-  const currentMath = permanentMathSummary(baseRefine, scenario.currentBuffs);
-  const simulatedMath = permanentMathSummary(baseRefine, scenario.simulatedBuffs);
-  const currentBreakdown = productionMultiplierText(scenario.currentBuffs);
-  const simulatedBreakdown = productionMultiplierText(scenario.simulatedBuffs);
 
   return `${panel(
     '1 // CURRENT DECK',
@@ -266,11 +259,7 @@ function setupPanels(scenario: DeckScenario): string {
     '2 // CURRENT BUFFS',
     'Permanent production and refinery effects currently active on the deck.',
     `${buffsUi(store.deck.buffs, 'deck')}
-    ${stakingNodeRow(store.deck.buffs, 'deck')}
-    <div class="staking-breakdown">
-      ${metric('PERMANENT BUILD MULTIPLIER', `×${multiplier(store.deck.buffs).toFixed(3)}`, '', `Base ${compact(scenario.currentStats.base)}/s · ${currentBreakdown}`)}
-      ${metric('PERMANENT REFINERY', `${compact(currentMath.refineRate)} GRIT / $GRIND`, '', `${currentMath.refineText}${currentMath.nodeRefinePct ? ` · ${currentMath.nodeLabel} refine −${currentMath.nodeRefinePct}%` : ''}`)}
-    </div>`,
+    ${stakingNodeRow(store.deck.buffs, 'deck')}`,
     `×${multiplier(store.deck.buffs).toFixed(2)}`,
   )}${panel(
     '3 // SIMULATE CHANGES',
@@ -296,12 +285,8 @@ function setupPanels(scenario: DeckScenario): string {
     ${!scenario.fullFitsCap ? `<div class="warning">Simulated build uses ${compact(scenario.fullStats.slots)} slots, above the configured ${compact(scenario.slotCap)}-slot maximum. Output is shown for comparison, but the build does not fit.</div>` : ''}
     ${simulatedNodeRow(store.deck.buffs, store.deck.simulatedNode)}
     ${dailyNodeBoostToggle(scenario.simulatedBuffs.stakingNode, store.deck.includeDailyNodeBoost)}
-    <div class="staking-breakdown">
-      ${metric('SIMULATED BUILD MULTIPLIER', `×${multiplier(scenario.simulatedBuffs).toFixed(3)}`, '', `Base ${compact(scenario.fullStats.base)}/s · ${simulatedBreakdown}`)}
-      ${metric('SIMULATED REFINERY', `${compact(simulatedMath.refineRate)} GRIT / $GRIND`, '', simulatedMath.nodeRefinePct ? `${simulatedMath.refineText} · ${simulatedMath.nodeLabel} compounds −${simulatedMath.nodeRefinePct}% refine.` : simulatedMath.refineText)}
-    </div>
-    ${choiceRow('ADD VIAL', vialButtons, 'Added after current overclock. Vial time and the first daily Node boost form the initial temporary 2× window; the Node boost repeats every 24 hours in multi-day funding and ROI projections.')}
-    ${choiceRow('COSTING', vialCostControl, hasSelectedVial ? `Uses the editable ${store.deck.vialHours}H vial market reference.` : 'Select a vial first. Acquisition costing cannot affect output without a simulated vial.')}`,
+    ${choiceRow('ADD VIAL', vialButtons, 'Extra one-time 2× time. Daily Node boost remains a separate recurring perk.')}
+    ${choiceRow('COSTING', vialCostControl, hasSelectedVial ? `Optional vial purchase cost · ${store.deck.vialHours}H market reference.` : 'Select a vial to enable acquisition costing.')}`,
   )}`;
 }
 
@@ -377,14 +362,6 @@ function outputView(scenario: DeckScenario): string {
     ['STAKING NODE', currentNode.label, simulatedNode.label, currentNode.id === simulatedNode.id ? '—' : `${currentNode.label} → ${simulatedNode.label}`],
     ['NORMAL RATE', `${compact(scenario.currentRate)}/s`, `${compact(scenario.fullRate)}/s`, signed(scenario.fullRate - scenario.currentRate, '/s')],
     ['PERMANENT REFINE RATE', `${compact(scenario.currentRefine)} GRIT`, `${compact(scenario.simulatedRefine)} GRIT`, signed(scenario.simulatedRefine - scenario.currentRefine, ' GRIT')],
-    ['SUSTAINABLE $GRIND / 24H', sustainableCurrentGrind !== null ? `${compact(sustainableCurrentGrind)} $GRIND` : '—', sustainableSimulatedGrind !== null ? `${compact(sustainableSimulatedGrind)} $GRIND` : '—', sustainableCurrentGrind !== null && sustainableSimulatedGrind !== null ? signed(sustainableSimulatedGrind - sustainableCurrentGrind, ' $GRIND') : '—'],
-    ['BOOSTED $GRIND / 24H', currentDayGrind !== null ? `${compact(currentDayGrind)} $GRIND` : '—', simulatedDayGrind !== null ? `${compact(simulatedDayGrind)} $GRIND` : '—', currentDayGrind !== null && simulatedDayGrind !== null ? signed(simulatedDayGrind - currentDayGrind, ' $GRIND') : '—'],
-    ...(includeVialCost ? [[
-      'NET BOOSTED $GRIND / 24H',
-      currentDayGrind !== null ? `${compact(currentDayGrind)} $GRIND` : '—',
-      netSimulatedDayGrind !== null ? `${compact(netSimulatedDayGrind)} $GRIND` : '—',
-      netDayChange !== null ? signed(netDayChange, ' $GRIND') : '—',
-    ] as CompareRow] : []),
     ['FUNDING-AWARE AVG RATE', hasProjectionWindow ? `${compact(scenario.currentProjection!.average)}/s` : '—', simulatedAverage !== null ? `${compact(simulatedAverage)}/s` : '—', hasProjectionWindow && simulatedAverage !== null ? signed(simulatedAverage - scenario.currentProjection!.average, '/s') : '—'],
     ['FUNDING-AWARE BY NEXT CASHOUT', currentGrind !== null ? `${compact(currentGrind)} $GRIND` : '—', simulatedGrind !== null ? `${compact(simulatedGrind)} $GRIND` : '—', currentGrind !== null && simulatedGrind !== null ? signed(simulatedGrind - currentGrind, ' $GRIND') : '—'],
   ];
@@ -434,6 +411,23 @@ function outputView(scenario: DeckScenario): string {
         <strong>${duration(scenario.fullBuildTime)}</strong>
       </div>
       <span>Sequential funding to ${scenario.targetQns} QNs · ${compact(scenario.fullStats.slots)} used slots. Daily Node boost repeats every 24 hours on multi-day funding paths.</span>
+    </div>
+    <div class="projection-summary">
+      <div class="projection-card current">
+        <small>CURRENT · SUSTAINABLE 24H</small>
+        <strong>${sustainableCurrentGrind !== null ? `${compact(sustainableCurrentGrind)} $GRIND` : '—'}</strong>
+        <span>${currentDayGrind !== null && scenario.existingOverclock > 0 ? `With current overclock: ${compact(currentDayGrind)} $GRIND` : 'Permanent rate only · no temporary 2× time'}</span>
+      </div>
+      <div class="projection-card simulated">
+        <small>SIMULATED · SUSTAINABLE 24H</small>
+        <strong>${sustainableSimulatedGrind !== null ? `${compact(sustainableSimulatedGrind)} $GRIND` : '—'}</strong>
+        <span>${sustainableCurrentGrind !== null && sustainableSimulatedGrind !== null ? `${signed(sustainableSimulatedGrind - sustainableCurrentGrind, ' $GRIND')} vs current · permanent QN/Node changes only` : 'Permanent QN/Node changes only'}</span>
+      </div>
+      <div class="projection-card boosted">
+        <small>SIMULATED · BOOSTED 24H</small>
+        <strong>${simulatedDayGrind !== null ? `${compact(simulatedDayGrind)} $GRIND` : '—'}</strong>
+        <span>${scenario.simulatedOverclock > 0 ? `${duration(scenario.simulatedOverclock, { ready: false })} temporary 2× window${scenario.nodeBoostSeconds ? ' · Node portion repeats daily' : ''}` : 'No temporary boost selected'}</span>
+      </div>
     </div>
     ${compareRows(rows)}
     ${vialEconomics}

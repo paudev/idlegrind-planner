@@ -174,3 +174,73 @@
     flex-direction: column;
   }
 }
+
+
+/* Clear 24H hierarchy for Deck Simulator output. */
+.projection-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.projection-card {
+  min-width: 0;
+  min-height: 92px;
+  padding: 12px 13px;
+  border: 1px solid #29362d;
+  border-radius: 7px;
+  background: #090e0a;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.projection-card small {
+  color: #748078;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.projection-card strong {
+  margin-top: 4px;
+  color: #e0e7e1;
+  font-size: 19px;
+  line-height: 1.15;
+}
+
+.projection-card span {
+  margin-top: 5px;
+  color: #6f7c72;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.projection-card.simulated {
+  border-color: #31513f;
+}
+
+.projection-card.simulated strong {
+  color: var(--green);
+}
+
+.projection-card.boosted {
+  border-color: #60412e;
+  background: rgba(255, 149, 103, .025);
+}
+
+.projection-card.boosted strong {
+  color: var(--orange);
+}
+
+.node-impact-strip {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 800px) {
+  .projection-summary,
+  .node-impact-strip {
+    grid-template-columns: 1fr;
+  }
+}
