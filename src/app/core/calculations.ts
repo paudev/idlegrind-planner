@@ -22,6 +22,8 @@ import type {
 import { clamp, number } from './format';
 import { stakingHashMultiplier } from './staking';
 
+const EPSILON = 1e-8;
+
 export function multiplier(buffs: BuffState): number {
   const tier = number(buffs.tier) > 0 ? number(buffs.tier) : 1;
   const coolant = 1 + Math.max(0, number(buffs.coolantLevel)) * 0.1;
@@ -89,6 +91,69 @@ export function production(rate: number, seconds: number, overclockSeconds = 0):
   };
 }
 
+function normalizeDailyBoostSeconds(value: unknown): number {
+  return clamp(number(value), 0, DAY);
+}
+
+function boostActiveAt(elapsed: number, initialBoostSeconds: number, dailyBoostSeconds: number): boolean {
+  if (elapsed < initialBoostSeconds - EPSILON) return true;
+  if (dailyBoostSeconds <= 0) return false;
+  const position = ((elapsed % DAY) + DAY) % DAY;
+  return position < dailyBoostSeconds - EPSILON;
+}
+
+function nextBoostBoundary(
+  elapsed: number,
+  initialBoostSeconds: number,
+  dailyBoostSeconds: number,
+  end = Number.POSITIVE_INFINITY,
+): number {
+  let boundary = end;
+  if (initialBoostSeconds > elapsed + EPSILON) boundary = Math.min(boundary, initialBoostSeconds);
+
+  if (dailyBoostSeconds > 0) {
+    const dayStart = Math.floor(elapsed / DAY) * DAY;
+    const position = elapsed - dayStart;
+    const dailyBoundary = position < dailyBoostSeconds - EPSILON
+      ? dayStart + dailyBoostSeconds
+      : dayStart + DAY;
+    if (dailyBoundary > elapsed + EPSILON) boundary = Math.min(boundary, dailyBoundary);
+  }
+
+  return boundary;
+}
+
+export function productionWithDailyBoost(
+  rate: number,
+  seconds: number,
+  initialBoostSeconds = 0,
+  dailyBoostSeconds = 0,
+): ProductionResult {
+  const total = Math.max(0, number(seconds));
+  const initial = Math.min(total, Math.max(0, number(initialBoostSeconds)));
+  const daily = normalizeDailyBoostSeconds(dailyBoostSeconds);
+  let boosted = initial;
+
+  if (daily > 0 && total > initial) {
+    for (let dayStart = 0; dayStart < total - EPSILON; dayStart += DAY) {
+      const windowStart = dayStart;
+      const windowEnd = Math.min(total, dayStart + daily);
+      const uncoveredStart = Math.max(windowStart, initial);
+      if (windowEnd > uncoveredStart) boosted += windowEnd - uncoveredStart;
+    }
+  }
+
+  boosted = Math.min(total, boosted);
+  const normal = total - boosted;
+  const grit = rate * normal + rate * 2 * boosted;
+  return {
+    grit,
+    overclock: boosted,
+    normal,
+    average: total > 0 ? grit / total : rate,
+  };
+}
+
 export function qnPrice(
   owned: number,
   basePrice = QN_BASE_PRICE,
@@ -149,6 +214,7 @@ interface FundingInput {
   currentGrit: number;
   rateForQns: (qns: number) => number;
   overclockSeconds?: number;
+  dailyBoostSeconds?: number;
   qnBasePrice?: number;
   qnPriceGrowth?: number;
 }
@@ -178,6 +244,7 @@ export function fundingTimeline({
   currentGrit,
   rateForQns,
   overclockSeconds = 0,
+  dailyBoostSeconds = 0,
   qnBasePrice = QN_BASE_PRICE,
   qnPriceGrowth = QN_PRICE_GROWTH,
 }: FundingInput): FundingRow[] {
@@ -186,6 +253,8 @@ export function fundingTimeline({
   let balance = Math.max(0, number(currentGrit));
   let elapsed = 0;
   let totalCost = 0;
+  const initialBoost = Math.max(0, number(overclockSeconds));
+  const dailyBoost = normalizeDailyBoostSeconds(dailyBoostSeconds);
   const rows: FundingRow[] = [];
 
   while (qns < target) {
@@ -204,15 +273,16 @@ export function fundingTimeline({
         return rows;
       }
 
-      const overclockActive = elapsed < overclockSeconds;
-      const rate = overclockActive ? normalRate * 2 : normalRate;
+      const active = boostActiveAt(elapsed, initialBoost, dailyBoost);
+      const rate = active ? normalRate * 2 : normalRate;
       const need = cost - balance;
       const wait = need / rate;
+      const boundary = nextBoostBoundary(elapsed, initialBoost, dailyBoost);
 
-      if (overclockActive && elapsed + wait > overclockSeconds) {
-        const overclockLeft = overclockSeconds - elapsed;
-        balance += rate * overclockLeft;
-        elapsed = overclockSeconds;
+      if (Number.isFinite(boundary) && elapsed + wait > boundary + EPSILON) {
+        const delta = Math.max(0, boundary - elapsed);
+        balance += rate * delta;
+        elapsed = boundary;
         continue;
       }
 
@@ -233,7 +303,7 @@ export function fundingTimeline({
       time: elapsed,
       balanceAfter: balance,
       rateAfter: rateForQns(qns),
-      overclockActive: elapsed < overclockSeconds,
+      overclockActive: boostActiveAt(elapsed, initialBoost, dailyBoost),
       unreachable: false,
     });
   }
@@ -255,6 +325,7 @@ interface MinimumBuildInput {
   targetGrindPerDay: number;
   refineRate: number;
   vialHours: number;
+  dailyBoostHours?: number;
   rigs: Rig[];
   buffs: BuffState;
   quantumNode?: RigPreset;
@@ -267,6 +338,7 @@ export function solveMinimumBuild({
   targetGrindPerDay,
   refineRate,
   vialHours,
+  dailyBoostHours = 0,
   rigs,
   buffs,
   quantumNode = defaultQuantumNode(),
@@ -281,7 +353,10 @@ export function solveMinimumBuild({
   const fixed = rigStats(rigs, 0, quantumNode);
   const rateForQns = rateFactory(rigs, buffs, quantumNode);
   const startingRate = rateForQns(0);
-  const overclockSeconds = clamp(number(vialHours), 0, 24) * HOUR;
+  const dailyBoost = clamp(number(dailyBoostHours), 0, 24);
+  const oneTimeBoost = clamp(number(vialHours), 0, 24);
+  const overclockSeconds = clamp(oneTimeBoost + dailyBoost, 0, 24) * HOUR;
+  const dailyBoostSeconds = dailyBoost * HOUR;
 
   const qnsForFactor = (factor: 1 | 2): number | null => {
     const requiredNormalRate = requiredRate / factor;
@@ -300,6 +375,7 @@ export function solveMinimumBuild({
       currentGrit: 0,
       rateForQns,
       overclockSeconds,
+      dailyBoostSeconds,
       qnBasePrice,
       qnPriceGrowth,
     });
@@ -364,6 +440,7 @@ export function fundingHorizon({
   rateForQns,
   horizon,
   overclockSeconds = 0,
+  dailyBoostSeconds = 0,
   qnBasePrice = QN_BASE_PRICE,
   qnPriceGrowth = QN_PRICE_GROWTH,
 }: FundingHorizonInput): FundingProgress {
@@ -376,19 +453,21 @@ export function fundingHorizon({
   let spent = 0;
   let buyableNow = 0;
   let bought = 0;
+  const initialBoost = Math.max(0, number(overclockSeconds));
+  const dailyBoost = normalizeDailyBoostSeconds(dailyBoostSeconds);
 
   const accrue = (seconds: number): void => {
     const duration = Math.max(0, seconds);
     if (duration <= 0) return;
     const normalRate = Math.max(0, rateForQns(qns));
-    const rate = elapsed < overclockSeconds ? normalRate * 2 : normalRate;
+    const rate = boostActiveAt(elapsed, initialBoost, dailyBoost) ? normalRate * 2 : normalRate;
     const gain = duration * rate;
     balance += gain;
     mined += gain;
     elapsed += duration;
   };
 
-  while (elapsed < end - 1e-8 && qns < target) {
+  while (elapsed < end - EPSILON && qns < target) {
     const cost = qnPrice(qns, qnBasePrice, qnPriceGrowth);
 
     if (balance + 1e-6 >= cost) {
@@ -403,20 +482,19 @@ export function fundingHorizon({
     const normalRate = rateForQns(qns);
     if (!(normalRate > 0) || !Number.isFinite(normalRate)) break;
 
-    const rate = elapsed < overclockSeconds ? normalRate * 2 : normalRate;
-    let boundary = end;
-    if (elapsed < overclockSeconds) boundary = Math.min(boundary, overclockSeconds);
-
+    const rate = boostActiveAt(elapsed, initialBoost, dailyBoost) ? normalRate * 2 : normalRate;
+    const boundary = nextBoostBoundary(elapsed, initialBoost, dailyBoost, end);
     const wait = (cost - balance) / rate;
-    if (elapsed + wait <= boundary + 1e-8) {
-      accrue(wait);
+
+    if (elapsed + wait <= boundary + EPSILON) {
+      accrue(Math.min(wait, end - elapsed));
       continue;
     }
 
     accrue(boundary - elapsed);
   }
 
-  while (qns < target && balance + 1e-6 >= qnPrice(qns, qnBasePrice, qnPriceGrowth) && elapsed <= end + 1e-8) {
+  while (qns < target && balance + 1e-6 >= qnPrice(qns, qnBasePrice, qnPriceGrowth) && elapsed <= end + EPSILON) {
     const cost = qnPrice(qns, qnBasePrice, qnPriceGrowth);
     if (elapsed < 1e-7) buyableNow += 1;
     balance = Math.max(0, balance - cost);
@@ -425,9 +503,8 @@ export function fundingHorizon({
     bought += 1;
   }
 
-  while (elapsed < end - 1e-8) {
-    let boundary = end;
-    if (elapsed < overclockSeconds) boundary = Math.min(boundary, overclockSeconds);
+  while (elapsed < end - EPSILON) {
+    const boundary = nextBoostBoundary(elapsed, initialBoost, dailyBoost, end);
     const delta = boundary - elapsed;
     if (delta <= 0) break;
     accrue(delta);
