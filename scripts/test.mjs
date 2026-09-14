@@ -16,7 +16,11 @@ writeFileSync(`${outDir}/package.json`, '{"type":"commonjs"}\n');
 
 const test = spawnSync(
   process.execPath,
-  ['--test', `${outDir}/tests/calculations.test.js`],
+  [
+    '--test',
+    `${outDir}/tests/calculations.test.js`,
+    `${outDir}/tests/staking.test.js`,
+  ],
   { stdio: 'inherit' },
 );
 
