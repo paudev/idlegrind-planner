@@ -7,7 +7,7 @@ import {
 import {
   coolantUpgradeCost,
   multiplier,
-  production,
+  productionWithDailyBoost,
   qnTotalCost,
   rackExpansion,
   rigStats,
@@ -37,7 +37,11 @@ import {
 } from '../ui/components';
 import { renderQnReadiness } from '../ui/readiness';
 import { renderRefineDiscountRoi } from '../ui/refine-discount-roi';
-import { permanentMathSummary, stakingNodeRow } from '../ui/staking';
+import {
+  permanentMathSummary,
+  productionMultiplierText,
+  stakingNodeRow,
+} from '../ui/staking';
 
 interface BuildFundingResult {
   time: number;
@@ -103,12 +107,13 @@ function invalidBuild(reason: string, buildMultiplier = 0): BuildResult {
   };
 }
 
-function solveOfficialMinimum(temporaryBoostHours: number) {
+function solveOfficialMinimum(vialHours: number) {
   const pricing = qnPricing();
   return solveMinimumBuild({
     targetGrindPerDay: Math.max(0, number(store.state.planner.targetGrindPerDay)),
     refineRate: plannerRefineRate(),
-    vialHours: clamp(temporaryBoostHours, 0, 24),
+    vialHours: clamp(vialHours, 0, 24),
+    dailyBoostHours: nodeBoostHours(),
     rigs: store.state.planner.rigs,
     buffs: store.state.planner.buffs,
     quantumNode: getQuantumNodePreset(),
@@ -127,8 +132,9 @@ function optimizeBuild(): BuildResult {
 
   const quantumNode = getQuantumNodePreset();
   const buildMultiplier = multiplier(store.state.planner.buffs);
-  const temporaryBoostHours = selectedTemporaryBoostHours();
-  const solution = solveOfficialMinimum(temporaryBoostHours);
+  const vialHours = clamp(number(store.state.planner.vialHours), 0, 24);
+  const dailyBoostHours = nodeBoostHours();
+  const solution = solveOfficialMinimum(vialHours);
 
   if (solution.qns === null) {
     return invalidBuild(
@@ -139,9 +145,14 @@ function optimizeBuild(): BuildResult {
 
   const stats = rigStats(store.state.planner.rigs, solution.qns, quantumNode);
   const normal = stats.base * buildMultiplier;
-  const dayFactor = 1 + temporaryBoostHours / 24;
-  const average = normal * dayFactor;
-  const grind = average * DAY / refine;
+  const projection = productionWithDailyBoost(
+    normal,
+    DAY,
+    clamp(vialHours + dailyBoostHours, 0, 24) * HOUR,
+    dailyBoostHours * HOUR,
+  );
+  const average = projection.average;
+  const grind = projection.grit / refine;
   const cap = Math.max(0, number(store.state.settings.maxRackSlots));
   const fits = !(cap > 0 && stats.slots > cap);
 
@@ -174,6 +185,7 @@ function setupPanels(): string {
   const tierRefinePct = holderTierRefineDiscountPct(store.state.planner.buffs.tier);
   const node = stakingNode(store.state.planner.buffs.stakingNode);
   const math = permanentMathSummary(baseRefine, store.state.planner.buffs);
+  const multiplierBreakdown = productionMultiplierText(store.state.planner.buffs);
 
   return `${intro(
     'BUILD PLANNER',
@@ -198,9 +210,9 @@ function setupPanels(): string {
     })}
     ${stakingNodeRow(store.state.planner.buffs, 'planner')}
     <div class="staking-breakdown">
-      ${metric('PERMANENT MULTIPLIER', `×${buildMultiplier.toFixed(3)}`, '', node.hashPct ? `${node.label} adds ×${(1 + node.hashPct / 100).toFixed(3)} hashpower.` : `${node.label} has no hashpower bonus.`)}
-      ${metric('PERMANENT REFINERY', `${compact(math.refineRate)} GRIT / $GRIND`, '', node.refinePct ? `${node.label} compounds −${node.refinePct}% refine.` : 'No Node refine discount.')}
-      ${metric('DAILY NODE BOOST', node.dailyBoostHours ? `${node.dailyBoostHours}H @ 2×` : 'NONE', node.dailyBoostHours ? 'green' : '', 'Included in boosted/funding projections only; never lowers the stable minimum QNs.')}
+      ${metric('PERMANENT MULTIPLIER', `×${buildMultiplier.toFixed(3)}`, '', multiplierBreakdown)}
+      ${metric('PERMANENT REFINERY', `${compact(math.refineRate)} GRIT / $GRIND`, '', node.refinePct ? `${node.label} compounds −${node.refinePct}% refine after holder tier.` : 'No Node refine discount.')}
+      ${metric('DAILY NODE BOOST', node.dailyBoostHours ? `${node.dailyBoostHours}H @ 2× / DAY` : 'NONE', node.dailyBoostHours ? 'green' : '', 'Repeats every 24 hours in multi-day setup/ROI projections; never lowers the stable minimum QNs.')}
     </div>`,
     `×${buildMultiplier.toFixed(2)}`,
   )}${panel(
@@ -231,7 +243,7 @@ function outputView(result: BuildResult): string {
   const node = stakingNode(store.state.planner.buffs.stakingNode);
   const qnCost = qnTotalCost(0, result.qns, pricing.base, pricing.growth);
 
-  const nodeOnlySolution = solveOfficialMinimum(dailyNodeHours);
+  const nodeOnlySolution = solveOfficialMinimum(0);
   const nodeOnlySetup = nodeOnlySolution.fundingTime;
   const selectedSetup = result.funding.time;
   const setupSaved = Number.isFinite(nodeOnlySetup) && Number.isFinite(selectedSetup)
@@ -243,9 +255,19 @@ function outputView(result: BuildResult): string {
 
   const sustainableTotalGrit = result.normal * DAY;
   const sustainableGrind = refine >= 1000 ? sustainableTotalGrit / refine : 0;
-  const nodeBoostProjection = production(result.normal, DAY, dailyNodeHours * HOUR);
+  const nodeBoostProjection = productionWithDailyBoost(
+    result.normal,
+    DAY,
+    dailyNodeHours * HOUR,
+    dailyNodeHours * HOUR,
+  );
   const nodeBoostGrind = refine >= 1000 ? nodeBoostProjection.grit / refine : 0;
-  const selectedBoostProjection = production(result.normal, DAY, temporaryBoostHours * HOUR);
+  const selectedBoostProjection = productionWithDailyBoost(
+    result.normal,
+    DAY,
+    temporaryBoostHours * HOUR,
+    dailyNodeHours * HOUR,
+  );
   const selectedBoostGrind = refine >= 1000 ? selectedBoostProjection.grit / refine : 0;
   const vialGainGrind = Math.max(0, selectedBoostGrind - nodeBoostGrind);
   const vialGainGrit = Math.max(0, selectedBoostProjection.grit - nodeBoostProjection.grit);
@@ -267,9 +289,19 @@ function outputView(result: BuildResult): string {
   const finalNormal = finalStats.base * result.multiplier;
   const finalSustainableGrit = finalNormal * DAY;
   const finalSustainableGrind = refine >= 1000 ? finalSustainableGrit / refine : 0;
-  const finalNodeBoost = production(finalNormal, DAY, dailyNodeHours * HOUR);
+  const finalNodeBoost = productionWithDailyBoost(
+    finalNormal,
+    DAY,
+    dailyNodeHours * HOUR,
+    dailyNodeHours * HOUR,
+  );
   const finalNodeBoostGrind = refine >= 1000 ? finalNodeBoost.grit / refine : 0;
-  const finalSelectedBoost = production(finalNormal, DAY, temporaryBoostHours * HOUR);
+  const finalSelectedBoost = productionWithDailyBoost(
+    finalNormal,
+    DAY,
+    temporaryBoostHours * HOUR,
+    dailyNodeHours * HOUR,
+  );
   const finalSelectedGrind = refine >= 1000 ? finalSelectedBoost.grit / refine : 0;
   const finalVialGain = Math.max(0, finalSelectedGrind - finalNodeBoostGrind);
   const extraQnCost = qnTotalCost(result.qns, extraQns, pricing.base, pricing.growth);
@@ -284,7 +316,7 @@ function outputView(result: BuildResult): string {
 
   const minimumPanel = panel(
     '4 // MINIMUM BUILD',
-    'Stable minimum hardware plus the separate contribution of permanent Node effects and temporary boost time.',
+    'Stable minimum hardware plus the separate contribution of permanent Node effects and recurring temporary boost time.',
     `${!result.ok ? `<div class="warning">${escapeHtml(result.reason)}</div>` : ''}
     <div class="result-hero-pair optimized-build-heroes">
       <div class="result-hero current">
@@ -318,16 +350,16 @@ function outputView(result: BuildResult): string {
         <p>${compact(sustainableTotalGrit)} GRIT / 24H · no temporary 2× time</p>
       </div>
       <div class="result-hero simulated">
-        <small>${temporaryBoostHours ? `BOOSTED · ${temporaryBoostHours}H TOTAL` : 'BOOSTED PERFORMANCE'}</small>
+        <small>${temporaryBoostHours ? `BOOSTED · ${temporaryBoostHours}H TODAY` : 'BOOSTED PERFORMANCE'}</small>
         <strong>${temporaryBoostHours ? `${compact(selectedBoostGrind)}<em> $GRIND</em>` : 'NO TEMP BOOST'}</strong>
         <p>${temporaryBoostHours
-          ? `${dailyNodeHours ? `${dailyNodeHours}h Node` : '0h Node'}${hasVial ? ` + ${vialHours}h vial` : ''} · ${duration(selectedSetup)} setup time`
+          ? `${dailyNodeHours ? `${dailyNodeHours}h Node/day` : '0h Node'}${hasVial ? ` + ${vialHours}h vial` : ''} · ${duration(selectedSetup)} setup time`
           : 'Select a vial or Node with a daily boost to compare temporary production.'}</p>
       </div>
     </div>
     <div class="metric-grid final-performance-metrics">
-      ${metric('NODE-ONLY SETUP TIME', duration(nodeOnlySetup), '', dailyNodeHours ? `${dailyNodeHours}h daily Node boost available during funding.` : 'No Node daily boost selected.')}
-      ${metric('SELECTED SETUP TIME', duration(selectedSetup), temporaryBoostHours > dailyNodeHours ? 'green' : '', `${temporaryBoostHours}h total temporary 2× window used for the funding projection.`)}
+      ${metric('NODE-ONLY SETUP TIME', duration(nodeOnlySetup), '', dailyNodeHours ? `${dailyNodeHours}h Node boost repeats every 24h during funding.` : 'No Node daily boost selected.')}
+      ${metric('SELECTED SETUP TIME', duration(selectedSetup), hasVial ? 'green' : '', `${temporaryBoostHours}h initial temporary 2× window; Node daily boost repeats on later days.`)}
       ${metric('VIAL SETUP TIME SAVED', hasVial ? duration(setupSaved) : '—', hasVial && setupSaved > 0 ? 'green' : '', hasVial ? `${setupSavedPct.toFixed(1)}% faster than Node-only funding.` : 'No vial selected.')}
       ${metric('VIAL DAILY GAIN', hasVial ? `+${compact(vialGainGrind)} $GRIND` : '—', hasVial ? 'green' : '', hasVial ? `+${compact(vialGainGrit)} GRIT from the vial beyond the Node daily boost.` : 'No vial selected.')}
     </div>`,
@@ -353,7 +385,7 @@ function outputView(result: BuildResult): string {
         <p>${compact(finalSustainableGrit)} GRIT / 24H · ${signed(finalSustainableGainVsMinimum, ' $GRIND')} vs minimum</p>
       </div>
       <div class="result-hero simulated">
-        <small>${temporaryBoostHours ? `BOOSTED · ${temporaryBoostHours}H TOTAL` : 'BOOSTED PERFORMANCE'}</small>
+        <small>${temporaryBoostHours ? `BOOSTED · ${temporaryBoostHours}H TODAY` : 'BOOSTED PERFORMANCE'}</small>
         <strong>${temporaryBoostHours ? `${compact(finalSelectedGrind)}<em> $GRIND</em>` : 'NO TEMP BOOST'}</strong>
         <p>${temporaryBoostHours ? `${compact(finalSelectedBoost.grit)} GRIT / 24H · ${hasVial ? `${signed(finalVialGain, ' $GRIND')} vial-only gain` : `${signed(finalNodeBoostGrind - finalSustainableGrind, ' $GRIND')} Node daily boost gain`}` : 'No temporary boost selected.'}</p>
       </div>
@@ -371,8 +403,13 @@ function outputView(result: BuildResult): string {
   const discountRoi = renderRefineDiscountRoi({
     scope: 'planner',
     panelNumber: 6,
-    projectGrit: (seconds) => production(finalNormal, seconds, temporaryBoostHours * HOUR).grit,
-    projectionNote: `Projection uses the current Final Build (${finalQns.toLocaleString()} QNs), permanent holder-tier + Node refinery baseline, and ${temporaryBoostHours}h of temporary 2× time. Daily/Weekly/Pass choices affect only this ROI section.`,
+    projectGrit: (seconds) => productionWithDailyBoost(
+      finalNormal,
+      seconds,
+      temporaryBoostHours * HOUR,
+      dailyNodeHours * HOUR,
+    ).grit,
+    projectionNote: `Projection uses the current Final Build (${finalQns.toLocaleString()} QNs), permanent holder-tier + Node refinery baseline, ${vialHours}h selected vial time, and ${dailyNodeHours}h recurring daily Node boost. Daily/Weekly/Pass choices affect only this ROI section.`,
   });
 
   return `${minimumPanel}${finalPanel}${discountRoi}`;
@@ -424,7 +461,7 @@ function readinessView(result: BuildResult): string {
     introText: 'Starts from 0 QNs and 0 GRIT. Selected fixed rigs are available as the starting mining source; Deck Simulator values are not used.',
     rateLabel: 'STARTING FIXED-RIG RATE',
     issues,
-    pricingNote: `QN pricing setting: <b>${compact(pricing.base)} GRIT × ${pricing.growth}^owned</b>. QNs are bought one at a time${temporaryBoostHours ? `; temporary 2× funding time totals ${temporaryBoostHours}h (${dailyNodeHours}h Node${vialHours ? ` + ${vialHours}h vial` : ''})` : ''}.`,
+    pricingNote: `QN pricing setting: <b>${compact(pricing.base)} GRIT × ${pricing.growth}^owned</b>. QNs are bought one at a time${temporaryBoostHours ? `; day one has up to ${temporaryBoostHours}h temporary 2× (${dailyNodeHours}h Node${vialHours ? ` + ${vialHours}h vial` : ''}) and the ${dailyNodeHours}h Node boost repeats every 24h` : ''}.`,
   })}`;
 }
 
