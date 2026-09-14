@@ -175,35 +175,35 @@ function optimizeBuild(): BuildResult {
 }
 
 function setupPanels(): string {
-  const buildMultiplier = multiplier(store.state.planner.buffs);
   const baseRefine = Math.max(0, number(store.state.settings.refineRate));
   const refine = plannerRefineRate();
+  const target = Math.max(0, number(store.state.planner.targetGrindPerDay));
+  const targetGrit = target * refine;
   const tierRefinePct = holderTierRefineDiscountPct(store.state.planner.buffs.tier);
   const node = stakingNode(store.state.planner.buffs.stakingNode);
 
   return `${intro(
     'BUILD PLANNER',
-    'Build from 0 QNs and 0 GRIT. Holder tier and staking Node are permanent build assumptions. Their production/refinery effects can reduce the stable minimum; temporary vial and daily Node boost time can only speed setup and increase boosted earnings.',
+    'Find the smallest permanent build that sustains your daily $GRIND target. Temporary boosts never reduce the official minimum.',
   )}${panel(
     '1 // DAILY TARGET',
-    'Set the $GRIND / 24H target the minimum build must sustain at normal production.',
+    'Choose the sustainable $GRIND / 24H target.',
     `<div class="module-grid two planner-target-grid">
       ${field('state.planner.targetGrindPerDay', '$GRIND / 24H TARGET', store.state.planner.targetGrindPerDay)}
       <div class="hero-output compact">
-        <small>BUILD MULTIPLIER</small>
-        <strong>×${buildMultiplier.toFixed(3)}</strong>
-        <p>Refinery: ${compact(baseRefine)} → ${compact(refine)} GRIT / $GRIND${tierRefinePct ? ` · holder −${tierRefinePct}%` : ''}${node.refinePct ? ` · ${node.label} −${node.refinePct}%` : ''}. Task/Pass discounts do not alter the official minimum.</p>
+        <small>GRIT REQUIRED / 24H</small>
+        <strong>${compact(targetGrit)} GRIT</strong>
+        <p>${compact(refine)} GRIT / $GRIND after permanent holder${tierRefinePct ? ` −${tierRefinePct}%` : ''}${node.refinePct ? ` + ${node.label} −${node.refinePct}%` : ''} refine.</p>
       </div>
     </div>`,
   )}${panel(
     '2 // BUFFS',
-    'Reference buffs the planned build will use. Staking Node hashpower and refine are permanent during the selected Node; its daily boost remains temporary.',
+    'Set the permanent buffs the planned build will use. Vial and Node daily boost remain temporary.',
     `${buffsUi(store.state.planner.buffs, 'planner', {
       withVial: true,
       vialHours: store.state.planner.vialHours,
     })}
     ${stakingNodeRow(store.state.planner.buffs, 'planner')}`,
-    `×${buildMultiplier.toFixed(2)}`,
   )}${panel(
     '3 // RIG SETUP',
     'Quantum Node is auto-filled; add the fixed rigs that belong in the target build.',
@@ -264,13 +264,25 @@ function outputView(result: BuildResult): string {
   const targetHeadroomPct = targetGrind > 0 ? targetHeadroom / targetGrind * 100 : 0;
 
   const noNodeBuffs = withStakingNode(store.state.planner.buffs, 0);
-  const noNodeMultiplier = multiplier(noNodeBuffs);
   const noNodeRefine = permanentRefineRate(Math.max(0, number(store.state.settings.refineRate)), noNodeBuffs);
-  const noNodeNormal = result.stats.base * noNodeMultiplier;
-  const noNodeStableGrind = noNodeRefine >= 1000 ? noNodeNormal * DAY / noNodeRefine : 0;
-  const nodePermanentGain = Math.max(0, sustainableGrind - noNodeStableGrind);
+  const noNodeSolution = solveMinimumBuild({
+    targetGrindPerDay: targetGrind,
+    refineRate: noNodeRefine,
+    vialHours: 0,
+    dailyBoostHours: 0,
+    rigs: store.state.planner.rigs,
+    buffs: noNodeBuffs,
+    quantumNode: qn,
+    qnBasePrice: pricing.base,
+    qnPriceGrowth: pricing.growth,
+    allowVialToReduceMinimum: false,
+  });
+  const nodeQnsSaved = noNodeSolution.qns !== null
+    ? Math.max(0, noNodeSolution.qns - result.qns)
+    : 0;
   const nodeDailyGain = Math.max(0, nodeBoostGrind - sustainableGrind);
   const nodeRefineSaved = Math.max(0, noNodeRefine - refine);
+
 
   const extraQns = Math.max(0, Math.floor(number(store.state.planner.extraQns)));
   const finalQns = result.qns + extraQns;
@@ -297,65 +309,46 @@ function outputView(result: BuildResult): string {
   const finalRateGain = Math.max(0, finalNormal - result.normal);
   const finalSustainableGainVsMinimum = Math.max(0, finalSustainableGrind - sustainableGrind);
   const finalBoostedGainVsMinimum = Math.max(0, finalSelectedGrind - selectedBoostGrind);
-  const activeGainVsMinimum = temporaryBoostHours > 0 ? finalBoostedGainVsMinimum : finalSustainableGainVsMinimum;
-  const gainPerAddedQn = extraQns > 0 ? activeGainVsMinimum / extraQns : 0;
   const sustainableGainPerAddedQn = extraQns > 0 ? finalSustainableGainVsMinimum / extraQns : 0;
   const cap = Math.max(0, number(store.state.settings.maxRackSlots));
   const finalFits = !(cap > 0 && finalStats.slots > cap);
 
   const minimumPanel = panel(
     '4 // MINIMUM BUILD',
-    'Stable minimum hardware plus the separate contribution of permanent Node effects and recurring temporary boost time.',
+    'The smallest permanent build that sustains the target. Temporary boost value is separated below.',
     `${!result.ok ? `<div class="warning">${escapeHtml(result.reason)}</div>` : ''}
-    <div class="result-hero-pair optimized-build-heroes">
-      <div class="result-hero current">
-        <small>MINIMUM QNs</small>
-        <strong>${result.qns.toLocaleString()}</strong>
-        <p>${compact(result.stats.slots)} total slots · ${compact(result.stats.fixedSlots)} fixed-rig slots</p>
-      </div>
-      <div class="result-hero ready">
-        <small>DAILY TARGET</small>
-        <strong>${compact(targetGrind)}<em> $GRIND</em></strong>
-        <p>${compact(targetGrit)} GRIT / 24H · ${compact(result.requiredRate)}/s required sustainable rate</p>
-      </div>
+    <div class="planner-primary-grid">
+      <div class="planner-primary-card main"><small>MINIMUM QUANTUM NODES</small><strong>${result.qns.toLocaleString()} QNs</strong><p>${compact(result.stats.slots)} slots total · ${compact(result.stats.fixedSlots)} fixed-rig slots</p></div>
+      <div class="planner-primary-card"><small>SUSTAINABLE / 24H</small><strong>${compact(sustainableGrind)} $GRIND</strong><p>${targetHeadroom > 0 ? `+${compact(targetHeadroom)} headroom (${targetHeadroomPct.toFixed(2)}%)` : 'Meets the target'} · no temporary 2× time</p></div>
+      <div class="planner-primary-card"><small>SETUP FROM 0</small><strong>${duration(selectedSetup)}</strong><p>Sequentially funds ${result.qns.toLocaleString()} QNs from 0 GRIT${hasVial ? ' with selected vial' : ''}.</p></div>
     </div>
-    <div class="metric-grid optimized-build-metrics">
-      ${metric('MINIMUM NORMAL RATE', `${compact(result.normal)}/s`, result.normal + 1e-6 >= result.requiredRate ? 'green' : 'negative')}
-      ${metric('TARGET HEADROOM', targetHeadroom > 0 ? `+${compact(targetHeadroom)} $GRIND` : 'ON TARGET', targetHeadroom > 0 ? 'green' : '', targetHeadroom > 0 ? `${targetHeadroomPct.toFixed(2)}% above target because QNs are whole units.` : 'Minimum output matches the target.')}
-      ${metric('QN GRIT COST', qnCost > 0 ? `−${compact(qnCost)} GRIT` : '—', qnCost > 0 ? 'negative' : '')}
-      ${metric('USED SLOTS', compact(result.stats.slots))}
+    <div class="result-data-grid">
+      <div class="result-data-card"><small>NORMAL HASHPOWER</small><strong>${compact(result.normal)}/s</strong><span>${compact(result.requiredRate)}/s required for target</span></div>
+      <div class="result-data-card"><small>PERMANENT REFINE</small><strong>${compact(refine)} GRIT</strong><span>Required per $GRIND</span></div>
+      <div class="result-data-card"><small>USED SLOTS</small><strong>${compact(result.stats.slots)}</strong><span>${result.ok ? 'Fits configured cap' : 'Above configured cap'}</span></div>
+      <div class="result-data-card"><small>QN GRIT COST</small><strong>${compact(qnCost)} GRIT</strong><span>Total QN purchase cost from 0</span></div>
     </div>
-    ${node.id ? `<div class="staking-breakdown node-impact-strip">
-      ${metric('NODE EFFECT', node.label, 'green', `${node.hashPct ? `+${node.hashPct}% hash · ` : ''}−${node.refinePct}% refine${nodeRefineSaved > 0 ? ` · saves ${compact(nodeRefineSaved)} GRIT/$GRIND` : ''}`)}
-      ${metric('PERMANENT OUTPUT GAIN', `+${compact(nodePermanentGain)} $GRIND / 24H`, nodePermanentGain > 0 ? 'green' : '', 'Same minimum hardware with Node disabled vs enabled.')}
-      ${metric('DAILY BOOST GAIN', dailyNodeHours ? `+${compact(nodeDailyGain)} $GRIND / 24H` : 'NONE', nodeDailyGain > 0 ? 'green' : '', dailyNodeHours ? `${dailyNodeHours}h/day at 2× · never lowers minimum QNs.` : 'This Node has no daily boost.')}
+    ${node.id ? `<div class="node-value-panel">
+      <h3>${node.label.toUpperCase()} VALUE</h3>
+      <div class="result-data-grid">
+        <div class="result-data-card"><small>QNs SAVED VS NO NODE</small><strong class="positive">${nodeQnsSaved ? `−${nodeQnsSaved} QNs` : '0 QNs'}</strong><span>${noNodeSolution.qns !== null ? `No Node minimum: ${noNodeSolution.qns} QNs` : 'No-Node minimum unavailable'}</span></div>
+        <div class="result-data-card"><small>HASH BONUS</small><strong>${node.hashPct ? `+${node.hashPct}%` : 'NONE'}</strong><span>Permanent hashpower multiplier</span></div>
+        <div class="result-data-card"><small>REFINE SAVED</small><strong class="positive">${nodeRefineSaved > 0 ? `${compact(nodeRefineSaved)} GRIT` : '0 GRIT'}</strong><span>Saved per $GRIND vs same holder tier</span></div>
+        <div class="result-data-card"><small>DAILY BOOST VALUE</small><strong class="${nodeDailyGain > 0 ? 'positive' : ''}">${dailyNodeHours ? `+${compact(nodeDailyGain)} $GRIND` : 'NONE'}</strong><span>${dailyNodeHours ? `${dailyNodeHours}h/day at 2× · not used to lower minimum QNs` : 'This Node has no daily boost'}</span></div>
+      </div>
     </div>` : ''}
-    ${!Number.isFinite(selectedSetup) && result.qns > 0 ? `<div class="warning optimized-build-warning">Setup is unreachable from 0 GRIT with the current fixed rigs. Add a producing fixed rig so QN 1 can be funded.</div>` : ''}
-    <div class="result-hero-pair final-output-heroes">
-      <div class="result-hero current">
-        <small>SUSTAINABLE</small>
-        <strong>${compact(sustainableGrind)}<em> $GRIND</em></strong>
-        <p>${compact(sustainableTotalGrit)} GRIT / 24H · no temporary 2× time</p>
+    ${hasVial ? `<div class="boost-summary">
+      <div class="boost-summary-head">
+        <div><small>WITH SELECTED ${vialHours}H VIAL</small><strong>${compact(selectedBoostGrind)} $GRIND / 24H</strong></div>
+        <span>Vial-only gain: +${compact(vialGainGrind)} $GRIND<br>Setup saved: ${duration(setupSaved)} (${setupSavedPct.toFixed(1)}%)</span>
       </div>
-      <div class="result-hero simulated">
-        <small>${temporaryBoostHours ? `BOOSTED · ${temporaryBoostHours}H TODAY` : 'BOOSTED PERFORMANCE'}</small>
-        <strong>${temporaryBoostHours ? `${compact(selectedBoostGrind)}<em> $GRIND</em>` : 'NO TEMP BOOST'}</strong>
-        <p>${temporaryBoostHours
-          ? `${dailyNodeHours ? `${dailyNodeHours}h Node/day` : '0h Node'}${hasVial ? ` + ${vialHours}h vial` : ''} · ${duration(selectedSetup)} setup time`
-          : 'Select a vial or Node with a daily boost to compare temporary production.'}</p>
-      </div>
-    </div>
-    <div class="metric-grid final-performance-metrics">
-      ${metric('NODE-ONLY SETUP TIME', duration(nodeOnlySetup), '', dailyNodeHours ? `${dailyNodeHours}h Node boost repeats every 24h during funding.` : 'No Node daily boost selected.')}
-      ${metric('SELECTED SETUP TIME', duration(selectedSetup), hasVial ? 'green' : '', `${temporaryBoostHours}h initial temporary 2× window; Node daily boost repeats on later days.`)}
-      ${metric('VIAL SETUP TIME SAVED', hasVial ? duration(setupSaved) : '—', hasVial && setupSaved > 0 ? 'green' : '', hasVial ? `${setupSavedPct.toFixed(1)}% faster than Node-only funding.` : 'No vial selected.')}
-      ${metric('VIAL DAILY GAIN', hasVial ? `+${compact(vialGainGrind)} $GRIND` : '—', hasVial ? 'green' : '', hasVial ? `+${compact(vialGainGrit)} GRIT from the vial beyond the Node daily boost.` : 'No vial selected.')}
-    </div>`,
+    </div>` : ''}
+    ${!Number.isFinite(selectedSetup) && result.qns > 0 ? `<div class="warning optimized-build-warning">Setup is unreachable from 0 GRIT with the current fixed rigs. Add a producing fixed rig so QN 1 can be funded.</div>` : ''}`,
   );
 
   const finalPanel = panel(
-    '5 // FINAL BUILD PERFORMANCE',
-    'Add QNs above the minimum and compare sustainable output against temporary boosted output.',
+    '5 // FINAL BUILD',
+    'Add QNs above the minimum and see the permanent daily gain. Temporary boost is shown separately.',
     `<div class="sim-card final-qn-control">
       <div class="field-title">QNs ABOVE MINIMUM</div>
       <div class="quickadd qn-quick">
@@ -365,27 +358,24 @@ function outputView(result: BuildResult): string {
       </div>
       <p>${result.qns.toLocaleString()} minimum → <b>${finalQns.toLocaleString()} total QNs</b>${extraQns ? ` · +${extraQns.toLocaleString()} added` : ''}.</p>
     </div>
-    ${!finalFits ? `<div class="warning">Current build needs ${compact(finalStats.slots)} slots, above the configured ${compact(cap)}-slot cap.</div>` : ''}
-    <div class="result-hero-pair final-output-heroes">
-      <div class="result-hero current">
-        <small>SUSTAINABLE</small>
-        <strong>${compact(finalSustainableGrind)}<em> $GRIND</em></strong>
-        <p>${compact(finalSustainableGrit)} GRIT / 24H · ${signed(finalSustainableGainVsMinimum, ' $GRIND')} vs minimum</p>
-      </div>
-      <div class="result-hero simulated">
-        <small>${temporaryBoostHours ? `BOOSTED · ${temporaryBoostHours}H TODAY` : 'BOOSTED PERFORMANCE'}</small>
-        <strong>${temporaryBoostHours ? `${compact(finalSelectedGrind)}<em> $GRIND</em>` : 'NO TEMP BOOST'}</strong>
-        <p>${temporaryBoostHours ? `${compact(finalSelectedBoost.grit)} GRIT / 24H · ${hasVial ? `${signed(finalVialGain, ' $GRIND')} vial-only gain` : `${signed(finalNodeBoostGrind - finalSustainableGrind, ' $GRIND')} Node daily boost gain`}` : 'No temporary boost selected.'}</p>
-      </div>
+    ${!finalFits ? `<div class="warning">Final build needs ${compact(finalStats.slots)} slots, above the configured ${compact(cap)}-slot cap.</div>` : ''}
+    <div class="result-focus-grid">
+      <div class="result-focus-card"><small>MINIMUM BUILD · SUSTAINABLE</small><strong>${compact(sustainableGrind)} $GRIND</strong><p>${result.qns.toLocaleString()} QNs · ${compact(result.normal)}/s</p></div>
+      <div class="result-focus-card simulated"><small>FINAL BUILD · SUSTAINABLE</small><strong>${compact(finalSustainableGrind)} $GRIND</strong><p>${finalQns.toLocaleString()} QNs · ${compact(finalNormal)}/s · ${compact(finalStats.slots)} slots</p></div>
     </div>
-    <div class="metric-grid final-performance-metrics">
-      ${metric('CURRENT BUILD QNs', finalQns.toLocaleString(), extraQns > 0 ? 'green' : '')}
-      ${metric('USED SLOTS', compact(finalStats.slots))}
-      ${metric('NORMAL RATE', `${compact(finalNormal)}/s`, finalRateGain > 0 ? 'green' : '', finalRateGain > 0 ? `${signed(finalRateGain, '/s')} above minimum.` : 'Minimum build rate.')}
-      ${metric('EXTRA QN COST', extraQnCost > 0 ? `−${compact(extraQnCost)} GRIT` : '—', extraQnCost > 0 ? 'negative' : '')}
-      ${metric(temporaryBoostHours ? 'BOOSTED GAIN VS MINIMUM' : 'GAIN VS MINIMUM', activeGainVsMinimum > 0 ? `+${compact(activeGainVsMinimum)} $GRIND` : '—', activeGainVsMinimum > 0 ? 'green' : '', `Sustainable gain: +${compact(finalSustainableGainVsMinimum)} $GRIND / 24H.`)}
-      ${metric('GAIN / ADDED QN', extraQns > 0 ? `+${compact(gainPerAddedQn)} $GRIND` : '—', extraQns > 0 ? 'green' : '', extraQns > 0 && temporaryBoostHours ? `Sustainable: +${compact(sustainableGainPerAddedQn)} $GRIND per added QN.` : extraQns > 0 ? 'Daily sustainable gain per added QN.' : 'Add QNs to see marginal production.')}
-    </div>`,
+    <div class="result-delta-bar"><span>Permanent gain from added QNs</span><strong>${signed(finalSustainableGainVsMinimum, ' $GRIND / 24H')}</strong></div>
+    <div class="result-data-grid">
+      <div class="result-data-card"><small>FINAL QNs</small><strong>${finalQns.toLocaleString()}</strong><span>${extraQns ? `+${extraQns} above minimum` : 'At minimum build'}</span></div>
+      <div class="result-data-card"><small>NORMAL HASHPOWER</small><strong>${compact(finalNormal)}/s</strong><span>${finalRateGain > 0 ? `${signed(finalRateGain, '/s')} vs minimum` : 'Minimum rate'}</span></div>
+      <div class="result-data-card"><small>EXTRA QN COST</small><strong>${extraQnCost > 0 ? `${compact(extraQnCost)} GRIT` : '—'}</strong><span>Cost of QNs above minimum</span></div>
+      <div class="result-data-card"><small>GAIN / ADDED QN</small><strong class="${extraQns > 0 ? 'positive' : ''}">${extraQns > 0 ? `+${compact(sustainableGainPerAddedQn)} $GRIND` : '—'}</strong><span>Sustainable 24H gain per added QN</span></div>
+    </div>
+    ${temporaryBoostHours > 0 ? `<div class="boost-summary">
+      <div class="boost-summary-head">
+        <div><small>FINAL BUILD · WITH TEMPORARY BOOST</small><strong>${compact(finalSelectedGrind)} $GRIND / 24H</strong></div>
+        <span>+${compact(finalSelectedGrind - finalSustainableGrind)} over sustainable${extraQns ? `<br>${signed(finalBoostedGainVsMinimum, ' $GRIND')} vs boosted minimum` : ''}${hasVial ? `<br>Vial-only gain: +${compact(finalVialGain)} $GRIND` : ''}</span>
+      </div>
+    </div>` : ''}`,
   );
 
   const discountRoi = renderRefineDiscountRoi({
