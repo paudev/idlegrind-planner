@@ -171,7 +171,7 @@ export interface RackExpansionRow {
 
 export interface RackExpansionResult {
   total: number;
-  rows: RackExpansionResult['rows'];
+  rows: RackExpansionRow[];
   count: number;
 }
 
