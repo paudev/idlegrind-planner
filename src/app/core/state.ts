@@ -19,6 +19,7 @@ import type {
   Scope,
 } from '../types';
 import { clamp, clone, number } from './format';
+import { normalizeStakingNodeId } from './staking';
 import { loadPositiveDefaults, mergeState, readJson, setPath, writeJson } from './storage';
 
 const ACTIVE_TABS: ActiveTab[] = ['target', 'reset', 'current', 'planner', 'costing', 'settings'];
@@ -36,6 +37,7 @@ function defaultBuffs(): BuffState {
     mixed: false,
     auraPct: 0,
     corePct: 0,
+    stakingNode: 0,
   };
 }
 
@@ -57,6 +59,7 @@ function normalizeBuffs(buffs: BuffState): void {
   buffs.prestigePct = Math.max(0, number(buffs.prestigePct));
   buffs.auraPct = Math.max(0, number(buffs.auraPct));
   buffs.corePct = Math.max(0, number(buffs.corePct));
+  buffs.stakingNode = normalizeStakingNodeId(buffs.stakingNode);
   if (buffs.mixed) {
     buffs.bronze = false;
     buffs.silver = false;
@@ -139,6 +142,8 @@ export function createDefaultDeck(): DeckState {
     currentOverclockMinutes: 0,
     vialHours: 0,
     buffs: defaultBuffs(),
+    simulatedNode: -1,
+    includeDailyNodeBoost: 1,
     rigs: [],
     view: 'output',
     discountCosts: defaultDiscountCosts(),
@@ -187,6 +192,11 @@ function loadStore(): ApplicationStore {
   deck.currentOverclockHours = Math.max(0, number(deck.currentOverclockHours));
   deck.currentOverclockMinutes = clamp(number(deck.currentOverclockMinutes), 0, 59);
   deck.vialHours = normalizeVialHours(deck.vialHours);
+  deck.simulatedNode = number(deck.simulatedNode, -1);
+  deck.simulatedNode = deck.simulatedNode >= 0 && deck.simulatedNode <= 4
+    ? normalizeStakingNodeId(deck.simulatedNode)
+    : -1;
+  deck.includeDailyNodeBoost = number(deck.includeDailyNodeBoost, 1) >= 0.5 ? 1 : 0;
   deck.baseline.currentDeckSlots = Math.max(
     RACK_BASE_SLOTS,
     Math.floor(number(deck.baseline.currentDeckSlots, RACK_BASE_SLOTS)),
@@ -260,6 +270,13 @@ function normalizedInputValue(path: string, value: number): number {
     case 'deck.addedQns':
     case 'state.planner.extraQns':
       return Math.max(0, Math.floor(value));
+    case 'deck.buffs.stakingNode':
+    case 'state.planner.buffs.stakingNode':
+      return normalizeStakingNodeId(value);
+    case 'deck.simulatedNode':
+      return value >= 0 && value <= 4 ? normalizeStakingNodeId(value) : -1;
+    case 'deck.includeDailyNodeBoost':
+      return value >= 0.5 ? 1 : 0;
     case 'deck.baseline.currentDeckSlots':
       return Math.max(RACK_BASE_SLOTS, Math.floor(value));
     case 'deck.baseline.currentGrit':
