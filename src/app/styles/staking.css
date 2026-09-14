@@ -1,6 +1,9 @@
 .staking-choice,
 .staking-toggle {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
 }
 
@@ -84,9 +87,6 @@
 }
 
 .staking-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   white-space: nowrap;
 }
 
