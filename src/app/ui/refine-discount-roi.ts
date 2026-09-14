@@ -4,12 +4,12 @@ import {
   discountPct,
   effectiveRefineRate,
   holderTierRefineDiscountPct,
-  holderTierRefineRate,
   refineDiscountRoi,
 } from '../core/refine-discounts';
 import { compact, inputText, number } from '../core/format';
+import { permanentRefineRate, stakingNode } from '../core/staking';
 import { store } from '../core/state';
-import type { RefineDiscountCosts, RefineDiscountKey, Scope } from '../types';
+import type { BuffState, RefineDiscountCosts, RefineDiscountKey, Scope } from '../types';
 import { panel } from './components';
 
 const WEEK = DAY * 7;
@@ -59,12 +59,19 @@ function scopeCosts(scope: Scope): RefineDiscountCosts {
   return scope === 'planner' ? store.state.planner.discountCosts : store.deck.discountCosts;
 }
 
-function scopeTier(scope: Scope): number {
-  return scope === 'planner' ? number(store.state.planner.buffs.tier, 1) : number(store.deck.buffs.tier, 1);
+function scopeBuffs(scope: Scope): BuffState {
+  if (scope === 'planner') return store.state.planner.buffs;
+  const current = store.deck.buffs;
+  const raw = number(store.deck.simulatedNode, -1);
+  if (raw < 0 || raw > 4) return current;
+  return { ...current, stakingNode: Math.floor(raw) as 0 | 1 | 2 | 3 | 4 };
 }
 
-function scopeHolderRefineRate(scope: Scope): number {
-  return holderTierRefineRate(Math.max(0, number(store.state.settings.refineRate)), scopeTier(scope));
+function scopePermanentRefineRate(scope: Scope): number {
+  return permanentRefineRate(
+    Math.max(0, number(store.state.settings.refineRate)),
+    scopeBuffs(scope),
+  );
 }
 
 function taskDetail(scope: Scope, key: 'daily' | 'weekly', projectedGrit: number): string {
@@ -79,7 +86,7 @@ function taskDetail(scope: Scope, key: 'daily' | 'weekly', projectedGrit: number
   const periodLabel = key === 'daily' ? '24H' : '7D';
   const result = refineDiscountRoi({
     candidate: key,
-    baseRefineRate: scopeHolderRefineRate(scope),
+    baseRefineRate: scopePermanentRefineRate(scope),
     settings,
     projectedGrit,
     grindCost,
@@ -109,7 +116,7 @@ function passDetail(scope: Scope, projectedGrit: number): string {
   const settings = store.state.settings.refineDiscounts;
   const result = refineDiscountRoi({
     candidate: 'pass',
-    baseRefineRate: scopeHolderRefineRate(scope),
+    baseRefineRate: scopePermanentRefineRate(scope),
     settings,
     projectedGrit,
     grindCost: 0,
@@ -137,9 +144,11 @@ export function renderRefineDiscountRoi({
 }: RefineDiscountProjection): string {
   const settings = store.state.settings.refineDiscounts;
   const rawBaseRate = Math.max(0, number(store.state.settings.refineRate));
-  const tier = scopeTier(scope);
+  const buffs = scopeBuffs(scope);
+  const tier = number(buffs.tier, 1);
   const tierPct = holderTierRefineDiscountPct(tier);
-  const baseRate = holderTierRefineRate(rawBaseRate, tier);
+  const node = stakingNode(buffs.stakingNode);
+  const baseRate = permanentRefineRate(rawBaseRate, buffs);
   const selectedRate = effectiveRefineRate(baseRate, settings);
   const combinedPct = activeDiscountPct(baseRate, settings);
   const dailyGrit = Math.max(0, number(projectGrit(DAY)));
@@ -173,11 +182,11 @@ export function renderRefineDiscountRoi({
 
   return panel(
     `${panelNumber} // REFINE DISCOUNT ROI`,
-    'Holder-tier refinery discount is already included in the baseline. Check Daily, Weekly, and Seasonal Pass to analyze their compounded gain on top.',
+    'Holder-tier and staking-Node refinery discounts are already included in the permanent baseline. Check Daily, Weekly, and Seasonal Pass to analyze their compounded gain on top.',
     `<div class="discount-selector compact">
       <div class="discount-selector-head">
         <div><small>SELECT DISCOUNTS</small><strong>CONVERSION STACK</strong></div>
-        <p>Task + Pass only · holder tier is always baseline</p>
+        <p>Task + Pass only · holder tier + Node are always baseline</p>
       </div>
       <div class="discount-checkbox-grid">
         ${stackCheckbox('daily')}
@@ -203,7 +212,7 @@ export function renderRefineDiscountRoi({
       <div>
         <small>CONVERSION</small>
         <strong>${compact(baseRate)} <span>→</span> <b>${compact(selectedRate)}</b></strong>
-        <p>Tier baseline${tierPct ? ` · ${compact(rawBaseRate)} base − ${tierPct}% holder` : ''} · optional stack ${combinedPct.toFixed(2)}% cheaper</p>
+        <p>Permanent baseline${tierPct ? ` · ${compact(rawBaseRate)} base − ${tierPct}% holder` : ''}${node.refinePct ? ` · ${node.label} − ${node.refinePct}%` : ''} · optional stack ${combinedPct.toFixed(2)}% cheaper</p>
       </div>
       ${target > 0 ? `<div>
         <small>RATE NEEDED FOR ${compact(target)} / 24H</small>
@@ -213,7 +222,7 @@ export function renderRefineDiscountRoi({
       <div>
         <small>SAME-GRIT UPLIFT</small>
         <strong><b>+${sameGritUplift.toFixed(2)}%</b></strong>
-        <p>Additional uplift from checked task/pass discounts beyond holder tier</p>
+        <p>Additional uplift from checked task/pass discounts beyond the permanent holder + Node baseline</p>
       </div>
     </div>
 
@@ -222,6 +231,6 @@ export function renderRefineDiscountRoi({
       ${details}
     </div>` : ''}
 
-    <p class="discount-footer-note">${projectionNote} Daily cost is counted ×7 in the 7D net. Weekly cost is counted once. Seasonal Pass price is never deducted. Holder-tier discount is permanent baseline and is never counted as task/pass ROI.</p>`,
+    <p class="discount-footer-note">${projectionNote} Daily cost is counted ×7 in the 7D net. Weekly cost is counted once. Seasonal Pass price is never deducted. Holder-tier and Node discounts are permanent baseline and are never counted as task/pass ROI.</p>`,
   );
 }
