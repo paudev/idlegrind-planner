@@ -20,6 +20,7 @@ import type {
   RigStats,
 } from '../types';
 import { clamp, number } from './format';
+import { stakingHashMultiplier } from './staking';
 
 export function multiplier(buffs: BuffState): number {
   const tier = number(buffs.tier) > 0 ? number(buffs.tier) : 1;
@@ -30,8 +31,9 @@ export function multiplier(buffs: BuffState): number {
     : 1 + (buffs.bronze ? 0.15 : 0) + (buffs.silver ? 0.3 : 0) + (buffs.gold ? 0.55 : 0);
   const aura = 1 + Math.max(0, number(buffs.auraPct)) / 100;
   const core = 1 + Math.max(0, number(buffs.corePct)) / 100;
+  const staking = stakingHashMultiplier(buffs.stakingNode);
 
-  return tier * coolant * prestige * frame * aura * core;
+  return tier * coolant * prestige * frame * aura * core * staking;
 }
 
 function defaultQuantumNode(): RigPreset {
