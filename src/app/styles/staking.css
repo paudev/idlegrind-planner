@@ -20,17 +20,35 @@
   outline-offset: 2px;
 }
 
-.staking-choice.disabled,
-.staking-toggle.disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
+.staking-block {
+  margin-top: 12px;
+  padding: 13px 14px;
+  border: 1px solid #27342b;
+  border-radius: 7px;
+  background: #090e0a;
 }
 
-.staking-control {
-  width: 100%;
-  min-width: 0;
-  display: grid;
-  gap: 8px;
+.staking-block-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 9px;
+}
+
+.staking-block-head b {
+  display: block;
+  color: #aeb9b1;
+  font-size: 11px;
+  letter-spacing: .09em;
+}
+
+.staking-block-head small {
+  display: block;
+  margin-top: 2px;
+  color: #68746b;
+  font-size: 10px;
+  line-height: 1.35;
 }
 
 .staking-chips {
@@ -41,206 +59,377 @@
 
 .staking-chips .chip {
   min-width: 58px;
+  height: 34px;
+  min-height: 34px;
   justify-content: center;
   white-space: nowrap;
 }
 
-.staking-selection-summary {
+.staking-selected-row {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 7px 10px;
-  min-height: 32px;
-  padding: 7px 9px;
-  border: 1px solid #26322a;
-  border-radius: 5px;
-  background: rgba(8, 12, 9, 0.72);
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 1px solid #202a22;
 }
 
-.staking-selection-summary > strong {
-  color: #d5ded7;
-  font-size: 10px;
-  letter-spacing: .08em;
-  white-space: nowrap;
+.staking-selected-name {
+  flex: none;
+}
+
+.staking-selected-name small {
+  display: block;
+  color: #59655c;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .1em;
+}
+
+.staking-selected-name strong {
+  display: block;
+  margin-top: 2px;
+  color: #dce5de;
+  font-size: 12px;
+}
+
+.staking-selected-row.active .staking-selected-name strong {
+  color: var(--green);
 }
 
 .staking-effect-list {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 5px;
-  min-width: 0;
 }
 
-.staking-effect-list b {
+.staking-effect-list b,
+.staking-effect-list span {
   display: inline-flex;
   align-items: center;
   min-height: 22px;
   padding: 0 7px;
-  border-radius: 999px;
   border: 1px solid #2b3a30;
+  border-radius: 999px;
   background: #0b110d;
-  color: #8f9d93;
+  color: #8e9b91;
   font-size: 9px;
-  letter-spacing: .045em;
   font-weight: 850;
+  letter-spacing: .035em;
   white-space: nowrap;
+}
+
+.staking-selected-row.active .staking-effect-list b {
+  border-color: #31513f;
+  color: #a9c8b5;
+}
+
+.staking-boost-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid #60412e;
+  border-radius: 7px;
+  background: rgba(255,149,103,.025);
+}
+
+.staking-boost-option b {
+  display: block;
+  color: #b99a87;
+  font-size: 10px;
+  letter-spacing: .08em;
+}
+
+.staking-boost-option small {
+  display: block;
+  margin-top: 2px;
+  color: #776a63;
+  font-size: 10px;
 }
 
 .staking-toggle {
-  white-space: nowrap;
+  flex: none;
+  min-width: 92px;
 }
 
-/* Keep staking math readable as one compact summary strip instead of large cards. */
-.staking-breakdown {
+.result-focus-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
-  gap: 0;
-  margin-top: 10px;
-  overflow: hidden;
-  border: 1px solid #26322a;
-  border-radius: 6px;
-  background: #090e0a;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
-.staking-breakdown .metric {
+.result-focus-card {
   min-width: 0;
-  min-height: 62px;
-  border: 0;
-  border-right: 1px solid #202b23;
-  border-radius: 0;
-  background: transparent;
-  padding: 9px 11px;
-}
-
-.staking-breakdown .metric:last-child {
-  border-right: 0;
-}
-
-.staking-breakdown .metric small {
-  margin-bottom: 3px;
-  font-size: 8.5px;
-}
-
-.staking-breakdown .metric strong {
-  font-size: 14px;
-  line-height: 1.25;
-}
-
-.staking-breakdown .metric span {
-  display: block;
-  margin-top: 4px;
-  color: #667269;
-  font-size: 9px;
-  line-height: 1.35;
-}
-
-/* Node rows are denser than normal buff rows and should not create tall empty columns. */
-.buffrow:has(.staking-control),
-.buffrow:has(.staking-toggle) {
-  align-items: start;
-}
-
-.buffrow:has(.staking-control) .bufflabel,
-.buffrow:has(.staking-toggle) .bufflabel {
-  padding-top: 6px;
-}
-
-@media (max-width: 900px) {
-  .staking-breakdown {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .staking-breakdown .metric:nth-child(2n) {
-    border-right: 0;
-  }
-}
-
-@media (max-width: 560px) {
-  .staking-breakdown {
-    grid-template-columns: 1fr;
-  }
-
-  .staking-breakdown .metric {
-    border-right: 0;
-    border-bottom: 1px solid #202b23;
-  }
-
-  .staking-breakdown .metric:last-child {
-    border-bottom: 0;
-  }
-
-  .staking-selection-summary {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-}
-
-
-/* Clear 24H hierarchy for Deck Simulator output. */
-.projection-summary {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin: 12px 0;
-}
-
-.projection-card {
-  min-width: 0;
-  min-height: 92px;
-  padding: 12px 13px;
-  border: 1px solid #29362d;
-  border-radius: 7px;
-  background: #090e0a;
+  min-height: 126px;
+  padding: 16px 17px;
+  border: 1px solid #303d34;
+  border-radius: 8px;
+  background: #09100b;
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
 
-.projection-card small {
-  color: #748078;
+.result-focus-card.simulated {
+  border-color: #3b654d;
+  background: linear-gradient(135deg, rgba(20,241,149,.055), rgba(8,13,9,.97));
+}
+
+.result-focus-card small {
+  color: #7a877e;
   font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .11em;
+}
+
+.result-focus-card strong {
+  margin-top: 4px;
+  color: #e6eee8;
+  font-size: 30px;
+  line-height: 1.08;
+}
+
+.result-focus-card.simulated strong {
+  color: var(--green);
+}
+
+.result-focus-card p {
+  margin: 7px 0 0;
+  color: #758178;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.result-delta-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid #2d3b31;
+  border-radius: 7px;
+  background: #0a100b;
+}
+
+.result-delta-bar span {
+  color: #7a877d;
+  font-size: 11px;
+}
+
+.result-delta-bar strong {
+  color: var(--green);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.result-delta-bar.orange strong {
+  color: var(--orange);
+}
+
+.result-data-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.result-data-card {
+  min-width: 0;
+  min-height: 76px;
+  padding: 11px 12px;
+  border: 1px solid #29362e;
+  border-radius: 7px;
+  background: #090e0a;
+}
+
+.result-data-card small {
+  display: block;
+  color: #657169;
+  font-size: 8.5px;
   font-weight: 900;
   letter-spacing: .08em;
 }
 
-.projection-card strong {
-  margin-top: 4px;
-  color: #e0e7e1;
-  font-size: 19px;
-  line-height: 1.15;
+.result-data-card strong {
+  display: block;
+  margin-top: 5px;
+  color: #dce5de;
+  font-size: 15px;
+  line-height: 1.25;
 }
 
-.projection-card span {
-  margin-top: 5px;
+.result-data-card strong.positive {
+  color: var(--green);
+}
+
+.result-data-card strong.orange {
+  color: var(--orange);
+}
+
+.result-data-card span {
+  display: block;
+  margin-top: 4px;
+  color: #626f66;
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.result-section-label {
+  margin: 15px 0 7px;
   color: #6f7c72;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .11em;
+}
+
+.boost-summary {
+  margin-top: 10px;
+  padding: 12px 13px;
+  border: 1px solid #60412e;
+  border-radius: 7px;
+  background: rgba(255,149,103,.025);
+}
+
+.boost-summary-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.boost-summary-head small {
+  color: #8b7568;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .09em;
+}
+
+.boost-summary-head strong {
+  display: block;
+  margin-top: 3px;
+  color: var(--orange);
+  font-size: 20px;
+}
+
+.boost-summary-head span {
+  color: #756a63;
+  font-size: 10px;
+  text-align: right;
+}
+
+.planner-primary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.planner-primary-card {
+  min-width: 0;
+  min-height: 112px;
+  padding: 14px 15px;
+  border: 1px solid #303d34;
+  border-radius: 8px;
+  background: #09100b;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.planner-primary-card.main {
+  border-color: #3b654d;
+  background: linear-gradient(135deg, rgba(20,241,149,.055), rgba(8,13,9,.97));
+}
+
+.planner-primary-card small {
+  color: #748078;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .1em;
+}
+
+.planner-primary-card strong {
+  margin-top: 4px;
+  color: #e4ece6;
+  font-size: 25px;
+  line-height: 1.1;
+}
+
+.planner-primary-card.main strong {
+  color: var(--green);
+}
+
+.planner-primary-card p {
+  margin: 6px 0 0;
+  color: #6f7b72;
   font-size: 10px;
   line-height: 1.4;
 }
 
-.projection-card.simulated {
-  border-color: #31513f;
+.node-value-panel {
+  margin-top: 12px;
+  padding: 12px 13px;
+  border: 1px solid #31513f;
+  border-radius: 7px;
+  background: rgba(20,241,149,.025);
 }
 
-.projection-card.simulated strong {
-  color: var(--green);
+.node-value-panel h3 {
+  margin: 0;
+  color: #a9c8b5;
+  font-size: 10px;
+  letter-spacing: .1em;
 }
 
-.projection-card.boosted {
-  border-color: #60412e;
-  background: rgba(255, 149, 103, .025);
+.node-value-panel .result-data-grid {
+  margin-top: 9px;
 }
 
-.projection-card.boosted strong {
-  color: var(--orange);
+@media (max-width: 900px) {
+  .result-data-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .planner-primary-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .planner-primary-card:first-child {
+    grid-column: 1 / -1;
+  }
 }
 
-.node-impact-strip {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
+@media (max-width: 680px) {
+  .staking-selected-row,
+  .staking-boost-option,
+  .result-delta-bar,
+  .boost-summary-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 
-@media (max-width: 800px) {
-  .projection-summary,
-  .node-impact-strip {
+  .staking-effect-list {
+    justify-content: flex-start;
+  }
+
+  .result-focus-grid,
+  .result-data-grid,
+  .planner-primary-grid {
     grid-template-columns: 1fr;
+  }
+
+  .planner-primary-card:first-child {
+    grid-column: auto;
+  }
+
+  .boost-summary-head span {
+    text-align: left;
   }
 }
