@@ -74,8 +74,30 @@ export function dailyNodeBoostToggle(nodeId: unknown, enabled: unknown): string 
     </label>`,
     disabled
       ? 'The selected simulated Node has no daily boost.'
-      : 'Applies the Node daily boost to forward-looking 24H and funding projections. Current overclock remaining stays a separate factual input.',
+      : 'Applies the Node daily boost to forward-looking projections and repeats it every 24 hours in multi-day funding/ROI calculations. Current overclock remaining stays a separate factual input.',
   );
+}
+
+export function productionMultiplierText(buffs: BuffState): string {
+  const tier = number(buffs.tier) > 0 ? number(buffs.tier) : 1;
+  const coolant = 1 + Math.max(0, number(buffs.coolantLevel)) * 0.1;
+  const prestige = 1 + Math.max(0, number(buffs.prestigePct)) / 100;
+  const frame = buffs.mixed
+    ? 7 / 3
+    : 1 + (buffs.bronze ? 0.15 : 0) + (buffs.silver ? 0.3 : 0) + (buffs.gold ? 0.55 : 0);
+  const aura = 1 + Math.max(0, number(buffs.auraPct)) / 100;
+  const core = 1 + Math.max(0, number(buffs.corePct)) / 100;
+  const node = stakingNode(buffs.stakingNode);
+  const nodeHash = 1 + node.hashPct / 100;
+  return [
+    `Tier ×${tier.toFixed(3)}`,
+    `Coolant ×${coolant.toFixed(3)}`,
+    `Prestige ×${prestige.toFixed(3)}`,
+    `Frame ×${frame.toFixed(3)}`,
+    `Aura ×${aura.toFixed(3)}`,
+    `Core ×${core.toFixed(3)}`,
+    `Node ×${nodeHash.toFixed(3)}`,
+  ].join(' · ');
 }
 
 export function permanentMathSummary(baseRefineRate: number, buffs: BuffState): {
