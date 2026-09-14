@@ -23,9 +23,15 @@ import {
   rigStats,
 } from '../core/calculations';
 import { clamp, compact, duration, money, number, signed } from '../core/format';
-import { holderTierRefineRate } from '../core/refine-discounts';
+import {
+  permanentRefineRate,
+  stakingDailyBoostHours,
+  stakingNode,
+  withStakingNode,
+} from '../core/staking';
 import { getQuantumNodePreset, store } from '../core/state';
 import type {
+  BuffState,
   CashoutCycle,
   CompareRow,
   CostRow,
@@ -52,6 +58,12 @@ import {
 } from '../ui/components';
 import { renderQnReadiness } from '../ui/readiness';
 import { renderRefineDiscountRoi } from '../ui/refine-discount-roi';
+import {
+  dailyNodeBoostToggle,
+  permanentMathSummary,
+  simulatedNodeRow,
+  stakingNodeRow,
+} from '../ui/staking';
 
 interface DeckScenario {
   cycle: CashoutCycle;
@@ -63,6 +75,7 @@ interface DeckScenario {
   currentRate: number;
   fullRate: number;
   existingOverclock: number;
+  nodeBoostSeconds: number;
   simulatedOverclock: number;
   currentGrit: number;
   currentStats: RigStats;
@@ -74,7 +87,10 @@ interface DeckScenario {
   progress: FundingProgress | null;
   timeline: FundingRow[];
   fullBuildTime: number;
-  refine: number;
+  currentRefine: number;
+  simulatedRefine: number;
+  currentBuffs: BuffState;
+  simulatedBuffs: BuffState;
 }
 
 function qnPricing(): { base: number; growth: number } {
@@ -84,11 +100,18 @@ function qnPricing(): { base: number; growth: number } {
   };
 }
 
-function deckRefineRate(): number {
-  return holderTierRefineRate(
+function deckRefineRate(buffs: BuffState): number {
+  return permanentRefineRate(
     Math.max(0, number(store.state.settings.refineRate)),
-    store.deck.buffs.tier,
+    buffs,
   );
+}
+
+function simulatedBuffs(): BuffState {
+  const current = stakingNode(store.deck.buffs.stakingNode).id;
+  const raw = number(store.deck.simulatedNode, -1);
+  const selected = raw >= 0 && raw <= 4 ? Math.floor(raw) : current;
+  return withStakingNode(store.deck.buffs, selected);
 }
 
 function deckScenario(): DeckScenario {
@@ -99,14 +122,23 @@ function deckScenario(): DeckScenario {
   const targetQns = currentQns + addedQns;
   const quantumNode = getQuantumNodePreset();
   const pricing = qnPricing();
-  const rateForQns = rateFactory(store.deck.rigs, store.deck.buffs, quantumNode);
-  const currentRate = rateForQns(currentQns);
+  const currentBuffs = store.deck.buffs;
+  const simulated = simulatedBuffs();
+  const currentRateForQns = rateFactory(store.deck.rigs, currentBuffs, quantumNode);
+  const rateForQns = rateFactory(store.deck.rigs, simulated, quantumNode);
+  const currentRate = currentRateForQns(currentQns);
   const fullRate = rateForQns(targetQns);
   const existingOverclock = (
     Math.max(0, number(store.deck.currentOverclockHours)) * 60
     + clamp(number(store.deck.currentOverclockMinutes), 0, 59)
   ) * 60;
-  const simulatedOverclock = existingOverclock + Math.max(0, number(store.deck.vialHours)) * HOUR;
+  const includeDailyNodeBoost = number(store.deck.includeDailyNodeBoost, 1) >= 0.5;
+  const nodeBoostSeconds = includeDailyNodeBoost
+    ? stakingDailyBoostHours(simulated.stakingNode) * HOUR
+    : 0;
+  const simulatedOverclock = existingOverclock
+    + Math.max(0, number(store.deck.vialHours)) * HOUR
+    + nodeBoostSeconds;
   const currentGrit = Math.max(0, number(store.deck.baseline.currentGrit));
   const currentStats = rigStats(store.deck.rigs, currentQns, quantumNode);
   const fullStats = rigStats(store.deck.rigs, targetQns, quantumNode);
@@ -160,6 +192,7 @@ function deckScenario(): DeckScenario {
     currentRate,
     fullRate,
     existingOverclock,
+    nodeBoostSeconds,
     simulatedOverclock,
     currentGrit,
     currentStats,
@@ -171,7 +204,10 @@ function deckScenario(): DeckScenario {
     progress,
     timeline,
     fullBuildTime,
-    refine: deckRefineRate(),
+    currentRefine: deckRefineRate(currentBuffs),
+    simulatedRefine: deckRefineRate(simulated),
+    currentBuffs,
+    simulatedBuffs: simulated,
   };
 }
 
@@ -188,6 +224,9 @@ function setupPanels(scenario: DeckScenario): string {
   const vialCostControl = hasSelectedVial
     ? chip('INCLUDE VIAL ACQUISITION', Boolean(store.deck.baseline.includeVialCost), 'data-toggle-vial-cost')
     : '<button type="button" class="chip" disabled aria-disabled="true" title="Select a vial first">INCLUDE VIAL ACQUISITION</button>';
+  const baseRefine = Math.max(0, number(store.state.settings.refineRate));
+  const currentMath = permanentMathSummary(baseRefine, scenario.currentBuffs);
+  const simulatedMath = permanentMathSummary(baseRefine, scenario.simulatedBuffs);
 
   return `${panel(
     '1 // CURRENT DECK',
@@ -220,12 +259,17 @@ function setupPanels(scenario: DeckScenario): string {
     ${rigList(store.deck.rigs, 'deck')}`,
   )}${panel(
     '2 // CURRENT BUFFS',
-    'Buffs currently active on the deck. Holder tier also applies its permanent refinery discount to $GRIND conversions.',
-    buffsUi(store.deck.buffs, 'deck'),
+    'Permanent production and refinery effects currently active on the deck.',
+    `${buffsUi(store.deck.buffs, 'deck')}
+    ${stakingNodeRow(store.deck.buffs, 'deck')}
+    <div class="staking-breakdown">
+      ${metric('PERMANENT BUILD MULTIPLIER', `×${multiplier(store.deck.buffs).toFixed(3)}`)}
+      ${metric('PERMANENT REFINERY', `${compact(currentMath.refineRate)} GRIT / $GRIND`, '', `${currentMath.nodeLabel}${currentMath.nodeRefinePct ? ` · Node refine −${currentMath.nodeRefinePct}%` : ''}`)}
+    </div>`,
     `×${multiplier(store.deck.buffs).toFixed(2)}`,
   )}${panel(
     '3 // SIMULATE CHANGES',
-    'Add QNs and vial time without changing the current deck.',
+    'Add QNs, change the staking Node, and add temporary boost time without changing the current deck.',
     `<div class="sim-grid">
       <div class="sim-card">
         ${field('deck.addedQns', 'QUANTUM NODES TO ADD', store.deck.addedQns)}
@@ -241,11 +285,17 @@ function setupPanels(scenario: DeckScenario): string {
           <label class="mini-input">HOURS <input data-path="deck.currentOverclockHours" data-num value="${number(store.deck.currentOverclockHours)}"></label>
           <label class="mini-input">MINUTES <input data-path="deck.currentOverclockMinutes" data-num value="${number(store.deck.currentOverclockMinutes)}"></label>
         </div>
-        <p>Existing active overclock applies before any added vial.</p>
+        <p>Factual boost time already active now. It is kept separate from the forward-looking daily Node boost.</p>
       </div>
     </div>
     ${!scenario.fullFitsCap ? `<div class="warning">Simulated build uses ${compact(scenario.fullStats.slots)} slots, above the configured ${compact(scenario.slotCap)}-slot maximum. Output is shown for comparison, but the build does not fit.</div>` : ''}
-    ${choiceRow('ADD VIAL', vialButtons, 'Added after current overclock. The 24H estimate uses 2× production only while overclock/vial time is active, then normal production for the rest of the day.')}
+    ${simulatedNodeRow(store.deck.buffs, store.deck.simulatedNode)}
+    ${dailyNodeBoostToggle(scenario.simulatedBuffs.stakingNode, store.deck.includeDailyNodeBoost)}
+    <div class="staking-breakdown">
+      ${metric('SIMULATED BUILD MULTIPLIER', `×${multiplier(scenario.simulatedBuffs).toFixed(3)}`, '', simulatedMath.nodeHashPct ? `${simulatedMath.nodeLabel} adds ×${(1 + simulatedMath.nodeHashPct / 100).toFixed(3)} hashpower.` : `${simulatedMath.nodeLabel} has no hashpower bonus.`)}
+      ${metric('SIMULATED REFINERY', `${compact(simulatedMath.refineRate)} GRIT / $GRIND`, '', simulatedMath.nodeRefinePct ? `${simulatedMath.nodeLabel} compounds another −${simulatedMath.nodeRefinePct}% refine.` : 'No Node refine discount.')}
+    </div>
+    ${choiceRow('ADD VIAL', vialButtons, 'Added after current overclock. Vial time and the optional daily Node boost are both temporary 2× windows; permanent hashpower remains in the normal rate.')}
     ${choiceRow('COSTING', vialCostControl, hasSelectedVial ? `Uses the editable ${store.deck.vialHours}H vial market reference.` : 'Select a vial first. Acquisition costing cannot affect output without a simulated vial.')}`,
   )}`;
 }
@@ -256,29 +306,43 @@ function outputView(scenario: DeckScenario): string {
   const simulatedAverage = hasProjectionWindow
     ? scenario.progress!.mined / scenario.cashoutLeft!
     : null;
-  const currentGrind = configured && scenario.refine >= 1000
-    ? scenario.currentProjection!.grit / scenario.refine
+  const currentGrind = configured && scenario.currentRefine >= 1000
+    ? scenario.currentProjection!.grit / scenario.currentRefine
     : null;
-  const simulatedGrind = configured && scenario.refine >= 1000
-    ? scenario.progress!.mined / scenario.refine
+  const simulatedGrind = configured && scenario.simulatedRefine >= 1000
+    ? scenario.progress!.mined / scenario.simulatedRefine
     : null;
-  const currentDayProjection = scenario.refine >= 1000
+
+  const sustainableCurrentProjection = scenario.currentRefine >= 1000
+    ? production(scenario.currentRate, DAY, 0)
+    : null;
+  const sustainableSimulatedProjection = scenario.simulatedRefine >= 1000
+    ? production(scenario.fullRate, DAY, 0)
+    : null;
+  const currentDayProjection = scenario.currentRefine >= 1000
     ? production(scenario.currentRate, DAY, scenario.existingOverclock)
     : null;
-  const simulatedDayProjection = scenario.refine >= 1000
+  const simulatedDayProjection = scenario.simulatedRefine >= 1000
     ? production(scenario.fullRate, DAY, scenario.simulatedOverclock)
     : null;
-  const simulatedDayWithoutAddedVial = scenario.refine >= 1000
-    ? production(scenario.fullRate, DAY, scenario.existingOverclock)
+  const simulatedDayWithoutAddedVial = scenario.simulatedRefine >= 1000
+    ? production(scenario.fullRate, DAY, scenario.existingOverclock + scenario.nodeBoostSeconds)
+    : null;
+
+  const sustainableCurrentGrind = sustainableCurrentProjection
+    ? sustainableCurrentProjection.grit / scenario.currentRefine
+    : null;
+  const sustainableSimulatedGrind = sustainableSimulatedProjection
+    ? sustainableSimulatedProjection.grit / scenario.simulatedRefine
     : null;
   const currentDayGrind = currentDayProjection
-    ? currentDayProjection.grit / scenario.refine
+    ? currentDayProjection.grit / scenario.currentRefine
     : null;
   const simulatedDayGrind = simulatedDayProjection
-    ? simulatedDayProjection.grit / scenario.refine
+    ? simulatedDayProjection.grit / scenario.simulatedRefine
     : null;
   const simulatedDayWithoutAddedVialGrind = simulatedDayWithoutAddedVial
-    ? simulatedDayWithoutAddedVial.grit / scenario.refine
+    ? simulatedDayWithoutAddedVial.grit / scenario.simulatedRefine
     : null;
   const vialHours = Math.max(0, number(store.deck.vialHours));
   const hasVial = vialHours > 0;
@@ -298,21 +362,26 @@ function outputView(scenario: DeckScenario): string {
     ? netSimulatedDayGrind - currentDayGrind
     : null;
   const next = nextCashoutAt(scenario.cycle);
+  const currentNode = stakingNode(scenario.currentBuffs.stakingNode);
+  const simulatedNode = stakingNode(scenario.simulatedBuffs.stakingNode);
 
   const rows: CompareRow[] = [
     ['TARGET QUANTUM NODES', scenario.currentQns, scenario.targetQns, signed(scenario.addedQns)],
     ['QNs ACTIVE BY NEXT CASHOUT', scenario.currentQns, configured ? scenario.progress!.qns : '—', configured ? signed(scenario.progress!.qns - scenario.currentQns) : '—'],
     ['USED DECK SLOTS', compact(scenario.currentStats.slots), compact(scenario.fullStats.slots), signed(scenario.fullStats.slots - scenario.currentStats.slots)],
+    ['STAKING NODE', currentNode.label, simulatedNode.label, currentNode.id === simulatedNode.id ? '—' : `${currentNode.label} → ${simulatedNode.label}`],
     ['NORMAL RATE', `${compact(scenario.currentRate)}/s`, `${compact(scenario.fullRate)}/s`, signed(scenario.fullRate - scenario.currentRate, '/s')],
-    ['EST. $GRIND / 24H', currentDayGrind !== null ? `${compact(currentDayGrind)} $GRIND` : '—', simulatedDayGrind !== null ? `${compact(simulatedDayGrind)} $GRIND` : '—', currentDayGrind !== null && simulatedDayGrind !== null ? signed(simulatedDayGrind - currentDayGrind, ' $GRIND') : '—'],
+    ['PERMANENT REFINE RATE', `${compact(scenario.currentRefine)} GRIT`, `${compact(scenario.simulatedRefine)} GRIT`, signed(scenario.simulatedRefine - scenario.currentRefine, ' GRIT')],
+    ['SUSTAINABLE $GRIND / 24H', sustainableCurrentGrind !== null ? `${compact(sustainableCurrentGrind)} $GRIND` : '—', sustainableSimulatedGrind !== null ? `${compact(sustainableSimulatedGrind)} $GRIND` : '—', sustainableCurrentGrind !== null && sustainableSimulatedGrind !== null ? signed(sustainableSimulatedGrind - sustainableCurrentGrind, ' $GRIND') : '—'],
+    ['BOOSTED $GRIND / 24H', currentDayGrind !== null ? `${compact(currentDayGrind)} $GRIND` : '—', simulatedDayGrind !== null ? `${compact(simulatedDayGrind)} $GRIND` : '—', currentDayGrind !== null && simulatedDayGrind !== null ? signed(simulatedDayGrind - currentDayGrind, ' $GRIND') : '—'],
     ...(includeVialCost ? [[
-      'NET EST. $GRIND / 24H',
+      'NET BOOSTED $GRIND / 24H',
       currentDayGrind !== null ? `${compact(currentDayGrind)} $GRIND` : '—',
       netSimulatedDayGrind !== null ? `${compact(netSimulatedDayGrind)} $GRIND` : '—',
       netDayChange !== null ? signed(netDayChange, ' $GRIND') : '—',
     ] as CompareRow] : []),
-    ['AVG RATE UNTIL NEXT CASHOUT', hasProjectionWindow ? `${compact(scenario.currentProjection!.average)}/s` : '—', simulatedAverage !== null ? `${compact(simulatedAverage)}/s` : '—', hasProjectionWindow && simulatedAverage !== null ? signed(simulatedAverage - scenario.currentProjection!.average, '/s') : '—'],
-    ['BY NEXT CASHOUT', currentGrind !== null ? `${compact(currentGrind)} $GRIND` : '—', simulatedGrind !== null ? `${compact(simulatedGrind)} $GRIND` : '—', currentGrind !== null && simulatedGrind !== null ? signed(simulatedGrind - currentGrind, ' $GRIND') : '—'],
+    ['FUNDING-AWARE AVG RATE', hasProjectionWindow ? `${compact(scenario.currentProjection!.average)}/s` : '—', simulatedAverage !== null ? `${compact(simulatedAverage)}/s` : '—', hasProjectionWindow && simulatedAverage !== null ? signed(simulatedAverage - scenario.currentProjection!.average, '/s') : '—'],
+    ['FUNDING-AWARE BY NEXT CASHOUT', currentGrind !== null ? `${compact(currentGrind)} $GRIND` : '—', simulatedGrind !== null ? `${compact(simulatedGrind)} $GRIND` : '—', currentGrind !== null && simulatedGrind !== null ? signed(simulatedGrind - currentGrind, ' $GRIND') : '—'],
   ];
 
   const vialEconomics = hasVial ? `<div class="vial-economics ${includeVialCost ? 'cost-included' : 'cost-excluded'} ${netVialImpact !== null && netVialImpact < 0 ? 'loss' : 'gain'}">
@@ -320,7 +389,7 @@ function outputView(scenario: DeckScenario): string {
       <div>
         <small>VIAL ECONOMICS</small>
         <strong>${vialHours}H OVERCLOCK VIAL</strong>
-        <span>Vial-only value on the simulated ${scenario.targetQns}-QN build. QN gains are excluded from the vial gain.</span>
+        <span>Vial-only value on the simulated ${scenario.targetQns}-QN build. QN and Node gains are excluded from the vial gain.</span>
       </div>
       <b>${includeVialCost ? 'COST INCLUDED' : 'COST EXCLUDED'}</b>
     </div>
@@ -346,13 +415,13 @@ function outputView(scenario: DeckScenario): string {
         <small>SIMULATED 24H AFTER VIAL COST</small>
         <strong>${netSimulatedDayGrind !== null ? `${compact(netSimulatedDayGrind)} $GRIND` : '—'}</strong>
       </div>
-      <span>${includeVialCost && netDayChange !== null ? `${signed(netDayChange, ' $GRIND')} versus the current deck after paying for the vial.` : 'Gross simulated 24H output; acquisition cost is not currently deducted.'}</span>
+      <span>${includeVialCost && netDayChange !== null ? `${signed(netDayChange, ' $GRIND')} versus the current boosted deck after paying for the vial.` : 'Gross simulated boosted 24H output; acquisition cost is not currently deducted.'}</span>
     </div>
   </div>` : '';
 
   const outputPanel = panel(
     '4 // OUTPUT',
-    'Current versus simulated output using the holder-tier-adjusted refinery rate. Daily, Weekly, and Seasonal Pass discounts remain isolated to ROI; vial acquisition cost remains separate.',
+    'Sustainable output excludes temporary 2× time. Boosted output includes current overclock, selected vial, and the optional daily Node boost. Funding-aware output follows sequential QN purchases.',
     `${!scenario.fullFitsCap ? `<div class="warning">Simulated build requires ${compact(scenario.fullStats.slots)} slots but the configured maximum is ${compact(scenario.slotCap)}. The output below is informational only until the slot cap is increased or the build is reduced.</div>` : ''}
     <div class="output-ready-strip">
       <div>
@@ -370,7 +439,7 @@ function outputView(scenario: DeckScenario): string {
         ${next !== null ? `<small>Eligible ${formatLocalTime(next, false)}</small>` : ''}
       </span>
       <span><b>CURRENT OVERCLOCK</b><strong>${scenario.existingOverclock ? duration(scenario.existingOverclock, { ready: false }) : 'OFF'}</strong></span>
-      <span class="orange"><b>SIMULATED OVERCLOCK</b><strong>${scenario.simulatedOverclock ? duration(scenario.simulatedOverclock, { ready: false }) : 'OFF'}</strong></span>
+      <span class="orange"><b>SIMULATED TEMP BOOST</b><strong>${scenario.simulatedOverclock ? duration(scenario.simulatedOverclock, { ready: false }) : 'OFF'}</strong><small>${scenario.nodeBoostSeconds ? `${duration(scenario.nodeBoostSeconds, { ready: false })} from daily Node boost` : 'No daily Node boost included'}</small></span>
     </div>`,
     netSimulatedDayGrind !== null
       ? `${compact(netSimulatedDayGrind, 2)} ${includeVialCost ? 'NET ' : ''}$GRIND / 24H`
@@ -391,12 +460,12 @@ function outputView(scenario: DeckScenario): string {
       qnBasePrice: pricing.base,
       qnPriceGrowth: pricing.growth,
     }).balance,
-    projectionNote: `Funding-aware projection starts with ${compact(scenario.currentGrit)} GRIT, buys the simulated ${scenario.addedQns} QNs sequentially, and applies existing plus added vial time. Holder-tier refinery discount is already in the ROI baseline; Daily/Weekly/Pass choices affect only this ROI section.`,
+    projectionNote: `Funding-aware projection starts with ${compact(scenario.currentGrit)} GRIT, buys the simulated ${scenario.addedQns} QNs sequentially, and applies selected temporary boost time. Holder-tier and Node refinery discounts are already in the ROI baseline; Daily/Weekly/Pass choices affect only this ROI section.`,
   });
 
   return `${intro(
     'DECK SIMULATOR',
-    'Start with your current deck, add Quantum Nodes and/or vial time, then compare the realistic result. QNs are funded sequentially when GRIT becomes available.',
+    'Start with your current deck, optionally change the staking Node, add Quantum Nodes and/or vial time, then compare sustainable, boosted, and funding-aware output.',
   )}${setupPanels(scenario)}${outputPanel}${discountRoi}`;
 }
 
@@ -422,7 +491,7 @@ function costingView(scenario: DeckScenario): string {
     { item: 'RACK SLOT EXPANSION', detail: rack.count ? `${rack.count} × +6 rack slots` : 'No expansion needed', grind: rack.total, note: scenario.fullFitsCap ? (rack.count ? `Starts from inferred ${capacity}-slot capacity; target uses ${scenario.fullStats.slots} slots.` : `Inferred ${capacity}-slot capacity fits the simulation.`) : `Costed only through the configured ${scenario.slotCap}-slot maximum; target uses ${scenario.fullStats.slots}.` },
     ...(!scenario.fullFitsCap ? [{ item: 'DECK SLOT CAP', detail: `${scenario.fullStats.slots} needed · ${scenario.slotCap} maximum`, note: 'The simulated build does not fit the configured maximum deck slots.' } as CostRow] : []),
     { item: 'VIAL ACQUISITION', detail: hasVial ? `${store.deck.vialHours}H market reference` : 'No vial', grind: vialCharge, note: hasVial ? (store.deck.baseline.includeVialCost ? 'Included using Settings market reference.' : 'Reference selected but not charged.') : 'No vial selected.' },
-    { item: 'TOTAL KNOWN COST', grind: totalGrind, grit: qnCost, note: scenario.fullFitsCap ? 'Currencies remain separate.' : 'Currencies remain separate. Rack cost stops at the configured slot cap.', total: true },
+    { item: 'TOTAL KNOWN COST', grind: totalGrind, grit: qnCost, note: scenario.fullFitsCap ? 'Currencies remain separate. Staking lock is not treated as an acquisition cost.' : 'Currencies remain separate. Rack cost stops at the configured slot cap. Staking lock is not treated as an acquisition cost.', total: true },
   ];
 
   const fundingRows = [
@@ -479,7 +548,7 @@ function readinessView(scenario: DeckScenario): string {
     introText: 'This view uses the Deck Simulator setup from OUTPUT.',
     rateLabel: 'CURRENT NORMAL RATE',
     issues,
-    pricingNote: `QN pricing setting: <b>${compact(pricing.base)} GRIT × ${pricing.growth}^owned</b>. Existing overclock plus the selected vial accelerates purchases only while active.`,
+    pricingNote: `QN pricing setting: <b>${compact(pricing.base)} GRIT × ${pricing.growth}^owned</b>. Current overclock, selected vial, and the optional daily Node boost accelerate purchases only while their 2× windows are active.`,
   });
 
   return `${!scenario.fullFitsCap ? panel(
