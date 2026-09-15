@@ -1,4 +1,5 @@
 import { COOLANT_LEVELS, PRESTIGE_OPTIONS, TIER_OPTIONS, VIAL_OPTIONS } from '../config/game';
+import { multiplier } from '../core/calculations';
 import { compact, escapeHtml, inputText, money, number } from '../core/format';
 import { store } from '../core/state';
 import type { BuffState, CompareRow, CostRow, Rig, Scope } from '../types';
@@ -165,6 +166,16 @@ export function buffsUi(
       'Selected vial hours run at 2×; the rest of the 24H benchmark is normal.',
     );
   }
+
+  const totalMultiplier = multiplier(buffs);
+  const totalMultiplierText = totalMultiplier.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
+  html += `<div class="buff-total-multiplier">
+    <div>
+      <small>TOTAL BUFF MULTIPLIER</small>
+      <span>Permanent production buffs combined · temporary 2× boosts not included.</span>
+    </div>
+    <strong>×${totalMultiplierText}</strong>
+  </div>`;
 
   return `${html}</div>`;
 }
