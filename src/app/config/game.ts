@@ -64,6 +64,8 @@ export const PRESTIGE_OPTIONS = [
   { label: 'NONE', pct: 0 },
   { label: 'PRESTIGE II', pct: 25 },
   { label: 'PRESTIGE III', pct: 50 },
+  { label: 'PRESTIGE IV', pct: 75 },
+  { label: 'PRESTIGE V', pct: 100 },
 ] as const;
 
 export const VIAL_OPTIONS = [0, 3, 6, 8, 12, 24] as const;
