@@ -3,6 +3,7 @@ declare const require: (id: string) => any;
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
+import { DEFAULT_SETTINGS } from '../src/app/config/game';
 import {
   coolantUpgradeCost,
   fundingTimeline,
@@ -73,6 +74,10 @@ function installMemoryStorage(): Map<string, string> {
   Object.defineProperty(globalThis, 'localStorage', { value: memoryStorage(memory), configurable: true });
   return memory;
 }
+
+test('QDC-S defaults to +800 per QN synergy', () => {
+  assert.equal(DEFAULT_SETTINGS.rigPresets.qdc_s.synergy, 800);
+});
 
 test('production applies overclock only inside the requested window', () => {
   const result = production(100, 3600, 1800);

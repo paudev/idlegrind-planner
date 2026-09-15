@@ -177,6 +177,10 @@ function loadStore(): ApplicationStore {
   state.settings.qnPriceGrowth = Math.max(1, number(state.settings.qnPriceGrowth, DEFAULT_SETTINGS.qnPriceGrowth));
   normalizeDiscountSettings(state.settings.refineDiscounts);
   Object.values(state.settings.rigPresets).forEach(normalizePreset);
+  const qdcSPreset = state.settings.rigPresets.qdc_s;
+  if (qdcSPreset && Math.abs(number(qdcSPreset.synergy) - 600) < 1e-9) {
+    qdcSPreset.synergy = DEFAULT_SETTINGS.rigPresets.qdc_s.synergy;
+  }
   state.target.tier = normalizeTier(state.target.tier);
   state.reset.tier = normalizeTier(state.reset.tier);
   state.reset.vialHours = normalizeVialHours(state.reset.vialHours);
