@@ -11,7 +11,7 @@ import { production } from '../core/calculations';
 import { clamp, compact, duration, number } from '../core/format';
 import { holderTierRefineDiscountPct, holderTierRefineRate } from '../core/refine-discounts';
 import { store } from '../core/state';
-import { chip, choiceRow, field, intro, metric, pageStack, panel } from '../ui/components';
+import { chip, choiceRow, field, holderTierLabel, intro, metric, pageStack, panel } from '../ui/components';
 
 export function renderPotentialView(): string {
   const cycle = cashoutCycle();
@@ -40,7 +40,7 @@ export function renderPotentialView(): string {
   )).join('');
 
   const tierChoices = TIER_OPTIONS.map((option) => {
-    const label = option.refinePct ? `${option.label} · −${option.refinePct}% REFINE` : option.label;
+    const label = holderTierLabel(option);
     return `<label class="chip ${Math.abs(tier - option.mult) < 1e-9 ? 'active' : ''}">
       <input type="radio" hidden name="potential-holder-tier" data-path="state.reset.tier" value="${option.mult}" ${Math.abs(tier - option.mult) < 1e-9 ? 'checked' : ''}>
       ${label}
@@ -81,7 +81,7 @@ export function renderPotentialView(): string {
         ${choiceRow(
           'HOLDER TIER',
           tierChoices,
-          'This changes GRIT → $GRIND conversion only. Enter NORMAL GRIT / SECOND as your already-final normal production rate so the tier hash multiplier is not double-counted.',
+          'Shows the full holder tier. Its refinery discount is applied here; enter your already-final NORMAL GRIT / SECOND so the × hash multiplier shown on the chip is not applied twice.',
         )}
         ${choiceRow('OVERCLOCK', vialButtons, 'Vial hours run at 2× from now.')}
       </div>`,

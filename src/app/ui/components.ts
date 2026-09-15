@@ -113,13 +113,17 @@ export function subTabs(scope: Scope, active: string, includeReadiness = false):
   </div>`;
 }
 
+export function holderTierLabel(option: (typeof TIER_OPTIONS)[number]): string {
+  return `${option.label} ×${option.mult}${option.refinePct ? ` · REFINE -${option.refinePct}%` : ''}`;
+}
+
 export function buffsUi(
   buffs: BuffState,
   scope: Scope,
   { withVial = false, vialHours = 0 }: { withVial?: boolean; vialHours?: number } = {},
 ): string {
   const tiers = TIER_OPTIONS.map((tier) => chip(
-    `${tier.label} ×${tier.mult}${tier.refinePct ? ` · REFINE −${tier.refinePct}%` : ''}`,
+    holderTierLabel(tier),
     buffs.tier === tier.mult,
     `data-buff="${scope}:tier:${tier.mult}"`,
     tier.mult >= 1.6 ? 'gold' : '',

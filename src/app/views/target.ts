@@ -3,7 +3,7 @@ import { TIER_OPTIONS } from '../config/game';
 import { compact, number } from '../core/format';
 import { holderTierRefineDiscountPct, holderTierRefineRate } from '../core/refine-discounts';
 import { store } from '../core/state';
-import { choiceRow, field, intro, metric, pageStack, panel } from '../ui/components';
+import { choiceRow, field, holderTierLabel, intro, metric, pageStack, panel } from '../ui/components';
 
 export function renderTargetView(): string {
   const target = Math.max(0, number(store.state.target.grindPerDay));
@@ -15,7 +15,7 @@ export function renderTargetView(): string {
   const rate = target > 0 && validRefine ? target * refine / DAY : 0;
   const gritPerDay = validRefine ? target * refine : null;
   const tierChoices = TIER_OPTIONS.map((option) => {
-    const label = option.refinePct ? `${option.label} · −${option.refinePct}% REFINE` : option.label;
+    const label = holderTierLabel(option);
     return `<label class="chip ${Math.abs(tier - option.mult) < 1e-9 ? 'active' : ''}">
       <input type="radio" hidden name="target-holder-tier" data-path="state.target.tier" value="${option.mult}" ${Math.abs(tier - option.mult) < 1e-9 ? 'checked' : ''}>
       ${label}
@@ -43,7 +43,7 @@ export function renderTargetView(): string {
       ${choiceRow(
         'HOLDER TIER',
         tierChoices,
-        'Applies the holder-tier refinery discount to the current game rate. The tier hash multiplier is not applied here because this page solves for the final required production rate.',
+        'Shows the full holder tier. Its refinery discount is applied here; the × hash multiplier is shown for reference only because this page solves for the final required production rate.',
       )}
       <div class="metric-grid">
         ${metric('GRIT / 24H', gritPerDay !== null ? compact(gritPerDay) : '—', 'gold')}
