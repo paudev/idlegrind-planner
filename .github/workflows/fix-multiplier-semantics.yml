@@ -1,0 +1,35 @@
+name: Fix multiplier semantics
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/fix-multiplier-semantics.py'
+      - '.github/workflows/fix-multiplier-semantics.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply source patch
+        run: python3 scripts/fix-multiplier-semantics.py
+      - name: Install dependencies
+        run: npm ci
+      - name: Validate
+        run: npm run build
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm scripts/fix-multiplier-semantics.py .github/workflows/fix-multiplier-semantics.yml
+          git add src/app/core/calculations.ts src/app/views/planner.ts src/app/ui/components.ts src/app/ui/staking.ts tests/staking.test.ts
+          git commit -m "fix: align multiplier with mining deck semantics"
+          git push
