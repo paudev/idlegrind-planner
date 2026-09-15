@@ -34,6 +34,42 @@
   padding: 14px 15px;
 }
 
+/* Keep the combined permanent production multiplier visible inside both buff editors. */
+.buff-total-multiplier {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid #31513f;
+  border-radius: 7px;
+  background: rgba(20,241,149,.035);
+}
+
+.buff-total-multiplier small {
+  display: block;
+  color: #a9c8b5;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .1em;
+}
+
+.buff-total-multiplier span {
+  display: block;
+  margin-top: 3px;
+  color: #69766d;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.buff-total-multiplier strong {
+  flex: none;
+  color: var(--green);
+  font-size: 24px;
+  line-height: 1;
+}
+
 /* Result cards are supporting information, so keep their hierarchy below the primary result. */
 .result-data-card {
   padding: 12px 13px;
@@ -61,5 +97,13 @@
   .node-value-panel + .optimized-build-warning,
   .boost-summary + .optimized-build-warning {
     margin-top: 14px;
+  }
+
+  .buff-total-multiplier {
+    align-items: flex-start;
+  }
+
+  .buff-total-multiplier strong {
+    font-size: 21px;
   }
 }
