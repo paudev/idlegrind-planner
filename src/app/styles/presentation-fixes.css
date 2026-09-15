@@ -1,0 +1,65 @@
+/* Final presentation cleanup for Deck Simulator and Build Planner. */
+
+/* Give the Build Planner minimum result distinct visual sections instead of one dense block. */
+.planner-primary-grid {
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.planner-primary-card {
+  padding: 16px 17px;
+}
+
+.planner-primary-grid + .result-data-grid {
+  margin-top: 0;
+}
+
+.planner-primary-grid + .result-data-grid,
+.node-value-panel,
+.boost-summary,
+.optimized-build-warning {
+  margin-bottom: 0;
+}
+
+.result-data-grid + .node-value-panel,
+.result-data-grid + .boost-summary,
+.node-value-panel + .boost-summary,
+.result-data-grid + .optimized-build-warning,
+.node-value-panel + .optimized-build-warning,
+.boost-summary + .optimized-build-warning {
+  margin-top: 18px;
+}
+
+.node-value-panel {
+  padding: 14px 15px;
+}
+
+/* Result cards are supporting information, so keep their hierarchy below the primary result. */
+.result-data-card {
+  padding: 12px 13px;
+}
+
+.result-data-card small {
+  line-height: 1.35;
+}
+
+/* Make refine terminology self-explanatory anywhere a compact result card is used. */
+.result-data-card strong {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 680px) {
+  .planner-primary-grid {
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .result-data-grid + .node-value-panel,
+  .result-data-grid + .boost-summary,
+  .node-value-panel + .boost-summary,
+  .result-data-grid + .optimized-build-warning,
+  .node-value-panel + .optimized-build-warning,
+  .boost-summary + .optimized-build-warning {
+    margin-top: 14px;
+  }
+}
