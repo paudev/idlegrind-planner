@@ -11,7 +11,7 @@ import { production } from '../core/calculations';
 import { clamp, compact, duration, number } from '../core/format';
 import { holderTierRefineDiscountPct, holderTierRefineRate } from '../core/refine-discounts';
 import { store } from '../core/state';
-import { chip, choiceRow, field, holderTierLabel, intro, metric, pageStack, panel } from '../ui/components';
+import { chip, choiceRow, field, holderTierChipContent, holderTierRow, intro, metric, pageStack, panel } from '../ui/components';
 
 export function renderPotentialView(): string {
   const cycle = cashoutCycle();
@@ -39,13 +39,10 @@ export function renderPotentialView(): string {
     hours ? 'orange' : '',
   )).join('');
 
-  const tierChoices = TIER_OPTIONS.map((option) => {
-    const label = holderTierLabel(option);
-    return `<label class="chip ${Math.abs(tier - option.mult) < 1e-9 ? 'active' : ''}">
-      <input type="radio" hidden name="potential-holder-tier" data-path="state.reset.tier" value="${option.mult}" ${Math.abs(tier - option.mult) < 1e-9 ? 'checked' : ''}>
-      ${label}
-    </label>`;
-  }).join('');
+  const tierChoices = TIER_OPTIONS.map((option) => `<label class="holder-tier-card ${Math.abs(tier - option.mult) < 1e-9 ? 'active' : ''}">
+    <input type="radio" hidden name="potential-holder-tier" data-path="state.reset.tier" value="${option.mult}" ${Math.abs(tier - option.mult) < 1e-9 ? 'checked' : ''}>
+    ${holderTierChipContent(option)}
+  </label>`).join('');
 
   return pageStack(
     intro(
@@ -78,10 +75,9 @@ export function renderPotentialView(): string {
       'Use your expected normal production rate, holder tier, and optional overclock vial.',
       `<div class="input-section">
         ${field('state.reset.finalRate', 'NORMAL GRIT / SECOND', rate)}
-        ${choiceRow(
-          'HOLDER TIER',
+        ${holderTierRow(
           tierChoices,
-          'Shows the full holder tier. Its refinery discount is applied here; enter your already-final NORMAL GRIT / SECOND so the × hash multiplier shown on the chip is not applied twice.',
+          'Refine affects conversion. Enter an already-final normal rate, so hash is shown for reference only.',
         )}
         ${choiceRow('OVERCLOCK', vialButtons, 'Vial hours run at 2× from now.')}
       </div>`,

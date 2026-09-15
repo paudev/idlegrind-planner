@@ -113,8 +113,22 @@ export function subTabs(scope: Scope, active: string, includeReadiness = false):
   </div>`;
 }
 
-export function holderTierLabel(option: (typeof TIER_OPTIONS)[number]): string {
-  return `${option.label} ×${option.mult}${option.refinePct ? ` · REFINE -${option.refinePct}%` : ''}`;
+export function holderTierChipContent(option: (typeof TIER_OPTIONS)[number]): string {
+  return `<span class="holder-tier-name">${option.label}</span>
+    <span class="holder-tier-stats">
+      <b>HASH ×${option.mult}</b>
+      <em>${option.refinePct ? `REFINE −${option.refinePct}%` : 'REFINE —'}</em>
+    </span>`;
+}
+
+export function holderTierRow(body: string, hint = ''): string {
+  return `<div class="holder-tier-row">
+    <div class="holder-tier-row-head">
+      <b>HOLDER TIER</b>
+      ${hint ? `<small>${hint}</small>` : ''}
+    </div>
+    <div class="holder-tier-grid">${body}</div>
+  </div>`;
 }
 
 export function buffsUi(
@@ -122,12 +136,9 @@ export function buffsUi(
   scope: Scope,
   { withVial = false, vialHours = 0 }: { withVial?: boolean; vialHours?: number } = {},
 ): string {
-  const tiers = TIER_OPTIONS.map((tier) => chip(
-    holderTierLabel(tier),
-    buffs.tier === tier.mult,
-    `data-buff="${scope}:tier:${tier.mult}"`,
-    tier.mult >= 1.6 ? 'gold' : '',
-  )).join('');
+  const tiers = TIER_OPTIONS.map((tier) => `<button type="button" class="holder-tier-card ${buffs.tier === tier.mult ? 'active' : ''}" data-buff="${scope}:tier:${tier.mult}">
+    ${holderTierChipContent(tier)}
+  </button>`).join('');
 
   const coolant = COOLANT_LEVELS.map((level) => chip(
     level ? `+${level * 10}%` : 'OFF',
@@ -150,7 +161,7 @@ export function buffsUi(
   ];
 
   let html = `<div class="buffdeck">
-    ${choiceRow('TIER', tiers, 'Operator+ also reduces GRIT required per $GRIND.')}
+    ${holderTierRow(tiers, 'Hash multiplier affects production. Operator+ also lowers GRIT required per $GRIND.')}
     ${choiceRow('COOLANT', coolant)}
     ${choiceRow('PRESTIGE', prestige)}
     ${choiceRow('FRAMES', frames.map(([key, label, tone]) => chip(label, buffs[key], `data-frame="${scope}:${key}"`, tone)).join(''), 'Mixed replaces the normal frame layer.')}

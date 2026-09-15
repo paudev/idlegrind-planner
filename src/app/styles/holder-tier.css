@@ -1,0 +1,93 @@
+.holder-tier-row{
+  padding:14px 0 15px;
+  border-bottom:1px solid #1e2720;
+}
+.holder-tier-row-head{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:18px;
+  margin-bottom:10px;
+}
+.holder-tier-row-head>b{
+  color:#a6b1a8;
+  font-size:12px;
+  letter-spacing:.09em;
+}
+.holder-tier-row-head>small{
+  color:#68746b;
+  font-size:10.5px;
+  line-height:1.4;
+  text-align:right;
+}
+.holder-tier-grid{
+  display:grid;
+  grid-template-columns:repeat(7,minmax(0,1fr));
+  gap:7px;
+}
+.holder-tier-card{
+  min-width:0;
+  min-height:66px;
+  padding:9px 10px;
+  border:1px solid #334038;
+  border-radius:6px;
+  background:#0b100c;
+  color:#9ca79e;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:center;
+  gap:5px;
+  cursor:pointer;
+  text-align:left;
+}
+button.holder-tier-card{font:inherit}
+.holder-tier-card:hover{
+  border-color:#46564b;
+  filter:brightness(1.08);
+}
+.holder-tier-card.active{
+  border-color:#367354;
+  background:rgba(20,241,149,.085);
+  box-shadow:inset 0 0 14px rgba(20,241,149,.025);
+}
+.holder-tier-name{
+  color:#c3cdc5;
+  font-size:11.5px;
+  font-weight:950;
+  letter-spacing:.035em;
+  white-space:nowrap;
+}
+.holder-tier-card.active .holder-tier-name{color:var(--green)}
+.holder-tier-stats{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  font-size:9.5px;
+  line-height:1.2;
+  letter-spacing:.045em;
+}
+.holder-tier-stats b{
+  color:#8ea097;
+  font-weight:850;
+}
+.holder-tier-stats em{
+  color:#7e897f;
+  font-style:normal;
+  font-weight:800;
+}
+.holder-tier-card.active .holder-tier-stats b{color:#bfe9d2}
+.holder-tier-card.active .holder-tier-stats em{color:#a5bbae}
+.input-section>.holder-tier-row{margin-top:4px}
+@media(max-width:1080px){
+  .holder-tier-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media(max-width:700px){
+  .holder-tier-row-head{align-items:flex-start;flex-direction:column;gap:4px}
+  .holder-tier-row-head>small{text-align:left}
+  .holder-tier-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:420px){
+  .holder-tier-grid{grid-template-columns:1fr}
+}
