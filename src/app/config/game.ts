@@ -44,7 +44,7 @@ export const DEFAULT_SETTINGS: SettingsState = {
     tiny_qdc: { name: 'TINY QDC', rate: 2500, synergy: 62.5, slots: 1, accent: 'purple' },
     mini_qdc: { name: 'MINI QDC', rate: 5000, synergy: 125, slots: 1, accent: 'purple' },
     qdc: { name: 'QUANTUM DATA CENTER', rate: 10000, synergy: 400, slots: 1, accent: 'purple' },
-    qdc_s: { name: 'QUANTUM DATA CENTER S', rate: 20000, synergy: 600, slots: 1, accent: 'gold' },
+    qdc_s: { name: 'QUANTUM DATA CENTER S', rate: 20000, synergy: 800, slots: 1, accent: 'gold' },
   },
 };
 
