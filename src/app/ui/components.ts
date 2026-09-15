@@ -167,17 +167,32 @@ export function buffsUi(
     );
   }
 
-  const totalMultiplier = multiplier(buffs);
-  const totalMultiplierText = totalMultiplier.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
-  html += `<div class="buff-total-multiplier">
-    <div>
-      <small>TOTAL BUFF MULTIPLIER</small>
-      <span>Permanent production buffs combined · temporary 2× boosts not included.</span>
-    </div>
-    <strong>×${totalMultiplierText}</strong>
-  </div>`;
+  html += buffMultiplierSummary(buffs, vialHours);
 
   return `${html}</div>`;
+}
+
+function multiplierText(value: number): string {
+  return value.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
+}
+
+export function buffMultiplierSummary(
+  buffs: BuffState,
+  vialHours = 0,
+  label = 'TOTAL BUFF MULTIPLIER',
+): string {
+  const permanent = multiplier(buffs);
+  const vial = Math.max(0, number(vialHours));
+  return `<div class="buff-total-multiplier">
+    <div class="buff-total-copy">
+      <small>${label}</small>
+      <span>Permanent production buffs combined${vial > 0 ? ' · vial multiplier shown separately.' : ' · temporary 2× boosts not included.'}</span>
+    </div>
+    <div class="buff-total-values">
+      <div><em>PERMANENT</em><strong>×${multiplierText(permanent)}</strong></div>
+      ${vial > 0 ? `<div class="vial"><em>WITH ${vial}H VIAL</em><strong>×${multiplierText(permanent * 2)}</strong></div>` : ''}
+    </div>
+  </div>`;
 }
 
 export function rigButtons(scope: Scope): string {

@@ -63,11 +63,39 @@
   line-height: 1.35;
 }
 
+.buff-total-values {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.buff-total-values > div {
+  min-width: 92px;
+  text-align: right;
+}
+
+.buff-total-values em {
+  display: block;
+  margin-bottom: 4px;
+  color: #6f7c72;
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
 .buff-total-multiplier strong {
-  flex: none;
+  display: block;
   color: var(--green);
   font-size: 24px;
   line-height: 1;
+}
+
+.buff-total-values .vial em,
+.buff-total-values .vial strong {
+  color: var(--orange);
 }
 
 /* Result cards are supporting information, so keep their hierarchy below the primary result. */
@@ -101,6 +129,16 @@
 
   .buff-total-multiplier {
     align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .buff-total-values {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .buff-total-values > div {
+    text-align: left;
   }
 
   .buff-total-multiplier strong {

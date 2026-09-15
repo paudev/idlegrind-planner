@@ -40,6 +40,7 @@ import type {
   RigStats,
 } from '../types';
 import {
+  buffMultiplierSummary,
   buffsUi,
   chip,
   choiceRow,
@@ -283,6 +284,7 @@ function setupPanels(scenario: DeckScenario): string {
     ${simulatedNodeRow(store.deck.buffs, store.deck.simulatedNode)}
     ${dailyNodeBoostToggle(scenario.simulatedBuffs.stakingNode, store.deck.includeDailyNodeBoost)}
     ${choiceRow('ADD VIAL', vialButtons, 'Extra one-time 2× time. Daily Node boost remains a separate recurring perk.')}
+    ${buffMultiplierSummary(scenario.simulatedBuffs, store.deck.vialHours, 'SIMULATED MULTIPLIER')}
     ${choiceRow('COSTING', vialCostControl, hasSelectedVial ? `Optional vial purchase cost · ${store.deck.vialHours}H market reference.` : 'Select a vial to enable acquisition costing.')}`,
   )}`;
 }
