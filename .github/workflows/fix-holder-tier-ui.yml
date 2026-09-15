@@ -1,0 +1,34 @@
+name: Fix holder tier UI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/fix-holder-tier-ui.py'
+      - '.github/workflows/fix-holder-tier-ui.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Apply source patch
+        run: python3 scripts/fix-holder-tier-ui.py
+      - name: Install dependencies
+        run: npm install
+      - name: Validate
+        run: npm run build
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm scripts/fix-holder-tier-ui.py .github/workflows/fix-holder-tier-ui.yml
+          git add src/app/ui/components.ts src/app/views/target.ts src/app/views/potential.ts
+          git commit -m "fix: normalize holder tier display across pages"
+          git push
