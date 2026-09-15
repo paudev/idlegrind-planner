@@ -151,7 +151,7 @@ export function buffsUi(
     ${choiceRow('PRESTIGE', prestige)}
     ${choiceRow('FRAMES', frames.map(([key, label, tone]) => chip(label, buffs[key], `data-frame="${scope}:${key}"`, tone)).join(''), 'Mixed replaces the normal frame layer.')}
     ${choiceRow('AURA', `${chip('OFF', number(buffs.auraPct) === 0, `data-buff="${scope}:auraPct:0"`, 'purple')}${chip('+10%', number(buffs.auraPct) === 10, `data-buff="${scope}:auraPct:10"`, 'purple')}<label class="mini-input">CUSTOM <input data-custom-buff="${scope}:auraPct" data-num value="${inputText(buffs.auraPct)}"></label>`)}
-    ${choiceRow('CORE', `<label class="mini-input">POWER % <input data-custom-buff="${scope}:corePct" data-num value="${inputText(buffs.corePct)}"></label>`)}
+    ${choiceRow('CORE', `<label class="mini-input">POWER % <input data-custom-buff="${scope}:corePct" data-num value="${inputText(buffs.corePct)}"></label>`, 'Use the exact Core Power from THE CORE (for example 1.60), not the rounded Mining Deck badge.')}
   `;
 
   if (withVial) {
@@ -173,7 +173,7 @@ export function buffsUi(
 }
 
 function multiplierText(value: number): string {
-  return value.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
+  return value.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
 }
 
 export function buffMultiplierSummary(
@@ -186,7 +186,7 @@ export function buffMultiplierSummary(
   return `<div class="buff-total-multiplier">
     <div class="buff-total-copy">
       <small>${label}</small>
-      <span>Permanent production buffs combined${vial > 0 ? ' · vial multiplier shown separately.' : ' · temporary 2× boosts not included.'}</span>
+      <span>Matches the Mining Deck buff stack · Node hash bonus is applied to hash rate, not this total${vial > 0 ? ' · vial 2× shown separately.' : '.'}</span>
     </div>
     <div class="buff-total-values">
       <div><em>PERMANENT</em><strong>×${multiplierText(permanent)}</strong></div>

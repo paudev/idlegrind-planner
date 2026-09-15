@@ -6,7 +6,7 @@ import {
 } from '../config/economy';
 import {
   coolantUpgradeCost,
-  multiplier,
+  effectiveHashMultiplier,
   productionWithDailyBoost,
   qnTotalCost,
   rackExpansion,
@@ -127,7 +127,7 @@ function optimizeBuild(): BuildResult {
   if (refine < 1000) return invalidBuild('Set a valid refinery rate under Settings.');
 
   const quantumNode = getQuantumNodePreset();
-  const buildMultiplier = multiplier(store.state.planner.buffs);
+  const buildMultiplier = effectiveHashMultiplier(store.state.planner.buffs);
   const vialHours = clamp(number(store.state.planner.vialHours), 0, 24);
   const dailyBoostHours = nodeBoostHours();
   const solution = solveOfficialMinimum(vialHours);
@@ -332,7 +332,7 @@ function outputView(result: BuildResult): string {
       <h3>${node.label.toUpperCase()} VALUE</h3>
       <div class="result-data-grid">
         <div class="result-data-card"><small>QNs SAVED VS NO NODE</small><strong class="positive">${nodeQnsSaved ? `−${nodeQnsSaved} QNs` : '0 QNs'}</strong><span>${noNodeSolution.qns !== null ? `No Node minimum: ${noNodeSolution.qns} QNs` : 'No-Node minimum unavailable'}</span></div>
-        <div class="result-data-card"><small>HASH BONUS</small><strong>${node.hashPct ? `+${node.hashPct}%` : 'NONE'}</strong><span>Permanent hashpower multiplier</span></div>
+        <div class="result-data-card"><small>HASH BONUS</small><strong>${node.hashPct ? `+${node.hashPct}%` : 'NONE'}</strong><span>Applied to hash rate, not TOTAL BUFF MULTIPLIER</span></div>
         <div class="result-data-card"><small>REFINE SAVED</small><strong class="positive">${nodeRefineSaved > 0 ? `${compact(nodeRefineSaved)} GRIT` : '0 GRIT'}</strong><span>Saved per $GRIND vs same holder tier</span></div>
         <div class="result-data-card"><small>DAILY BOOST VALUE</small><strong class="${nodeDailyGain > 0 ? 'positive' : ''}">${dailyNodeHours ? `+${compact(nodeDailyGain)} $GRIND` : 'NONE'}</strong><span>${dailyNodeHours ? `${dailyNodeHours}h/day at 2× · not used to lower minimum QNs` : 'This Node has no daily boost'}</span></div>
       </div>

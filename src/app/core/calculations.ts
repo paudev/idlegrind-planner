@@ -33,9 +33,12 @@ export function multiplier(buffs: BuffState): number {
     : 1 + (buffs.bronze ? 0.15 : 0) + (buffs.silver ? 0.3 : 0) + (buffs.gold ? 0.55 : 0);
   const aura = 1 + Math.max(0, number(buffs.auraPct)) / 100;
   const core = 1 + Math.max(0, number(buffs.corePct)) / 100;
-  const staking = stakingHashMultiplier(buffs.stakingNode);
 
-  return tier * coolant * prestige * frame * aura * core * staking;
+  return tier * coolant * prestige * frame * aura * core;
+}
+
+export function effectiveHashMultiplier(buffs: BuffState): number {
+  return multiplier(buffs) * stakingHashMultiplier(buffs.stakingNode);
 }
 
 function defaultQuantumNode(): RigPreset {
@@ -73,7 +76,7 @@ export function rigStats(rigs: Rig[], qns: number, quantumNode: RigPreset = defa
 
 export function rateFactory(rigs: Rig[], buffs: BuffState, quantumNode: RigPreset = defaultQuantumNode()): (qns: number) => number {
   const fixed = rigStats(rigs, 0, quantumNode);
-  const buffMultiplier = multiplier(buffs);
+  const buffMultiplier = effectiveHashMultiplier(buffs);
   return (qns: number) => Math.max(0, (fixed.fixedBase + Math.max(0, Math.floor(number(qns))) * fixed.perQn) * buffMultiplier);
 }
 
@@ -349,7 +352,7 @@ export function solveMinimumBuild({
   const target = Math.max(0, number(targetGrindPerDay));
   const refine = Math.max(0, number(refineRate));
   const requiredRate = target * refine / DAY;
-  const buildMultiplier = multiplier(buffs);
+  const buildMultiplier = effectiveHashMultiplier(buffs);
   const fixed = rigStats(rigs, 0, quantumNode);
   const rateForQns = rateFactory(rigs, buffs, quantumNode);
   const startingRate = rateForQns(0);

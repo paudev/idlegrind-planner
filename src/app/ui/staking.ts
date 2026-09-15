@@ -152,7 +152,6 @@ export function productionMultiplierText(buffs: BuffState): string {
       : 1 + (buffs.bronze ? 0.15 : 0) + (buffs.silver ? 0.3 : 0) + (buffs.gold ? 0.55 : 0)],
     ['Aura', 1 + Math.max(0, number(buffs.auraPct)) / 100],
     ['Core', 1 + Math.max(0, number(buffs.corePct)) / 100],
-    ['Node', 1 + stakingNode(buffs.stakingNode).hashPct / 100],
   ];
   const active = factors.filter(([, value]) => Math.abs(value - 1) > 1e-9);
   return active.length
