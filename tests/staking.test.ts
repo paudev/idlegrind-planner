@@ -65,18 +65,18 @@ test('Node hash changes hash rate without changing the Mining Deck buff multipli
 
   const stacked = {
     ...baseBuffs,
-    tier: 1.4,
+    tier: 1.75,
     coolantLevel: 3,
     stakingNode: 4,
   } as BuffState;
-  assert.ok(Math.abs(multiplier(stacked) - 1.4 * 1.3) < 1e-12);
-  assert.ok(Math.abs(effectiveHashMultiplier(stacked) - 1.4 * 1.3 * 1.075) < 1e-12);
+  assert.ok(Math.abs(multiplier(stacked) - 1.75 * 1.3) < 1e-12);
+  assert.ok(Math.abs(effectiveHashMultiplier(stacked) - 1.75 * 1.3 * 1.075) < 1e-12);
 });
 
 test('exact Core Power reproduces the Mining Deck TOTAL before its rounded Core badge', () => {
   const gameLikeBuffs: BuffState = {
     ...baseBuffs,
-    tier: 1.6,
+    tier: 1.9,
     coolantLevel: 7,
     prestigePct: 50,
     bronze: true,
@@ -85,20 +85,20 @@ test('exact Core Power reproduces the Mining Deck TOTAL before its rounded Core 
     auraPct: 10,
     corePct: 1.6,
   };
-  assert.equal(multiplier(gameLikeBuffs).toFixed(2), '9.12');
+  assert.equal(multiplier(gameLikeBuffs).toFixed(2), '10.83');
 });
 
 test('staking refine compounds after the holder-tier refine discount', () => {
   const operatorNode4 = permanentRefineRate(104_000, {
     ...baseBuffs,
-    tier: 1.4,
+    tier: 1.75,
     stakingNode: 4,
   });
   assert.equal(operatorNode4, 93_860);
 
   const overlordNode3 = permanentRefineRate(104_000, {
     ...baseBuffs,
-    tier: 2,
+    tier: 3,
     stakingNode: 3,
   });
   assert.equal(overlordNode3, 79_872);
