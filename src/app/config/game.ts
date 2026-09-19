@@ -49,13 +49,13 @@ export const DEFAULT_SETTINGS: SettingsState = {
 };
 
 export const TIER_OPTIONS = [
-  { label: 'VISITOR', mult: 0.5, refinePct: 0, dailyCap: 0 },
-  { label: 'MINER', mult: 1, refinePct: 0, dailyCap: 0 },
-  { label: 'DRILLER', mult: 1.2, refinePct: 0, dailyCap: 0 },
-  { label: 'OPERATOR', mult: 1.4, refinePct: 5, dailyCap: 600_000 },
-  { label: 'WHALE', mult: 1.6, refinePct: 7, dailyCap: 1_000_000 },
-  { label: 'KINGPIN', mult: 1.8, refinePct: 10, dailyCap: 1_500_000 },
-  { label: 'OVERLORD', mult: 2, refinePct: 20, dailyCap: 2_000_000 },
+  { label: 'VISITOR', mult: 0.25, refinePct: 0, dailyCap: 0 },
+  { label: 'MINER', mult: 0.75, refinePct: 0, dailyCap: 0 },
+  { label: 'DRILLER', mult: 1, refinePct: 0, dailyCap: 0 },
+  { label: 'OPERATOR', mult: 1.75, refinePct: 5, dailyCap: 600_000 },
+  { label: 'WHALE', mult: 1.9, refinePct: 7, dailyCap: 1_000_000 },
+  { label: 'KINGPIN', mult: 2.25, refinePct: 10, dailyCap: 1_500_000 },
+  { label: 'OVERLORD', mult: 3, refinePct: 20, dailyCap: 2_000_000 },
 ] as const;
 
 export const COOLANT_LEVELS = Array.from({ length: 11 }, (_, level) => level);
