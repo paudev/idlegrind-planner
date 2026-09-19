@@ -286,15 +286,15 @@ test('no vial uses the normal-rate QN requirement', () => {
 });
 
 test('holder tiers apply the announced permanent refinery discounts', () => {
-  assert.equal(holderTierRefineDiscountPct(1.2), 0);
-  assert.equal(holderTierRefineDiscountPct(1.4), 5);
-  assert.equal(holderTierRefineDiscountPct(1.6), 7);
-  assert.equal(holderTierRefineDiscountPct(1.8), 10);
-  assert.equal(holderTierRefineDiscountPct(2), 20);
-  assert.equal(holderTierRefineRate(104_000, 1.4), 98_800);
-  assert.equal(holderTierRefineRate(104_000, 1.6), 96_720);
-  assert.equal(holderTierRefineRate(104_000, 1.8), 93_600);
-  assert.equal(holderTierRefineRate(104_000, 2), 83_200);
+  assert.equal(holderTierRefineDiscountPct(1), 0);
+  assert.equal(holderTierRefineDiscountPct(1.75), 5);
+  assert.equal(holderTierRefineDiscountPct(1.9), 7);
+  assert.equal(holderTierRefineDiscountPct(2.25), 10);
+  assert.equal(holderTierRefineDiscountPct(3), 20);
+  assert.equal(holderTierRefineRate(104_000, 1.75), 98_800);
+  assert.equal(holderTierRefineRate(104_000, 1.9), 96_720);
+  assert.equal(holderTierRefineRate(104_000, 2.25), 93_600);
+  assert.equal(holderTierRefineRate(104_000, 3), 83_200);
 });
 
 test('holder tier compounds with Daily, Weekly, and Seasonal Pass', () => {
@@ -308,20 +308,20 @@ test('holder tier compounds with Daily, Weekly, and Seasonal Pass', () => {
     weeklyActive: 1,
     passActive: 1,
   };
-  const overlordRate = holderTierRefineRate(104_000, 2);
+  const overlordRate = holderTierRefineRate(104_000, 3);
   const fullStack = effectiveRefineRate(overlordRate, settings);
   assert.ok(Math.abs(fullStack - 67_579.2) < 1e-9);
   assert.ok(Math.abs((1 - fullStack / 104_000) * 100 - 35.02) < 0.01);
 });
 
 test('900K target uses holder-tier-adjusted refinery requirement', () => {
-  const overlordRate = holderTierRefineRate(104_000, 2);
+  const overlordRate = holderTierRefineRate(104_000, 3);
   const result = solveMinimumBuild({
     targetGrindPerDay: 900_000,
     refineRate: overlordRate,
     vialHours: 0,
     rigs: [],
-    buffs: { ...buffs, tier: 2 },
+    buffs: { ...buffs, tier: 3 },
     quantumNode,
   });
   assert.ok(Math.abs(result.requiredRate - 866_666.6666666666) < 1e-6);
