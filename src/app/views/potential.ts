@@ -89,21 +89,21 @@ export function renderPotentialView(): string {
         : 'Additional production from now until your next eligible cashout.',
       `<div class="result-hero-pair">
         <div class="result-hero simulated">
-          <small>BY NEXT CASHOUT</small>
-          <strong>${windowProjection ? `${compact(windowProjection.grit)}<em> GRIT</em>` : '—'}</strong>
-          <p>${windowProjection ? `${duration(windowProjection.overclock, { ready: false })} at 2× · ${duration(windowProjection.normal, { ready: false })} normal` : 'Set last withdrawal to calculate.'}</p>
+          <small>EST. $GRIND BY NEXT CASHOUT</small>
+          <strong>${cashoutGrind !== null ? `${compact(cashoutGrind)}<em> $GRIND</em>` : '—'}</strong>
+          <p>${windowProjection ? `${compact(windowProjection.grit)} GRIT · ${duration(windowProjection.overclock, { ready: false })} at 2× · ${duration(windowProjection.normal, { ready: false })} normal` : 'Set last withdrawal to calculate.'}</p>
         </div>
         <div class="result-hero">
-          <small>FULL 24H PROJECTION</small>
-          <strong>${compact(fullDay.grit)}<em> GRIT</em></strong>
-          <p>${compact(fullDay.average)}/s effective · ${fullDayGrind !== null ? `${compact(fullDayGrind)} $GRIND` : 'set refine rate'}</p>
+          <small>FULL 24H $GRIND PROJECTION</small>
+          <strong>${fullDayGrind !== null ? `${compact(fullDayGrind)}<em> $GRIND</em>` : '—'}</strong>
+          <p>${compact(fullDay.grit)} GRIT · ${compact(fullDay.average)}/s effective</p>
         </div>
       </div>
       <div class="metric-grid">
         ${metric('NORMAL RATE', `${compact(rate)}/s`)}
         ${metric('2× RATE', `${compact(rate * 2)}/s`, 'orange')}
         ${metric('HOLDER REFINE', refine >= 1000 ? `${compact(refine)} GRIT` : '—', tierPct ? 'green' : '', tierPct ? `${compact(currentRefine)} current rate − ${tierPct}% holder discount.` : 'Current game refine rate; no holder discount on this tier.')}
-        ${metric('EST. $GRIND BY NEXT CASHOUT', cashoutGrind !== null ? compact(cashoutGrind) : '—', 'green')}
+        ${metric('GRIT BY NEXT CASHOUT', windowProjection ? compact(windowProjection.grit) : '—')}
       </div>`,
       cashoutGrind !== null ? `${compact(cashoutGrind, 2)} $GRIND` : '',
     ),
