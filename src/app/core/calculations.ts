@@ -33,8 +33,9 @@ export function multiplier(buffs: BuffState): number {
     : 1 + (buffs.bronze ? 0.15 : 0) + (buffs.silver ? 0.3 : 0) + (buffs.gold ? 0.55 : 0);
   const aura = 1 + Math.max(0, number(buffs.auraPct)) / 100;
   const core = 1 + Math.max(0, number(buffs.corePct)) / 100;
+  const layout = 1 + Math.max(0, number(buffs.layoutPct)) / 100;
 
-  return tier * coolant * prestige * frame * aura * core;
+  return tier * coolant * prestige * frame * aura * core * layout;
 }
 
 export function effectiveHashMultiplier(buffs: BuffState): number {

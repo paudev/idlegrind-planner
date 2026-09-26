@@ -167,6 +167,7 @@ export function buffsUi(
     ${choiceRow('FRAMES', frames.map(([key, label, tone]) => chip(label, buffs[key], `data-frame="${scope}:${key}"`, tone)).join(''), 'Mixed replaces the normal frame layer.')}
     ${choiceRow('AURA', `${chip('OFF', number(buffs.auraPct) === 0, `data-buff="${scope}:auraPct:0"`, 'purple')}${chip('+10%', number(buffs.auraPct) === 10, `data-buff="${scope}:auraPct:10"`, 'purple')}<label class="mini-input">CUSTOM <input data-custom-buff="${scope}:auraPct" data-num value="${inputText(buffs.auraPct)}"></label>`)}
     ${choiceRow('CORE', `<label class="mini-input">POWER % <input data-custom-buff="${scope}:corePct" data-num value="${inputText(buffs.corePct)}"></label>`, 'Use the exact Core Power from THE CORE (for example 1.60), not the rounded Mining Deck badge.')}
+    ${choiceRow('LAYOUT BONUS', `<label class="mini-input">BONUS % <input data-custom-buff="${scope}:layoutPct" data-num value="${inputText(buffs.layoutPct)}"></label>`, 'Enter the total active Layout Bonus shown on your Mining Deck; use 0 if inactive. Multiplies the existing buff stack.')}
   `;
 
   if (withVial) {

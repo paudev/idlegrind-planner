@@ -31,6 +31,7 @@ export interface BuffState {
   mixed: boolean;
   auraPct: number;
   corePct: number;
+  layoutPct: number;
   stakingNode?: StakingNodeId;
 }
 

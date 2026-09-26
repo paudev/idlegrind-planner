@@ -54,7 +54,7 @@ const DECK_VIEWS: DeckView[] = ['output', 'cost', 'readiness'];
 const PLANNER_VIEWS: PlannerView[] = ['output', 'cost', 'readiness'];
 const SCOPES: Scope[] = ['deck', 'planner'];
 
-type NumericBuffKey = 'tier' | 'coolantLevel' | 'prestigePct' | 'auraPct' | 'corePct';
+type NumericBuffKey = 'tier' | 'coolantLevel' | 'prestigePct' | 'auraPct' | 'corePct' | 'layoutPct';
 type FrameKey = 'bronze' | 'silver' | 'gold' | 'mixed';
 type RigField = 'name' | 'qty' | 'rate' | 'synergy' | 'slots';
 type PresetNumericField = 'rate' | 'synergy' | 'slots';
@@ -111,7 +111,7 @@ function updateRigField(scope: Scope, id: string, key: RigField, rawValue: strin
 
 function setNumericBuff(buffs: BuffState, key: string, value: number): void {
   const numericKey = key as NumericBuffKey;
-  if (!['tier', 'coolantLevel', 'prestigePct', 'auraPct', 'corePct'].includes(numericKey)) return;
+  if (!['tier', 'coolantLevel', 'prestigePct', 'auraPct', 'corePct', 'layoutPct'].includes(numericKey)) return;
   buffs[numericKey] = Math.max(0, value);
 }
 

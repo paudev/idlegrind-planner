@@ -37,6 +37,7 @@ function defaultBuffs(): BuffState {
     mixed: false,
     auraPct: 0,
     corePct: 0,
+    layoutPct: 0,
     stakingNode: 0,
   };
 }
@@ -59,6 +60,7 @@ function normalizeBuffs(buffs: BuffState): void {
   buffs.prestigePct = Math.max(0, number(buffs.prestigePct));
   buffs.auraPct = Math.max(0, number(buffs.auraPct));
   buffs.corePct = Math.max(0, number(buffs.corePct));
+  buffs.layoutPct = Math.max(0, number(buffs.layoutPct));
   buffs.stakingNode = normalizeStakingNodeId(buffs.stakingNode);
   if (buffs.mixed) {
     buffs.bronze = false;

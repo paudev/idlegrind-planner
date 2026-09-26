@@ -31,6 +31,7 @@ const baseBuffs: BuffState = {
   mixed: false,
   auraPct: 0,
   corePct: 0,
+  layoutPct: 0,
   stakingNode: 0,
 };
 
@@ -86,6 +87,50 @@ test('exact Core Power reproduces the Mining Deck TOTAL before its rounded Core 
     corePct: 1.6,
   };
   assert.equal(multiplier(gameLikeBuffs).toFixed(2), '10.83');
+});
+
+test('Layout Bonus multiplies the full Mining Deck stack and matches the live +6% example', () => {
+  const gameLikeBuffs: BuffState = {
+    ...baseBuffs,
+    tier: 1.9,
+    coolantLevel: 7,
+    prestigePct: 50,
+    bronze: true,
+    silver: true,
+    gold: true,
+    auraPct: 10,
+    corePct: 1.6,
+    layoutPct: 6,
+  };
+  const expected = 1.9 * 1.7 * 1.5 * 2 * 1.1 * 1.016 * 1.06;
+
+  assert.ok(Math.abs(multiplier(gameLikeBuffs) - expected) < 1e-10);
+  assert.equal(multiplier(gameLikeBuffs).toFixed(2), '11.48');
+  assert.equal(multiplier({ ...gameLikeBuffs, layoutPct: 0 }).toFixed(2), '10.83');
+  assert.ok(Math.abs(rateFactory([], gameLikeBuffs, quantumNode)(1) - 1400 * expected) < 1e-8);
+  assert.ok(Math.abs(effectiveHashMultiplier({ ...gameLikeBuffs, stakingNode: 4 }) - expected * 1.075) < 1e-10);
+  assert.equal(multiplier({ ...baseBuffs, layoutPct: -6 }), 1);
+});
+
+test('Layout Bonus changes production and the Build Planner minimum QNs', () => {
+  const withLayout: BuffState = { ...baseBuffs, layoutPct: 50 };
+  const makeBuild = (buffs: BuffState) => solveMinimumBuild({
+    targetGrindPerDay: 2_000,
+    refineRate: DAY,
+    vialHours: 0,
+    rigs: [],
+    buffs,
+    quantumNode,
+  });
+  const without = makeBuild(baseBuffs);
+  const withBonus = makeBuild(withLayout);
+
+  assert.equal(rateFactory([], baseBuffs, quantumNode)(1), 1400);
+  assert.equal(rateFactory([], withLayout, quantumNode)(1), 2100);
+  assert.equal(without.qns, 2);
+  assert.equal(withBonus.qns, 1);
+  assert.equal(withBonus.rateAtReady, 2100);
+  assert.equal(productionWithDailyBoost(2100, DAY, 0, 0).grit, 2100 * DAY);
 });
 
 test('staking refine compounds after the holder-tier refine discount', () => {
