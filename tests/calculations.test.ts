@@ -36,6 +36,7 @@ const buffs: BuffState = {
   mixed: false,
   auraPct: 0,
   corePct: 0,
+  layoutPct: 0,
 };
 
 const quantumNode: RigPreset = {
