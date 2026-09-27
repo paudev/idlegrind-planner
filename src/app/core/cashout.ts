@@ -1,9 +1,10 @@
 import { DAY, STORAGE_KEYS } from '../config/economy';
 import type { CashoutCycle, PersistedCashoutCycle } from '../types';
 import { readJson, writeJson } from './storage';
+import { profileStorageKey } from './profile';
 
 export function cashoutCycle(): CashoutCycle {
-  const raw = readJson<PersistedCashoutCycle>(STORAGE_KEYS.cashout, {});
+  const raw = readJson<PersistedCashoutCycle>(profileStorageKey(STORAGE_KEYS.cashout), {});
   const last = Number(raw.lastWithdrawalAt);
 
   return {
@@ -12,7 +13,7 @@ export function cashoutCycle(): CashoutCycle {
 }
 
 export function saveCashoutCycle(cycle: PersistedCashoutCycle): void {
-  writeJson(STORAGE_KEYS.cashout, cycle);
+  writeJson(profileStorageKey(STORAGE_KEYS.cashout), cycle);
 }
 
 export function nextCashoutAt(cycle: CashoutCycle = cashoutCycle()): number | null {
@@ -71,5 +72,5 @@ export function setNextCashout(timestamp: number): boolean {
 }
 
 export function clearCashoutCycle(): void {
-  writeJson<PersistedCashoutCycle>(STORAGE_KEYS.cashout, {});
+  writeJson<PersistedCashoutCycle>(profileStorageKey(STORAGE_KEYS.cashout), {});
 }

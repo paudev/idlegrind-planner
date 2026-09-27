@@ -20,6 +20,7 @@ const test = spawnSync(
     '--test',
     `${outDir}/tests/calculations.test.js`,
     `${outDir}/tests/staking.test.js`,
+    `${outDir}/tests/profiles.test.js`,
   ],
   { stdio: 'inherit' },
 );

@@ -1,3 +1,4 @@
+export type PlannerProfile = 'solana' | 'robinhood';
 export type ActiveTab = 'target' | 'reset' | 'current' | 'planner' | 'costing' | 'settings';
 export type PlannerView = 'output' | 'cost' | 'readiness';
 export type DeckView = 'output' | 'cost' | 'readiness';

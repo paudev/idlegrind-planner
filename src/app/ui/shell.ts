@@ -6,6 +6,7 @@ import {
 } from '../core/cashout';
 import { compact, duration, number } from '../core/format';
 import { store } from '../core/state';
+import { activeProfile } from '../core/profile';
 import type { ActiveTab } from '../types';
 import { cashoutPickerPopover } from './cashout-picker';
 
@@ -18,13 +19,20 @@ export function header(): string {
     ? `${compact(store.state.settings.refineRate, 1)} / $GRIND`
     : 'NOT SET';
   const pickerTimestamp = cycle.last ?? Date.now();
+  const profile = activeProfile();
 
   return `<header class="topbar">
     <div class="brand">IDLE<span>//</span>GRIND</div>
     <div class="topfacts">
       <div class="refine-fact">
-        <small>REFINE</small>
-        <strong>${refine}</strong>
+        <div class="refine-copy">
+          <small>REFINE</small>
+          <strong>${refine}</strong>
+        </div>
+      </div>
+      <div class="profile-switch" role="group" aria-label="Planner platform">
+        <button type="button" data-profile="solana" class="${profile === 'solana' ? 'active' : ''}" aria-pressed="${profile === 'solana'}" title="Switch to Solana profile">SOLANA</button>
+        <button type="button" data-profile="robinhood" class="${profile === 'robinhood' ? 'active' : ''}" aria-pressed="${profile === 'robinhood'}" title="Switch to Robinhood profile">ROBINHOOD</button>
       </div>
       <div class="cashout-head ${ready ? 'ready' : ''}">
         <div class="cashout-copy">
@@ -65,6 +73,6 @@ export function shell(body: string): string {
       ${tabs.map(([id, label]) => `<button type="button" class="navbtn ${store.state.activeTab === id ? 'active' : ''}" data-tab="${id}">${label}</button>`).join('')}
     </nav>
     <main>${body}</main>
-    <footer>LOCAL PLANNER · VALUES ARE SAVED IN THIS BROWSER · NOT AFFILIATED WITH THE GAME</footer>
+    <footer>LOCAL PLANNER · SOLANA AND ROBINHOOD SAVED SEPARATELY IN THIS BROWSER · NOT AFFILIATED WITH THE GAME</footer>
   </div>`;
 }

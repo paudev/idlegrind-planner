@@ -1,0 +1,99 @@
+.refine-fact {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.refine-copy {
+  display: grid;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.refine-copy small {
+  margin: 0;
+}
+
+.profile-switch {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid #394136;
+  border-radius: 7px;
+  background: #0b100d;
+}
+
+.profile-switch button {
+  min-height: 25px;
+  padding: 0 9px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: #8b978e;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .035em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color .15s, background .15s, border-color .15s;
+}
+
+.profile-switch button:hover,
+.profile-switch button:focus-visible {
+  color: #f2e9cf;
+  border-color: #536249;
+}
+
+.profile-switch button.active {
+  border-color: #866e31;
+  background: linear-gradient(180deg, #3b321b, #282416);
+  color: #f5d78c;
+}
+
+.profile-switch button:focus-visible {
+  outline: 2px solid #e1b74e;
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  /* Refine's profile selector moves beside the title while the game-rate
+     readout continues to use the existing compact cashout header. */
+  .topbar {
+    position: relative;
+    row-gap: 8px !important;
+  }
+
+  .topbar .brand {
+    display: flex;
+    align-items: center;
+    min-height: 29px;
+  }
+
+  .topbar .profile-switch {
+    position: absolute;
+    top: 4px;
+    right: 0;
+    z-index: 1;
+  }
+
+  .profile-switch {
+    gap: 2px;
+    padding: 2px;
+  }
+
+  .profile-switch button {
+    min-height: 23px;
+    padding: 0 7px;
+    font-size: 8px;
+  }
+}
+
+@media (max-width: 350px) {
+  .profile-switch button {
+    padding-inline: 5px;
+    font-size: 7.5px;
+  }
+}
