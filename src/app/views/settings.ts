@@ -178,9 +178,9 @@ export function renderSettingsView(): string {
     ),
     panel(
       'LOCAL DATA',
-      'Saved only in this browser.',
+      'Saved only in this browser. Reset affects the selected platform, not the other profile.',
       `<div class="local-data-row">
-        <p>Resetting restores zeroed planner inputs and default game/market references.</p>
+        <p>Resetting restores zeroed inputs and default economy/market references for the selected platform only. The other profile stays saved.</p>
         <button type="button" class="dangerbtn" data-reset-all>RESET ALL PLANNER DATA</button>
       </div>`,
     ),

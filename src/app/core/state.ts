@@ -17,8 +17,11 @@ import type {
   Rig,
   RigPreset,
   Scope,
+  PlannerProfile,
+  PersistedCashoutCycle,
 } from '../types';
 import { clamp, clone, number } from './format';
+import { activeProfile, profileStorageKey, selectProfile } from './profile';
 import { normalizeStakingNodeId } from './staking';
 import { loadPositiveDefaults, mergeState, readJson, setPath, writeJson } from './storage';
 
@@ -158,12 +161,12 @@ export function createDefaultDeck(): DeckState {
 }
 
 function loadStore(): ApplicationStore {
-  const snapshot = readJson<Partial<ApplicationStore>>(STORAGE_KEYS.snapshot, {});
-  const state = mergeState(createDefaultState(), readJson<unknown>(STORAGE_KEYS.app, snapshot.state ?? {}));
-  const deck = mergeState(createDefaultDeck(), readJson<unknown>(STORAGE_KEYS.deck, snapshot.deck ?? {}));
+  const snapshot = readJson<Partial<ApplicationStore>>(profileStorageKey(STORAGE_KEYS.snapshot), {});
+  const state = mergeState(createDefaultState(), readJson<unknown>(profileStorageKey(STORAGE_KEYS.app), snapshot.state ?? {}));
+  const deck = mergeState(createDefaultDeck(), readJson<unknown>(profileStorageKey(STORAGE_KEYS.deck), snapshot.deck ?? {}));
   const ui = mergeState(
     { readinessGroup: 1, readinessPage: 1, rackPage: 1 },
-    readJson<unknown>(STORAGE_KEYS.ui, snapshot.ui ?? {}),
+    readJson<unknown>(profileStorageKey(STORAGE_KEYS.ui), snapshot.ui ?? {}),
   );
 
   state.activeTab = ACTIVE_TABS.includes(state.activeTab) ? state.activeTab : 'target';
@@ -212,16 +215,16 @@ function loadStore(): ApplicationStore {
   normalizeRigs(deck.rigs);
   normalizeDiscountCosts(deck.discountCosts);
 
-  const market = loadPositiveDefaults(STORAGE_KEYS.market, MARKET_DEFAULTS, {
+  const market = loadPositiveDefaults(profileStorageKey(STORAGE_KEYS.market), MARKET_DEFAULTS, {
     fallback: snapshot.market as Record<string, unknown> | undefined,
   });
-  const vials = loadPositiveDefaults(STORAGE_KEYS.vials, VIAL_DEFAULTS, {
+  const vials = loadPositiveDefaults(profileStorageKey(STORAGE_KEYS.vials), VIAL_DEFAULTS, {
     repairZero: true,
     fallback: snapshot.vials as Record<string, unknown> | undefined,
   });
   const costingReference = mergeState(
     { coolantLevel: 0, rackSlots: RACK_BASE_SLOTS },
-    readJson<unknown>(STORAGE_KEYS.costingReference, snapshot.costingReference ?? {}),
+    readJson<unknown>(profileStorageKey(STORAGE_KEYS.costingReference), snapshot.costingReference ?? {}),
   );
 
   costingReference.coolantLevel = clamp(Math.floor(number(costingReference.coolantLevel)), 0, 10);
@@ -237,13 +240,13 @@ function loadStore(): ApplicationStore {
 export const store: ApplicationStore = loadStore();
 
 export function saveAll(): void {
-  writeJson(STORAGE_KEYS.app, store.state);
-  writeJson(STORAGE_KEYS.deck, store.deck);
-  writeJson(STORAGE_KEYS.ui, store.ui);
-  writeJson(STORAGE_KEYS.market, store.market);
-  writeJson(STORAGE_KEYS.vials, store.vials);
-  writeJson(STORAGE_KEYS.costingReference, store.costingReference);
-  writeJson(STORAGE_KEYS.snapshot, {
+  writeJson(profileStorageKey(STORAGE_KEYS.app), store.state);
+  writeJson(profileStorageKey(STORAGE_KEYS.deck), store.deck);
+  writeJson(profileStorageKey(STORAGE_KEYS.ui), store.ui);
+  writeJson(profileStorageKey(STORAGE_KEYS.market), store.market);
+  writeJson(profileStorageKey(STORAGE_KEYS.vials), store.vials);
+  writeJson(profileStorageKey(STORAGE_KEYS.costingReference), store.costingReference);
+  writeJson(profileStorageKey(STORAGE_KEYS.snapshot), {
     state: store.state,
     deck: store.deck,
     ui: store.ui,
@@ -251,6 +254,27 @@ export function saveAll(): void {
     vials: store.vials,
     costingReference: store.costingReference,
   });
+}
+
+// A new profile starts as a snapshot of the current workspace. Subsequent edits
+// are isolated by platform-specific storage keys, including cashout timing.
+export function switchProfile(next: PlannerProfile): void {
+  if (next === activeProfile()) return;
+
+  saveAll();
+  const targetSnapshotKey = profileStorageKey(STORAGE_KEYS.snapshot, next);
+  if (readJson<Partial<ApplicationStore> | null>(targetSnapshotKey, null) === null) {
+    writeJson(targetSnapshotKey, store);
+    const cashout = readJson<PersistedCashoutCycle>(
+      profileStorageKey(STORAGE_KEYS.cashout),
+      {},
+    );
+    writeJson(profileStorageKey(STORAGE_KEYS.cashout, next), cashout);
+  }
+
+  selectProfile(next);
+  Object.assign(store, loadStore());
+  saveAll();
 }
 
 export function resolveInputPath(path: string): [Record<string, unknown>, string] {

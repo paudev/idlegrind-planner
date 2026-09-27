@@ -21,9 +21,11 @@ import {
   resetPlannerData,
   saveAll,
   store,
+  switchProfile,
   updateInputPath,
 } from './core/state';
 import { writeJson } from './core/storage';
+import { activeProfile, profileStorageKey } from './core/profile';
 import type {
   ActiveTab,
   BuffState,
@@ -263,7 +265,7 @@ app.addEventListener('input', (event: Event) => {
     const parsed = parseHuman(input.value);
     if (Number.isFinite(parsed)) {
       store.market[input.dataset.market] = Math.max(0, parsed);
-      writeJson(STORAGE_KEYS.market, store.market);
+      writeJson(profileStorageKey(STORAGE_KEYS.market), store.market);
     }
     return;
   }
@@ -272,7 +274,7 @@ app.addEventListener('input', (event: Event) => {
     const parsed = parseHuman(input.value);
     if (Number.isFinite(parsed)) {
       store.vials[input.dataset.vialPrice] = Math.max(0, parsed);
-      writeJson(STORAGE_KEYS.vials, store.vials);
+      writeJson(profileStorageKey(STORAGE_KEYS.vials), store.vials);
     }
   }
 });
@@ -295,6 +297,12 @@ app.addEventListener('click', (event: MouseEvent) => {
   if (!(event.target instanceof Element)) return;
   const button = event.target.closest<HTMLButtonElement>('button');
   if (!button) return;
+
+  if (button.dataset.profile === 'solana' || button.dataset.profile === 'robinhood') {
+    switchProfile(button.dataset.profile);
+    render();
+    return;
+  }
 
   if (button.dataset.tab && ACTIVE_TABS.includes(button.dataset.tab as ActiveTab)) {
     store.state.activeTab = button.dataset.tab as ActiveTab;
@@ -546,7 +554,7 @@ app.addEventListener('click', (event: MouseEvent) => {
     return;
   }
 
-  if (button.hasAttribute('data-reset-all') && confirm('Reset all planner settings and inputs?')) {
+  if (button.hasAttribute('data-reset-all') && confirm(`Reset all ${activeProfile() === 'solana' ? 'Solana' : 'Robinhood'} planner settings and inputs?`)) {
     resetPlannerData();
     clearCashoutCycle();
     render();
