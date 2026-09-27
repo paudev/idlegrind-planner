@@ -160,7 +160,7 @@ export function createDefaultDeck(): DeckState {
   };
 }
 
-function loadStore(): ApplicationStore {
+function loadStore(resetTransientUi = true): ApplicationStore {
   const snapshot = readJson<Partial<ApplicationStore>>(profileStorageKey(STORAGE_KEYS.snapshot), {});
   const state = mergeState(createDefaultState(), readJson<unknown>(profileStorageKey(STORAGE_KEYS.app), snapshot.state ?? {}));
   const deck = mergeState(createDefaultDeck(), readJson<unknown>(profileStorageKey(STORAGE_KEYS.deck), snapshot.deck ?? {}));
@@ -172,9 +172,11 @@ function loadStore(): ApplicationStore {
   state.activeTab = ACTIVE_TABS.includes(state.activeTab) ? state.activeTab : 'target';
   // Page/subview selection is transient UI state, not user data. A browser reload
   // keeps all inputs but reopens simulator/planner modules on their primary output view.
-  state.planner.view = 'output';
-  deck.view = 'output';
-  ui.readinessPage = 1;
+  if (resetTransientUi) {
+    state.planner.view = 'output';
+    deck.view = 'output';
+    ui.readinessPage = 1;
+  }
 
   state.settings.refineRate = Math.max(0, number(state.settings.refineRate, DEFAULT_SETTINGS.refineRate));
   state.settings.maxRackSlots = normalizeRackLimit(state.settings.maxRackSlots);
@@ -191,7 +193,7 @@ function loadStore(): ApplicationStore {
   state.reset.vialHours = normalizeVialHours(state.reset.vialHours);
   state.planner.extraQns = Math.max(0, Math.floor(number(state.planner.extraQns)));
   state.planner.vialHours = normalizeVialHours(state.planner.vialHours);
-  state.planner.showVialAssistedMinimum = false;
+  if (resetTransientUi) state.planner.showVialAssistedMinimum = false;
   normalizeBuffs(state.planner.buffs);
   normalizeRigs(state.planner.rigs);
   normalizeDiscountCosts(state.planner.discountCosts);
@@ -273,7 +275,7 @@ export function switchProfile(next: PlannerProfile): void {
   }
 
   selectProfile(next);
-  Object.assign(store, loadStore());
+  Object.assign(store, loadStore(false));
   saveAll();
 }
 
