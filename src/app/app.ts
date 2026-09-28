@@ -562,15 +562,27 @@ app.addEventListener('click', (event: MouseEvent) => {
 });
 
 document.addEventListener('click', (event: MouseEvent) => {
-  // Use the original event path instead of querying the live DOM. Calendar actions
-  // rebuild their inner markup during the same click, which detaches event.target.
-  // composedPath() remains stable and correctly identifies the click as internal.
+  // Use the original event path: selecting a profile or calendar day can
+  // replace the clicked element before this document-level listener runs.
+  const insideProfilePicker = event.composedPath().some((node) =>
+    node instanceof Element && node.closest('[data-profile-picker]') !== null);
+  if (!insideProfilePicker) {
+    app.querySelectorAll<HTMLDetailsElement>('[data-profile-picker][open]').forEach((picker) => {
+      picker.open = false;
+    });
+  }
+
   if (eventPathContainsCashoutControl(event)) return;
   closeCashoutPickers();
 });
 
 document.addEventListener('keydown', (event: KeyboardEvent) => {
-  if (event.key === 'Escape') closeCashoutPickers();
+  if (event.key !== 'Escape') return;
+  app.querySelectorAll<HTMLDetailsElement>('[data-profile-picker][open]').forEach((picker) => {
+    picker.open = false;
+    picker.querySelector<HTMLElement>('summary')?.focus();
+  });
+  closeCashoutPickers();
 });
 
 setInterval(() => {
