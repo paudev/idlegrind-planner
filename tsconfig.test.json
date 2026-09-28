@@ -10,9 +10,7 @@
   },
   "include": [
     "src/app/config/**/*.ts",
-    "src/app/core/calculations.ts",
-    "src/app/core/format.ts",
-    "src/app/core/storage.ts",
+    "src/app/core/**/*.ts",
     "src/app/types.ts",
     "tests/**/*.ts"
   ]
