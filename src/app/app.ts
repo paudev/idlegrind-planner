@@ -590,7 +590,8 @@ setInterval(() => {
   const needsProjectionRefresh = remaining !== null
     && (store.state.activeTab === 'reset' || store.state.activeTab === 'current')
     && !app.querySelector('input:focus')
-    && !app.querySelector('[data-cashout-picker]:not([hidden])');
+    && !app.querySelector('[data-cashout-picker]:not([hidden])')
+    && !app.querySelector('[data-profile-picker][open]');
 
   if (needsProjectionRefresh) {
     render();
