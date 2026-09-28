@@ -1,7 +1,7 @@
-.refine-fact {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+/* A single workspace control, visually secondary to the product header. */
+.topbar {
+  position: relative;
+  z-index: 4;
 }
 
 .refine-copy {
@@ -14,86 +14,243 @@
   margin: 0;
 }
 
-.profile-switch {
-  display: inline-flex;
+.profile-picker {
+  position: relative;
+  z-index: 5;
   flex: none;
-  align-items: center;
-  gap: 3px;
-  padding: 3px;
-  border: 1px solid #394136;
-  border-radius: 7px;
-  background: #0b100d;
-}
-
-.profile-switch button {
-  min-height: 25px;
-  padding: 0 9px;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  background: transparent;
-  color: #8b978e;
+  align-self: center;
   font: inherit;
-  font-size: 9px;
-  font-weight: 900;
-  letter-spacing: .035em;
-  white-space: nowrap;
+}
+
+.profile-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 9px 0 6px;
+  border: 1px solid #34453a;
+  border-radius: 7px;
+  background: linear-gradient(180deg, #121c15, #0d140f);
+  box-shadow: inset 0 1px 0 rgba(232, 255, 232, .035);
+  color: #d5e0d5;
+  list-style: none;
   cursor: pointer;
-  transition: color .15s, background .15s, border-color .15s;
+  user-select: none;
+  transition: background .16s ease, border-color .16s ease;
 }
 
-.profile-switch button:hover,
-.profile-switch button:focus-visible {
-  color: #f2e9cf;
-  border-color: #536249;
+.profile-trigger::-webkit-details-marker {
+  display: none;
 }
 
-.profile-switch button.active {
-  border-color: #866e31;
-  background: linear-gradient(180deg, #3b321b, #282416);
-  color: #f5d78c;
+.profile-trigger::marker {
+  content: '';
 }
 
-.profile-switch button:focus-visible {
-  outline: 2px solid #e1b74e;
+.profile-trigger:hover,
+.profile-picker[open] .profile-trigger {
+  border-color: #597560;
+  background: #142119;
+}
+
+.profile-trigger:focus-visible,
+.profile-option:focus-visible {
+  outline: 2px solid var(--green);
   outline-offset: 2px;
 }
 
-@media (max-width: 640px) {
-  /* Refine's profile selector moves beside the title while the game-rate
-     readout continues to use the existing compact cashout header. */
-  .topbar {
-    position: relative;
-    row-gap: 8px !important;
-  }
+.profile-glyph {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+}
 
+.profile-glyph svg {
+  display: block;
+  width: 15px;
+  height: 15px;
+}
+
+.profile-glyph.solana {
+  color: #83d9c9;
+  border-color: rgba(131, 217, 201, .18);
+  background: rgba(131, 217, 201, .075);
+}
+
+.profile-glyph.robinhood {
+  color: #b6e08f;
+  border-color: rgba(182, 224, 143, .18);
+  background: rgba(182, 224, 143, .075);
+}
+
+.profile-name {
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .015em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.profile-chevron {
+  width: 12px;
+  height: 12px;
+  margin-left: 2px;
+  color: #7b9382;
+  transition: transform .16s ease;
+}
+
+.profile-picker[open] .profile-chevron {
+  transform: rotate(180deg);
+}
+
+.profile-menu {
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 0;
+  z-index: 30;
+  width: 225px;
+  padding: 6px;
+  border: 1px solid #3b5140;
+  border-radius: 9px;
+  background: #0e1611;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .48), inset 0 1px 0 rgba(232, 255, 232, .035);
+}
+
+.profile-menu-title {
+  display: block;
+  margin: 3px 7px 6px !important;
+  color: #788b7b !important;
+  font-size: 8px !important;
+  font-weight: 900;
+  letter-spacing: .11em;
+}
+
+.profile-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 46px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #b4c0b6;
+  text-align: left;
+  cursor: pointer;
+}
+
+.profile-option + .profile-option {
+  margin-top: 2px;
+}
+
+.profile-option:hover {
+  background: #18231b;
+  color: #f0f5ef;
+}
+
+.profile-option.active {
+  border-color: #345a41;
+  background: rgba(20, 241, 149, .055);
+  color: #e2f3e7;
+}
+
+.profile-option-copy {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.profile-option-copy strong {
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.1;
+}
+
+.profile-option-copy small {
+  margin: 0 !important;
+  color: #748779 !important;
+  font-size: 8px !important;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.profile-check {
+  visibility: hidden;
+  color: var(--green);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.profile-option.active .profile-check {
+  visibility: visible;
+}
+
+@media (max-width: 760px) {
+  /* The selector occupies unused space beside IDLE//GRIND, never a new row. */
   .topbar .brand {
     display: flex;
     align-items: center;
-    min-height: 29px;
+    min-height: 34px;
+    padding-right: 140px;
+    white-space: nowrap;
   }
 
-  .topbar .profile-switch {
+  .topbar .profile-picker {
     position: absolute;
-    top: 4px;
+    top: 5px;
     right: 0;
-    z-index: 1;
   }
 
-  .profile-switch {
-    gap: 2px;
-    padding: 2px;
+  .topbar .profile-trigger {
+    height: 33px;
+    gap: 6px;
+    padding: 0 8px 0 5px;
   }
 
-  .profile-switch button {
-    min-height: 23px;
-    padding: 0 7px;
-    font-size: 8px;
+  .profile-name {
+    font-size: 10px;
   }
 }
 
-@media (max-width: 350px) {
-  .profile-switch button {
-    padding-inline: 5px;
-    font-size: 7.5px;
+@media (max-width: 640px) {
+  .topbar .profile-picker {
+    top: 9px;
+  }
+
+  .topbar .brand {
+    min-height: 33px;
+  }
+
+  .topbar .profile-trigger {
+    height: 32px;
+  }
+}
+
+@media (max-width: 360px) {
+  .topbar .brand {
+    padding-right: 128px;
+    font-size: 19px !important;
+  }
+
+  .topbar .profile-trigger {
+    gap: 5px;
+    padding-right: 6px;
+  }
+
+  .profile-name {
+    font-size: 9px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-trigger,
+  .profile-chevron {
+    transition: none;
   }
 }
