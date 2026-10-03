@@ -1,5 +1,5 @@
 import { STAKING_NODE_OPTIONS } from '../config/game';
-import type { BuffState, StakingNodeId } from '../types';
+import type { BuffState, SettingsState, StakingNodeId } from '../types';
 import { number } from './format';
 import { holderTierRefineRate } from './refine-discounts';
 
@@ -27,8 +27,12 @@ export function stakingDailyBoostHours(id: unknown): number {
   return stakingNode(id).dailyBoostHours;
 }
 
-export function permanentRefineRate(baseRate: number, buffs: Pick<BuffState, 'tier' | 'stakingNode'>): number {
-  return holderTierRefineRate(baseRate, buffs.tier) * stakingRefineMultiplier(buffs.stakingNode);
+export function permanentRefineRate(
+  baseRate: number,
+  buffs: Pick<BuffState, 'tier' | 'stakingNode'>,
+  holderTiers: SettingsState['holderTiers'],
+): number {
+  return holderTierRefineRate(baseRate, buffs.tier, holderTiers) * stakingRefineMultiplier(buffs.stakingNode);
 }
 
 export function withStakingNode(buffs: BuffState, id: unknown): BuffState {
