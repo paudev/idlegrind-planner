@@ -287,15 +287,24 @@ test('no vial uses the normal-rate QN requirement', () => {
 });
 
 test('holder tiers apply the announced permanent refinery discounts', () => {
-  assert.equal(holderTierRefineDiscountPct(1), 0);
-  assert.equal(holderTierRefineDiscountPct(1.75), 5);
-  assert.equal(holderTierRefineDiscountPct(1.9), 7);
-  assert.equal(holderTierRefineDiscountPct(2.25), 10);
-  assert.equal(holderTierRefineDiscountPct(3), 20);
-  assert.equal(holderTierRefineRate(104_000, 1.75), 98_800);
-  assert.equal(holderTierRefineRate(104_000, 1.9), 96_720);
-  assert.equal(holderTierRefineRate(104_000, 2.25), 93_600);
-  assert.equal(holderTierRefineRate(104_000, 3), 83_200);
+  assert.equal(holderTierRefineDiscountPct(1, DEFAULT_SETTINGS.holderTiers), 0);
+  assert.equal(holderTierRefineDiscountPct(1.75, DEFAULT_SETTINGS.holderTiers), 5);
+  assert.equal(holderTierRefineDiscountPct(1.9, DEFAULT_SETTINGS.holderTiers), 7);
+  assert.equal(holderTierRefineDiscountPct(2.25, DEFAULT_SETTINGS.holderTiers), 10);
+  assert.equal(holderTierRefineDiscountPct(3, DEFAULT_SETTINGS.holderTiers), 20);
+  assert.equal(holderTierRefineRate(104_000, 1.75, DEFAULT_SETTINGS.holderTiers), 98_800);
+  assert.equal(holderTierRefineRate(104_000, 1.9, DEFAULT_SETTINGS.holderTiers), 96_720);
+  assert.equal(holderTierRefineRate(104_000, 2.25, DEFAULT_SETTINGS.holderTiers), 93_600);
+  assert.equal(holderTierRefineRate(104_000, 3, DEFAULT_SETTINGS.holderTiers), 83_200);
+});
+
+test('custom holder-tier values drive both hash selection values and refine math', () => {
+  const custom = {
+    ...DEFAULT_SETTINGS.holderTiers,
+    operator: { mult: 2.05, refinePct: 12 },
+  };
+  assert.equal(holderTierRefineDiscountPct(2.05, custom), 12);
+  assert.equal(holderTierRefineRate(104_000, 2.05, custom), 91_520);
 });
 
 test('holder tier compounds with Daily, Weekly, and Seasonal Pass', () => {
@@ -309,14 +318,14 @@ test('holder tier compounds with Daily, Weekly, and Seasonal Pass', () => {
     weeklyActive: 1,
     passActive: 1,
   };
-  const overlordRate = holderTierRefineRate(104_000, 3);
+  const overlordRate = holderTierRefineRate(104_000, 3, DEFAULT_SETTINGS.holderTiers);
   const fullStack = effectiveRefineRate(overlordRate, settings);
   assert.ok(Math.abs(fullStack - 67_579.2) < 1e-9);
   assert.ok(Math.abs((1 - fullStack / 104_000) * 100 - 35.02) < 0.01);
 });
 
 test('900K target uses holder-tier-adjusted refinery requirement', () => {
-  const overlordRate = holderTierRefineRate(104_000, 3);
+  const overlordRate = holderTierRefineRate(104_000, 3, DEFAULT_SETTINGS.holderTiers);
   const result = solveMinimumBuild({
     targetGrindPerDay: 900_000,
     refineRate: overlordRate,
