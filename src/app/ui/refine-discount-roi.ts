@@ -71,6 +71,7 @@ function scopePermanentRefineRate(scope: Scope): number {
   return permanentRefineRate(
     Math.max(0, number(store.state.settings.refineRate)),
     scopeBuffs(scope),
+    store.state.settings.holderTiers,
   );
 }
 
@@ -146,9 +147,9 @@ export function renderRefineDiscountRoi({
   const rawBaseRate = Math.max(0, number(store.state.settings.refineRate));
   const buffs = scopeBuffs(scope);
   const tier = number(buffs.tier, 1);
-  const tierPct = holderTierRefineDiscountPct(tier);
+  const tierPct = holderTierRefineDiscountPct(tier, store.state.settings.holderTiers);
   const node = stakingNode(buffs.stakingNode);
-  const baseRate = permanentRefineRate(rawBaseRate, buffs);
+  const baseRate = permanentRefineRate(rawBaseRate, buffs, store.state.settings.holderTiers);
   const selectedRate = effectiveRefineRate(baseRate, settings);
   const combinedPct = activeDiscountPct(baseRate, settings);
   const dailyGrit = Math.max(0, number(projectGrit(DAY)));
