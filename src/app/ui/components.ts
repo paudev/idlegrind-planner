@@ -1,6 +1,7 @@
-import { COOLANT_LEVELS, PRESTIGE_OPTIONS, TIER_OPTIONS, VIAL_OPTIONS } from '../config/game';
+import { COOLANT_LEVELS, PRESTIGE_OPTIONS, VIAL_OPTIONS } from '../config/game';
 import { multiplier } from '../core/calculations';
 import { compact, escapeHtml, inputText, money, number } from '../core/format';
+import { holderTierOptions, type HolderTierOption } from '../core/holder-tiers';
 import { store } from '../core/state';
 import type { BuffState, CompareRow, CostRow, Rig, Scope } from '../types';
 
@@ -113,7 +114,7 @@ export function subTabs(scope: Scope, active: string, includeReadiness = false):
   </div>`;
 }
 
-export function holderTierChipContent(option: (typeof TIER_OPTIONS)[number]): string {
+export function holderTierChipContent(option: HolderTierOption): string {
   return `<span class="holder-tier-name">${option.label}</span>
     <span class="holder-tier-stats">
       <b>HASH ×${option.mult}</b>
@@ -136,7 +137,7 @@ export function buffsUi(
   scope: Scope,
   { withVial = false, vialHours = 0 }: { withVial?: boolean; vialHours?: number } = {},
 ): string {
-  const tiers = TIER_OPTIONS.map((tier) => `<button type="button" class="holder-tier-card ${buffs.tier === tier.mult ? 'active' : ''}" data-buff="${scope}:tier:${tier.mult}">
+  const tiers = holderTierOptions(store.state.settings.holderTiers).map((tier) => `<button type="button" class="holder-tier-card ${Math.abs(buffs.tier - tier.mult) < 1e-9 ? 'active' : ''}" data-buff="${scope}:tier:${tier.mult}">
     ${holderTierChipContent(tier)}
   </button>`).join('');
 
