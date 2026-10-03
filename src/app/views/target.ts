@@ -1,6 +1,6 @@
 import { DAY } from '../config/economy';
-import { TIER_OPTIONS } from '../config/game';
 import { compact, number } from '../core/format';
+import { holderTierOptions } from '../core/holder-tiers';
 import { holderTierRefineDiscountPct, holderTierRefineRate } from '../core/refine-discounts';
 import { store } from '../core/state';
 import { field, holderTierChipContent, holderTierRow, intro, metric, pageStack, panel } from '../ui/components';
@@ -9,12 +9,12 @@ export function renderTargetView(): string {
   const target = Math.max(0, number(store.state.target.grindPerDay));
   const currentRefine = Math.max(0, number(store.state.settings.refineRate));
   const tier = number(store.state.target.tier, 1);
-  const tierPct = holderTierRefineDiscountPct(tier);
-  const refine = holderTierRefineRate(currentRefine, tier);
+  const tierPct = holderTierRefineDiscountPct(tier, store.state.settings.holderTiers);
+  const refine = holderTierRefineRate(currentRefine, tier, store.state.settings.holderTiers);
   const validRefine = refine >= 1000;
   const rate = target > 0 && validRefine ? target * refine / DAY : 0;
   const gritPerDay = validRefine ? target * refine : null;
-  const tierChoices = TIER_OPTIONS.map((option) => `<label class="holder-tier-card ${Math.abs(tier - option.mult) < 1e-9 ? 'active' : ''}">
+  const tierChoices = holderTierOptions(store.state.settings.holderTiers).map((option) => `<label class="holder-tier-card ${Math.abs(tier - option.mult) < 1e-9 ? 'active' : ''}">
     <input type="radio" hidden name="target-holder-tier" data-path="state.target.tier" value="${option.mult}" ${Math.abs(tier - option.mult) < 1e-9 ? 'checked' : ''}>
     ${holderTierChipContent(option)}
   </label>`).join('');
