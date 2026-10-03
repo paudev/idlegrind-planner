@@ -303,6 +303,7 @@ test('custom holder-tier values drive both hash selection values and refine math
     ...DEFAULT_SETTINGS.holderTiers,
     operator: { mult: 2.05, refinePct: 12 },
   };
+  assert.equal(multiplier({ ...buffs, tier: 2.05 }), 2.05);
   assert.equal(holderTierRefineDiscountPct(2.05, custom), 12);
   assert.equal(holderTierRefineRate(104_000, 2.05, custom), 91_520);
 });
