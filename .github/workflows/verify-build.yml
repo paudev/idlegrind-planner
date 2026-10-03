@@ -1,5 +1,12 @@
 name: Verify build
 
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-build-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches:
