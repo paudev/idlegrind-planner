@@ -475,7 +475,7 @@ function marketRigCost(): { total: number; rows: CostRow[] } {
 
 function costingView(result: BuildResult): string {
   if (!result.computable || result.qns === null || !result.stats) {
-    return panel('4 // COSTING', 'Known investment for the official minimum build.', `<div class="warning">${escapeHtml(result.reason || 'Set a valid target and build setup first.')}</div>`);
+    return panel('4 // COSTING', 'Vial and rack-slot costs for the official minimum build.', `<div class="warning">${escapeHtml(result.reason || 'Set a valid target and build setup first.')}</div>`);
   }
 
   const pricing = qnPricing();
@@ -500,7 +500,7 @@ function costingView(result: BuildResult): string {
     frameRows.push({
       item: 'MIXED FRAME',
       detail: 'Selected build buff',
-      note: 'No standalone Mixed Frame market reference is configured, so its acquisition cost is excluded from the total.',
+      note: 'No standalone Mixed Frame market reference is configured, so its acquisition cost is excluded from the investment total.',
     });
   } else {
     for (const [flag, marketKey, label] of frames) {
@@ -516,26 +516,60 @@ function costingView(result: BuildResult): string {
     }
   }
 
-  const total = rack.total + coolant + vial + rigs.total + frameTotal;
-  const rows: CostRow[] = [
-    { item: 'QUANTUM NODES', detail: `${result.qns} to buy · 0 → ${result.qns}`, grit: qnCost, note: `QN pricing setting: ${compact(pricing.base)} × ${pricing.growth}^owned.` },
+  const selectedCost = rack.total + vial;
+  const investmentGrind = coolant + rigs.total + frameTotal;
+  const selectedRows: CostRow[] = [
     { item: 'RACK SLOT EXPANSION', detail: rack.count ? `${rack.count} × +6 rack slots` : 'No expansion needed', grind: rack.total, note: result.ok ? 'Starts from the 12 base rack slots.' : `Costed only through the configured ${cap}-slot cap; the build itself needs ${result.stats.slots}.` },
     ...(!result.ok ? [{ item: 'DECK SLOT CAP', detail: `${result.stats.slots} needed · ${cap} maximum`, note: 'This build does not fit the configured maximum deck slots.' } as CostRow] : []),
-    { item: 'COOLANT', detail: `Level 0 → ${Math.floor(number(store.state.planner.buffs.coolantLevel))}`, grind: coolant, note: 'Each level doubles in price from the 12K Level 1 reference.' },
-    ...frameRows,
     { item: 'VIAL', detail: store.state.planner.vialHours ? `${store.state.planner.vialHours}H market reference` : 'No vial', grind: vial, note: 'Strictly uses Settings vial market reference.' },
+    { item: 'VIAL + RACK TOTAL', grind: selectedCost, note: 'Headline costing intentionally includes only vial acquisition and rack-slot expansion.', total: true },
+  ];
+
+  const investmentRows: CostRow[] = [
+    { item: 'QUANTUM NODES', detail: `${result.qns} to buy · 0 → ${result.qns}`, grit: qnCost, note: `QN pricing setting: ${compact(pricing.base)} × ${pricing.growth}^owned.` },
+    { item: 'COOLANT', detail: `Level 0 → ${Math.floor(number(store.state.planner.buffs.coolantLevel))}`, grind: coolant, note: 'Separated from the headline total as build/buff investment.' },
+    ...frameRows,
     ...rigs.rows,
-    { item: 'TOTAL KNOWN COST', grind: total, grit: qnCost, note: hasUnknownFrameCost ? 'Separate currencies. Mixed Frame acquisition cost is unknown and excluded. Staking lock is not treated as an acquisition cost.' : 'Separate currencies; unknown prerequisites are not silently estimated. Staking lock is not treated as an acquisition cost.', total: true },
+    {
+      item: 'OTHER INVESTMENT TOTAL',
+      grind: investmentGrind,
+      grit: qnCost,
+      note: hasUnknownFrameCost
+        ? 'Mixed Frame acquisition cost is unknown and excluded. Currencies remain separate; staking lock is not treated as an acquisition cost.'
+        : 'Currencies remain separate. Staking lock is not treated as an acquisition cost.',
+      total: true,
+    },
   ];
 
   return panel(
     '4 // COSTING',
-    'Known investment for the stable official minimum build from scratch.',
+    'Vial and rack-slot costs are the headline spend. QNs, rigs, coolant, and frames are separated as build investment.',
     `${!result.ok ? `<div class="warning">${escapeHtml(result.reason)}</div>` : ''}
-    <div class="cost-badges">
-      <div><small>$GRIND</small><strong class="${total ? 'negative' : ''}">${total ? `−${compact(total)}` : '0'}</strong></div>
-      <div><small>GRIT</small><strong class="${qnCost ? 'negative' : ''}">${qnCost ? `−${compact(qnCost)}` : '0'}</strong></div>
-    </div>${costRows(rows)}`,
+    <section class="cost-focus-card">
+      <div class="cost-focus-head">
+        <div class="cost-focus-copy">
+          <small>HEADLINE COST</small>
+          <strong>VIAL + RACK SLOTS</strong>
+          <span>Only the selected vial and required rack expansion are counted in this total.</span>
+        </div>
+        <div class="cost-focus-total">
+          <small>$GRIND</small>
+          <strong class="${selectedCost ? 'negative' : ''}">${selectedCost ? `−${compact(selectedCost)}` : '0'}</strong>
+        </div>
+      </div>
+      ${costRows(selectedRows)}
+    </section>
+    <details class="cost-secondary-card">
+      <summary>
+        <span>
+          <small>SEPARATE COSTS</small>
+          <strong>OTHER BUILD INVESTMENT</strong>
+          <em>QNs, rigs, coolant, and frames are available here without affecting the headline total.</em>
+        </span>
+        <b>${investmentGrind ? `${compact(investmentGrind)} $GRIND` : '0 $GRIND'} · ${qnCost ? `${compact(qnCost)} GRIT` : '0 GRIT'}</b>
+      </summary>
+      <div class="cost-secondary-body">${costRows(investmentRows)}</div>
+    </details>`,
   );
 }
 
