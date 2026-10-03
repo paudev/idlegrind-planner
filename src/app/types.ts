@@ -5,7 +5,13 @@ export type DeckView = 'output' | 'cost' | 'readiness';
 export type Scope = 'deck' | 'planner';
 export type Accent = 'green' | 'purple' | 'gold' | string;
 export type RefineDiscountKey = 'daily' | 'weekly' | 'pass';
+export type HolderTierId = 'visitor' | 'miner' | 'driller' | 'operator' | 'whale' | 'kingpin' | 'overlord';
 export type StakingNodeId = 0 | 1 | 2 | 3 | 4;
+
+export interface HolderTierSettings {
+  mult: number;
+  refinePct: number;
+}
 
 export interface RigPreset {
   name: string;
@@ -68,6 +74,7 @@ export interface SettingsState {
   maxRackSlots: number;
   qnBasePrice: number;
   qnPriceGrowth: number;
+  holderTiers: Record<HolderTierId, HolderTierSettings>;
   refineDiscounts: RefineDiscountSettings;
   rigPresets: Record<string, RigPreset>;
 }
