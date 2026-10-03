@@ -8,6 +8,8 @@ import {
 } from '../core/cashout';
 import { activeDiscountPct, effectiveRefineRate } from '../core/refine-discounts';
 import { compact, escapeHtml, inputText, number } from '../core/format';
+import { holderTierOptions } from '../core/holder-tiers';
+import { activeProfile } from '../core/profile';
 import { store } from '../core/state';
 import { cashoutPickerPopover } from '../ui/cashout-picker';
 import { field, intro, pageStack, panel } from '../ui/components';
@@ -26,6 +28,33 @@ function rigPresetRows(): string {
       <label><small>+ / QN</small><input data-preset="${id}:synergy" data-num value="${inputText(rig.synergy)}"></label>
       <label><small>SLOTS</small><input data-preset="${id}:slots" data-num value="${inputText(rig.slots)}"></label>
     </div>`).join('');
+}
+
+function holderTierSettings(): string {
+  const tiers = holderTierOptions(store.state.settings.holderTiers);
+  const workspace = activeProfile() === 'solana' ? 'SOLANA' : 'ROBINHOOD';
+
+  return `<div class="holder-tier-settings">
+    <div class="holder-tier-settings-head">
+      <span>TIER</span>
+      <span>HASH MULTIPLIER</span>
+      <span>REFINE DISCOUNT</span>
+    </div>
+    ${tiers.map((tier) => `<div class="holder-tier-setting-row">
+      <strong>${tier.label}</strong>
+      <label>
+        <small>HASH MULTIPLIER</small>
+        <span class="tier-setting-input"><b>×</b><input data-path="state.settings.holderTiers.${tier.id}.mult" data-num value="${inputText(tier.mult)}"></span>
+      </label>
+      <label>
+        <small>REFINE DISCOUNT</small>
+        <span class="tier-setting-input"><input data-path="state.settings.holderTiers.${tier.id}.refinePct" data-num value="${inputText(tier.refinePct)}"><b>%</b></span>
+      </label>
+    </div>`).join('')}
+    <div class="holder-tier-settings-note">
+      Saved only to the <b>${workspace}</b> workspace. Changing a multiplier updates the currently selected matching tier in Target Rate, Potential Earning, Deck Simulator, and Build Planner.
+    </div>
+  </div>`;
 }
 
 function marketRows(): string {
@@ -138,11 +167,11 @@ export function renderSettingsView(): string {
   return pageStack(
     intro(
       'SETTINGS',
-      'Current economy and rig configuration, personal cashout timing, and editable marketplace references.',
+      `All settings and inputs below belong only to the ${activeProfile() === 'solana' ? 'Solana' : 'Robinhood'} workspace. Switching platform loads its separate saved data.`,
     ),
     panel(
       'ECONOMY',
-      'Global values shared by every module. Update the current refinery rate when the game changes it; holder-tier discounts apply automatically from that value.',
+      'Economy values used by every module inside this workspace only. Update the current refinery rate when the game changes it.',
       `<div class="formgrid">
         ${field('state.settings.refineRate', 'CURRENT GRIT PER 1 $GRIND · e.g. 104K', store.state.settings.refineRate)}
         ${field('state.settings.maxRackSlots', 'MAX DECK SLOTS · 0 = NO CAP', store.state.settings.maxRackSlots)}
@@ -151,8 +180,13 @@ export function renderSettingsView(): string {
       </div>`,
     ),
     panel(
+      'HOLDER TIER VALUES',
+      'Configure the production multiplier and refinery discount for Visitor through Overlord. Defaults match the current values previously hard-coded by the planner.',
+      holderTierSettings(),
+    ),
+    panel(
       'REFINE DISCOUNT REFERENCES',
-      'Holder-tier discounts are automatic account modifiers. Daily, Weekly, and Seasonal Pass are fixed optional discounts used only by refinery ROI.',
+      'Holder-tier discounts use the values above. Daily, Weekly, and Seasonal Pass are fixed optional discounts used only by refinery ROI.',
       refineDiscountSettings(),
     ),
     panel(
