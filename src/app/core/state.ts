@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, REFINE_DISCOUNT_REFERENCE, TIER_OPTIONS, VIAL_OPTIONS } from '../config/game';
+import { DEFAULT_SETTINGS, REFINE_DISCOUNT_REFERENCE, VIAL_OPTIONS } from '../config/game';
 import {
   MARKET_DEFAULTS,
   RACK_BASE_SLOTS,
@@ -14,6 +14,7 @@ import type {
   DeckState,
   RefineDiscountCosts,
   RefineDiscountSettings,
+  HolderTierId,
   Rig,
   RigPreset,
   Scope,
@@ -21,17 +22,17 @@ import type {
   PersistedCashoutCycle,
 } from '../types';
 import { clamp, clone, number } from './format';
+import { normalizeHolderTierSettings, normalizeTierMultiplier } from './holder-tiers';
 import { activeProfile, profileStorageKey, selectProfile } from './profile';
 import { normalizeStakingNodeId } from './staking';
 import { loadPositiveDefaults, mergeState, readJson, setPath, writeJson } from './storage';
 
 const ACTIVE_TABS: ActiveTab[] = ['target', 'reset', 'current', 'planner', 'costing', 'settings'];
-const VALID_TIERS = new Set<number>(TIER_OPTIONS.map((tier) => tier.mult));
 const VALID_VIAL_HOURS = new Set<number>(VIAL_OPTIONS);
 
 function defaultBuffs(): BuffState {
   return {
-    tier: 1,
+    tier: DEFAULT_SETTINGS.holderTiers.driller.mult,
     coolantLevel: 0,
     prestigePct: 0,
     bronze: false,
@@ -52,13 +53,15 @@ function defaultDiscountCosts(): RefineDiscountCosts {
   };
 }
 
-function normalizeTier(value: unknown): number {
-  const tier = number(value, 1);
-  return VALID_TIERS.has(tier) ? tier : 1;
+function normalizeTier(value: unknown, holderTiers: ApplicationStore['state']['settings']['holderTiers']): number {
+  return normalizeTierMultiplier(value, holderTiers);
 }
 
-function normalizeBuffs(buffs: BuffState): void {
-  buffs.tier = normalizeTier(buffs.tier);
+function normalizeBuffs(
+  buffs: BuffState,
+  holderTiers: ApplicationStore['state']['settings']['holderTiers'],
+): void {
+  buffs.tier = normalizeTier(buffs.tier, holderTiers);
   buffs.coolantLevel = clamp(Math.floor(number(buffs.coolantLevel)), 0, 10);
   buffs.prestigePct = Math.max(0, number(buffs.prestigePct));
   buffs.auraPct = Math.max(0, number(buffs.auraPct));
@@ -124,8 +127,8 @@ export function createDefaultState(): ApplicationStore['state'] {
   return {
     activeTab: 'target',
     settings: clone(DEFAULT_SETTINGS),
-    target: { grindPerDay: 0, tier: 1 },
-    reset: { finalRate: 0, vialHours: 0, tier: 1 },
+    target: { grindPerDay: 0, tier: DEFAULT_SETTINGS.holderTiers.driller.mult },
+    reset: { finalRate: 0, vialHours: 0, tier: DEFAULT_SETTINGS.holderTiers.driller.mult },
     planner: {
       targetGrindPerDay: 0,
       extraQns: 0,
@@ -182,19 +185,20 @@ function loadStore(resetTransientUi = true): ApplicationStore {
   state.settings.maxRackSlots = normalizeRackLimit(state.settings.maxRackSlots);
   state.settings.qnBasePrice = Math.max(0, number(state.settings.qnBasePrice, DEFAULT_SETTINGS.qnBasePrice));
   state.settings.qnPriceGrowth = Math.max(1, number(state.settings.qnPriceGrowth, DEFAULT_SETTINGS.qnPriceGrowth));
+  state.settings.holderTiers = normalizeHolderTierSettings(state.settings.holderTiers);
   normalizeDiscountSettings(state.settings.refineDiscounts);
   Object.values(state.settings.rigPresets).forEach(normalizePreset);
   const qdcSPreset = state.settings.rigPresets.qdc_s;
   if (qdcSPreset && Math.abs(number(qdcSPreset.synergy) - 600) < 1e-9) {
     qdcSPreset.synergy = DEFAULT_SETTINGS.rigPresets.qdc_s.synergy;
   }
-  state.target.tier = normalizeTier(state.target.tier);
-  state.reset.tier = normalizeTier(state.reset.tier);
+  state.target.tier = normalizeTier(state.target.tier, state.settings.holderTiers);
+  state.reset.tier = normalizeTier(state.reset.tier, state.settings.holderTiers);
   state.reset.vialHours = normalizeVialHours(state.reset.vialHours);
   state.planner.extraQns = Math.max(0, Math.floor(number(state.planner.extraQns)));
   state.planner.vialHours = normalizeVialHours(state.planner.vialHours);
   if (resetTransientUi) state.planner.showVialAssistedMinimum = false;
-  normalizeBuffs(state.planner.buffs);
+  normalizeBuffs(state.planner.buffs, state.settings.holderTiers);
   normalizeRigs(state.planner.rigs);
   normalizeDiscountCosts(state.planner.discountCosts);
 
@@ -213,7 +217,7 @@ function loadStore(resetTransientUi = true): ApplicationStore {
     Math.floor(number(deck.baseline.currentDeckSlots, RACK_BASE_SLOTS)),
   );
   deck.baseline.currentGrit = Math.max(0, number(deck.baseline.currentGrit));
-  normalizeBuffs(deck.buffs);
+  normalizeBuffs(deck.buffs, state.settings.holderTiers);
   normalizeRigs(deck.rigs);
   normalizeDiscountCosts(deck.discountCosts);
 
@@ -285,7 +289,39 @@ export function resolveInputPath(path: string): [Record<string, unknown>, string
   return [store.state as unknown as Record<string, unknown>, path];
 }
 
+const HOLDER_TIER_SETTING_PATH = /^state\.settings\.holderTiers\.(visitor|miner|driller|operator|whale|kingpin|overlord)\.(mult|refinePct)$/;
+
+function syncSelectedTierMultiplier(previous: number, next: number): void {
+  if (Math.abs(previous - next) < 1e-9) return;
+  const selections = [
+    store.state.target,
+    store.state.reset,
+    store.state.planner.buffs,
+    store.deck.buffs,
+  ];
+  for (const selection of selections) {
+    if (Math.abs(number(selection.tier) - previous) < 1e-9) selection.tier = next;
+  }
+}
+
+function normalizedHolderTierInput(path: string, value: number): number | null {
+  const match = path.match(HOLDER_TIER_SETTING_PATH);
+  if (!match) return null;
+
+  const id = match[1] as HolderTierId;
+  const field = match[2] as 'mult' | 'refinePct';
+  if (field === 'refinePct') return clamp(value, 0, 99.99);
+
+  const candidate = Math.max(0.01, value);
+  const duplicate = Object.entries(store.state.settings.holderTiers)
+    .some(([otherId, tier]) => otherId !== id && Math.abs(number(tier.mult) - candidate) < 1e-9);
+  return duplicate ? store.state.settings.holderTiers[id].mult : candidate;
+}
+
 function normalizedInputValue(path: string, value: number): number {
+  const holderTierValue = normalizedHolderTierInput(path, value);
+  if (holderTierValue !== null) return holderTierValue;
+
   if (path.startsWith('state.settings.refineDiscounts.')) {
     if (path.endsWith('dailyPct')) return REFINE_DISCOUNT_REFERENCE.dailyPct;
     if (path.endsWith('weeklyPct')) return REFINE_DISCOUNT_REFERENCE.weeklyPct;
@@ -318,7 +354,7 @@ function normalizedInputValue(path: string, value: number): number {
       return clamp(value, 0, 59);
     case 'state.target.tier':
     case 'state.reset.tier':
-      return normalizeTier(value);
+      return normalizeTier(value, store.state.settings.holderTiers);
     case 'state.settings.maxRackSlots':
       return normalizeRackLimit(value);
     case 'state.settings.qnPriceGrowth':
@@ -336,7 +372,17 @@ function normalizedInputValue(path: string, value: number): number {
 
 export function updateInputPath(path: string, value: number): void {
   const [root, relativePath] = resolveInputPath(path);
-  setPath(root, relativePath, normalizedInputValue(path, value));
+  const holderTierMatch = path.match(HOLDER_TIER_SETTING_PATH);
+  const previousMultiplier = holderTierMatch && holderTierMatch[2] === 'mult'
+    ? number(store.state.settings.holderTiers[holderTierMatch[1] as HolderTierId].mult)
+    : null;
+  const nextValue = normalizedInputValue(path, value);
+  setPath(root, relativePath, nextValue);
+
+  if (previousMultiplier !== null) {
+    syncSelectedTierMultiplier(previousMultiplier, nextValue);
+    store.state.planner.extraQns = 0;
+  }
 }
 
 export function getQuantumNodePreset(): RigPreset {

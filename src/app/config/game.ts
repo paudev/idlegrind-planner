@@ -1,5 +1,5 @@
 import { QN_BASE_PRICE, QN_PRICE_GROWTH } from './economy';
-import type { SettingsState, StakingNodeId } from '../types';
+import type { HolderTierId, HolderTierSettings, SettingsState, StakingNodeId } from '../types';
 
 export const REFINE_DISCOUNT_REFERENCE = {
   dailyPct: 5,
@@ -21,11 +21,30 @@ export const STAKING_NODE_OPTIONS: ReadonlyArray<{
   { id: 4, label: 'NODE 4', refinePct: 5, hashPct: 7.5, dailyBoostHours: 2 },
 ] as const;
 
+export const DEFAULT_HOLDER_TIERS: Record<HolderTierId, HolderTierSettings> = {
+  visitor: { mult: 0.25, refinePct: 0 },
+  miner: { mult: 0.75, refinePct: 0 },
+  driller: { mult: 1, refinePct: 0 },
+  operator: { mult: 1.75, refinePct: 5 },
+  whale: { mult: 1.9, refinePct: 7 },
+  kingpin: { mult: 2.25, refinePct: 10 },
+  overlord: { mult: 3, refinePct: 20 },
+};
+
 export const DEFAULT_SETTINGS: SettingsState = {
   refineRate: 104_000,
   maxRackSlots: 0,
   qnBasePrice: QN_BASE_PRICE,
   qnPriceGrowth: QN_PRICE_GROWTH,
+  holderTiers: {
+    visitor: { ...DEFAULT_HOLDER_TIERS.visitor },
+    miner: { ...DEFAULT_HOLDER_TIERS.miner },
+    driller: { ...DEFAULT_HOLDER_TIERS.driller },
+    operator: { ...DEFAULT_HOLDER_TIERS.operator },
+    whale: { ...DEFAULT_HOLDER_TIERS.whale },
+    kingpin: { ...DEFAULT_HOLDER_TIERS.kingpin },
+    overlord: { ...DEFAULT_HOLDER_TIERS.overlord },
+  },
   refineDiscounts: {
     taskDiscountsEnabled: 1,
     dailyPct: REFINE_DISCOUNT_REFERENCE.dailyPct,
@@ -49,13 +68,13 @@ export const DEFAULT_SETTINGS: SettingsState = {
 };
 
 export const TIER_OPTIONS = [
-  { label: 'VISITOR', mult: 0.25, refinePct: 0, dailyCap: 0 },
-  { label: 'MINER', mult: 0.75, refinePct: 0, dailyCap: 0 },
-  { label: 'DRILLER', mult: 1, refinePct: 0, dailyCap: 0 },
-  { label: 'OPERATOR', mult: 1.75, refinePct: 5, dailyCap: 600_000 },
-  { label: 'WHALE', mult: 1.9, refinePct: 7, dailyCap: 1_000_000 },
-  { label: 'KINGPIN', mult: 2.25, refinePct: 10, dailyCap: 1_500_000 },
-  { label: 'OVERLORD', mult: 3, refinePct: 20, dailyCap: 2_000_000 },
+  { id: 'visitor', label: 'VISITOR', mult: 0.25, refinePct: 0, dailyCap: 0 },
+  { id: 'miner', label: 'MINER', mult: 0.75, refinePct: 0, dailyCap: 0 },
+  { id: 'driller', label: 'DRILLER', mult: 1, refinePct: 0, dailyCap: 0 },
+  { id: 'operator', label: 'OPERATOR', mult: 1.75, refinePct: 5, dailyCap: 600_000 },
+  { id: 'whale', label: 'WHALE', mult: 1.9, refinePct: 7, dailyCap: 1_000_000 },
+  { id: 'kingpin', label: 'KINGPIN', mult: 2.25, refinePct: 10, dailyCap: 1_500_000 },
+  { id: 'overlord', label: 'OVERLORD', mult: 3, refinePct: 20, dailyCap: 2_000_000 },
 ] as const;
 
 export const COOLANT_LEVELS = Array.from({ length: 11 }, (_, level) => level);

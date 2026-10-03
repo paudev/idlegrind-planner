@@ -11,8 +11,9 @@ import {
   rateFactory,
   solveMinimumBuild,
 } from '../src/app/core/calculations';
+import { DEFAULT_SETTINGS } from '../src/app/config/game';
 import {
-  permanentRefineRate,
+  permanentRefineRate as calculatePermanentRefineRate,
   stakingDailyBoostHours,
   stakingNode,
 } from '../src/app/core/staking';
@@ -20,6 +21,13 @@ import type { BuffState, RigPreset } from '../src/app/types';
 
 const HOUR = 60 * 60;
 const DAY = 24 * HOUR;
+
+function permanentRefineRate(
+  baseRate: number,
+  buffs: Pick<BuffState, 'tier' | 'stakingNode'>,
+): number {
+  return calculatePermanentRefineRate(baseRate, buffs, DEFAULT_SETTINGS.holderTiers);
+}
 
 const baseBuffs: BuffState = {
   tier: 1,

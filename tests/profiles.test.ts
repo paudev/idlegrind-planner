@@ -34,7 +34,7 @@ test('Solana legacy data is retained and Robinhood has a complete independently 
   memory.set(STORAGE_KEYS.cashout, JSON.stringify({ lastWithdrawalAt: 1_000_000 }));
 
   const { activeProfile, profileStorageKey } = require('../src/app/core/profile');
-  const { store, saveAll, switchProfile, resetPlannerData } = require('../src/app/core/state');
+  const { store, saveAll, switchProfile, resetPlannerData, updateInputPath } = require('../src/app/core/state');
   const { cashoutCycle, saveCashoutCycle } = require('../src/app/core/cashout');
 
   assert.equal(activeProfile(), 'solana');
@@ -60,19 +60,67 @@ test('Solana legacy data is retained and Robinhood has a complete independently 
   assert.equal(cashoutCycle().last, 1_000_000);
 
   store.state.settings.refineRate = 150_000;
+  store.state.settings.rigPresets.qdc.rate = 12_345;
+  store.state.target.grindPerDay = 4_444;
+  store.state.target.tier = 1.75;
+  store.state.reset.finalRate = 5_555;
+  store.state.reset.tier = 1.75;
   store.state.planner.targetGrindPerDay = 3_000;
+  store.state.planner.buffs.layoutPct = 18;
+  store.state.planner.buffs.tier = 1.75;
+  store.state.planner.rigs = [{
+    id: 'rh-plan',
+    name: 'RH PLAN',
+    qty: 2,
+    rate: 333,
+    synergy: 44,
+    slots: 2,
+    accent: 'purple',
+  }];
   store.deck.qns = 40;
   store.deck.view = 'readiness';
   store.deck.buffs.layoutPct = 10;
+  store.deck.buffs.tier = 1.75;
+  store.deck.rigs = [{
+    id: 'rh-deck',
+    name: 'RH DECK',
+    qty: 3,
+    rate: 222,
+    synergy: 11,
+    slots: 1,
+    accent: 'green',
+  }];
+  updateInputPath('state.settings.holderTiers.operator.mult', 2.05);
+  updateInputPath('state.settings.holderTiers.operator.refinePct', 12);
   store.market.qdc = 12_000;
   store.vials['3'] = 88;
   store.costingReference.coolantLevel = 7;
   saveCashoutCycle({ lastWithdrawalAt: 2_000_000 });
   saveAll();
 
+  for (const key of [
+    STORAGE_KEYS.app,
+    STORAGE_KEYS.deck,
+    STORAGE_KEYS.ui,
+    STORAGE_KEYS.market,
+    STORAGE_KEYS.vials,
+    STORAGE_KEYS.costingReference,
+    STORAGE_KEYS.snapshot,
+    STORAGE_KEYS.cashout,
+  ]) {
+    assert.ok(memory.has(profileStorageKey(key, 'robinhood')), `Robinhood should persist ${key} separately`);
+  }
+
   switchProfile('solana');
   assert.equal(store.state.settings.refineRate, 120_000);
+  assert.equal(store.state.settings.holderTiers.operator.mult, 1.75);
+  assert.equal(store.state.settings.holderTiers.operator.refinePct, 5);
+  assert.equal(store.state.settings.rigPresets.qdc.rate, 10_000);
+  assert.equal(store.state.target.grindPerDay, 0);
+  assert.equal(store.state.reset.finalRate, 0);
   assert.equal(store.state.planner.targetGrindPerDay, 2_000);
+  assert.equal(store.state.planner.buffs.layoutPct, 0);
+  assert.equal(store.state.planner.rigs.length, 0);
   assert.equal(store.deck.qns, 20);
   assert.equal(store.deck.buffs.layoutPct, 25);
   assert.equal(store.market.qdc, 9_000);
@@ -82,10 +130,22 @@ test('Solana legacy data is retained and Robinhood has a complete independently 
 
   switchProfile('robinhood');
   assert.equal(store.state.settings.refineRate, 150_000);
+  assert.equal(store.state.settings.holderTiers.operator.mult, 2.05);
+  assert.equal(store.state.settings.holderTiers.operator.refinePct, 12);
+  assert.equal(store.state.settings.rigPresets.qdc.rate, 12_345);
+  assert.equal(store.state.target.grindPerDay, 4_444);
+  assert.equal(store.state.target.tier, 2.05);
+  assert.equal(store.state.reset.finalRate, 5_555);
+  assert.equal(store.state.reset.tier, 2.05);
   assert.equal(store.state.planner.targetGrindPerDay, 3_000);
+  assert.equal(store.state.planner.buffs.layoutPct, 18);
+  assert.equal(store.state.planner.buffs.tier, 2.05);
+  assert.equal(store.state.planner.rigs[0]?.name, 'RH PLAN');
   assert.equal(store.deck.qns, 40);
   assert.equal(store.deck.view, 'readiness');
   assert.equal(store.deck.buffs.layoutPct, 10);
+  assert.equal(store.deck.buffs.tier, 2.05);
+  assert.equal(store.deck.rigs[0]?.name, 'RH DECK');
   assert.equal(store.market.qdc, 12_000);
   assert.equal(store.vials['3'], 88);
   assert.equal(store.costingReference.coolantLevel, 7);
@@ -94,6 +154,8 @@ test('Solana legacy data is retained and Robinhood has a complete independently 
 
   resetPlannerData();
   assert.equal(store.deck.qns, 0);
+  assert.equal(store.state.settings.holderTiers.operator.mult, 1.75);
+  assert.equal(store.state.settings.holderTiers.operator.refinePct, 5);
   switchProfile('solana');
   assert.equal(store.deck.qns, 20);
   assert.equal(JSON.parse(memory.get(STORAGE_KEYS.snapshot) ?? '{}').state.settings.refineRate, 120_000);

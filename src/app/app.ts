@@ -215,7 +215,7 @@ app.addEventListener('input', (event: Event) => {
         'state.settings.refineRate',
         'state.settings.qnBasePrice',
         'state.settings.qnPriceGrowth',
-      ].includes(input.dataset.path)) {
+      ].includes(input.dataset.path) || input.dataset.path.startsWith('state.settings.holderTiers.')) {
         store.state.planner.extraQns = 0;
       }
       saveAll();

@@ -1,6 +1,6 @@
-import { TIER_OPTIONS } from '../config/game';
-import type { RefineDiscountKey, RefineDiscountSettings } from '../types';
+import type { RefineDiscountKey, RefineDiscountSettings, SettingsState } from '../types';
 import { clamp, number } from './format';
+import { holderTierForMultiplier } from './holder-tiers';
 
 export const TASK_TIME_ZONE = 'America/Los_Angeles';
 export const TASK_RESET_HOUR = 18;
@@ -16,15 +16,20 @@ export function normalizedDiscountPct(value: unknown): number {
   return clamp(number(value), 0, 99.99);
 }
 
-export function holderTierRefineDiscountPct(tierMultiplier: unknown): number {
-  const tier = number(tierMultiplier, 1);
-  const match = TIER_OPTIONS.find((option) => Math.abs(option.mult - tier) < 1e-9);
-  return match?.refinePct ?? 0;
+export function holderTierRefineDiscountPct(
+  tierMultiplier: unknown,
+  holderTiers: SettingsState['holderTiers'],
+): number {
+  return holderTierForMultiplier(tierMultiplier, holderTiers).refinePct;
 }
 
-export function holderTierRefineRate(baseRate: number, tierMultiplier: unknown): number {
+export function holderTierRefineRate(
+  baseRate: number,
+  tierMultiplier: unknown,
+  holderTiers: SettingsState['holderTiers'],
+): number {
   const base = Math.max(0, number(baseRate));
-  return base * (1 - holderTierRefineDiscountPct(tierMultiplier) / 100);
+  return base * (1 - holderTierRefineDiscountPct(tierMultiplier, holderTiers) / 100);
 }
 
 export function discountPct(settings: RefineDiscountSettings, key: RefineDiscountKey): number {

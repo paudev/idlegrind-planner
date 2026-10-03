@@ -1,7 +1,7 @@
 import { STAKING_NODE_OPTIONS } from '../config/game';
 import { compact, number } from '../core/format';
 import { permanentRefineRate, stakingNode } from '../core/staking';
-import type { BuffState, Scope } from '../types';
+import type { BuffState, Scope, SettingsState } from '../types';
 
 function pathFor(scope: Scope): string {
   return scope === 'deck' ? 'deck.buffs.stakingNode' : 'state.planner.buffs.stakingNode';
@@ -159,7 +159,11 @@ export function productionMultiplierText(buffs: BuffState): string {
     : 'No production multipliers active';
 }
 
-export function permanentMathSummary(baseRefineRate: number, buffs: BuffState): {
+export function permanentMathSummary(
+  baseRefineRate: number,
+  buffs: BuffState,
+  holderTiers: SettingsState['holderTiers'],
+): {
   nodeLabel: string;
   nodeHashPct: number;
   nodeRefinePct: number;
@@ -168,7 +172,7 @@ export function permanentMathSummary(baseRefineRate: number, buffs: BuffState): 
   refineText: string;
 } {
   const node = stakingNode(buffs.stakingNode);
-  const refineRate = permanentRefineRate(baseRefineRate, buffs);
+  const refineRate = permanentRefineRate(baseRefineRate, buffs, holderTiers);
   return {
     nodeLabel: node.label,
     nodeHashPct: node.hashPct,

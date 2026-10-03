@@ -102,6 +102,7 @@ function deckRefineRate(buffs: BuffState): number {
   return permanentRefineRate(
     Math.max(0, number(store.state.settings.refineRate)),
     buffs,
+    store.state.settings.holderTiers,
   );
 }
 

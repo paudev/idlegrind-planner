@@ -1,5 +1,5 @@
 import { DAY, HOUR } from '../config/economy';
-import { TIER_OPTIONS, VIAL_OPTIONS } from '../config/game';
+import { VIAL_OPTIONS } from '../config/game';
 import {
   cashoutCycle,
   cashoutRemainingSeconds,
@@ -9,6 +9,7 @@ import {
 } from '../core/cashout';
 import { production } from '../core/calculations';
 import { clamp, compact, duration, number } from '../core/format';
+import { holderTierOptions } from '../core/holder-tiers';
 import { holderTierRefineDiscountPct, holderTierRefineRate } from '../core/refine-discounts';
 import { store } from '../core/state';
 import { chip, choiceRow, field, holderTierChipContent, holderTierRow, intro, metric, pageStack, panel } from '../ui/components';
@@ -22,8 +23,8 @@ export function renderPotentialView(): string {
   const vialHours = clamp(number(store.state.reset.vialHours), 0, 24);
   const currentRefine = Math.max(0, number(store.state.settings.refineRate));
   const tier = number(store.state.reset.tier, 1);
-  const tierPct = holderTierRefineDiscountPct(tier);
-  const refine = holderTierRefineRate(currentRefine, tier);
+  const tierPct = holderTierRefineDiscountPct(tier, store.state.settings.holderTiers);
+  const refine = holderTierRefineRate(currentRefine, tier, store.state.settings.holderTiers);
   const windowProjection = remaining !== null
     ? production(rate, remaining, vialHours * HOUR)
     : null;
@@ -39,7 +40,7 @@ export function renderPotentialView(): string {
     hours ? 'orange' : '',
   )).join('');
 
-  const tierChoices = TIER_OPTIONS.map((option) => `<label class="holder-tier-card ${Math.abs(tier - option.mult) < 1e-9 ? 'active' : ''}">
+  const tierChoices = holderTierOptions(store.state.settings.holderTiers).map((option) => `<label class="holder-tier-card ${Math.abs(tier - option.mult) < 1e-9 ? 'active' : ''}">
     <input type="radio" hidden name="potential-holder-tier" data-path="state.reset.tier" value="${option.mult}" ${Math.abs(tier - option.mult) < 1e-9 ? 'checked' : ''}>
     ${holderTierChipContent(option)}
   </label>`).join('');
