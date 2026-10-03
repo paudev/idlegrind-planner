@@ -73,6 +73,7 @@ function plannerRefineRate(): number {
   return permanentRefineRate(
     Math.max(0, number(store.state.settings.refineRate)),
     store.state.planner.buffs,
+    store.state.settings.holderTiers,
   );
 }
 
@@ -179,7 +180,7 @@ function setupPanels(): string {
   const refine = plannerRefineRate();
   const target = Math.max(0, number(store.state.planner.targetGrindPerDay));
   const targetGrit = target * refine;
-  const tierRefinePct = holderTierRefineDiscountPct(store.state.planner.buffs.tier);
+  const tierRefinePct = holderTierRefineDiscountPct(store.state.planner.buffs.tier, store.state.settings.holderTiers);
   const node = stakingNode(store.state.planner.buffs.stakingNode);
 
   return `${intro(
@@ -264,7 +265,11 @@ function outputView(result: BuildResult): string {
   const targetHeadroomPct = targetGrind > 0 ? targetHeadroom / targetGrind * 100 : 0;
 
   const noNodeBuffs = withStakingNode(store.state.planner.buffs, 0);
-  const noNodeRefine = permanentRefineRate(Math.max(0, number(store.state.settings.refineRate)), noNodeBuffs);
+  const noNodeRefine = permanentRefineRate(
+    Math.max(0, number(store.state.settings.refineRate)),
+    noNodeBuffs,
+    store.state.settings.holderTiers,
+  );
   const noNodeSolution = solveMinimumBuild({
     targetGrindPerDay: targetGrind,
     refineRate: noNodeRefine,
