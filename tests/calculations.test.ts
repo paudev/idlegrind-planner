@@ -7,6 +7,7 @@ import { DEFAULT_SETTINGS } from '../src/app/config/game';
 import {
   coolantUpgradeCost,
   fundingTimeline,
+  multiplier,
   production,
   qnPrice,
   qnTotalCost,
