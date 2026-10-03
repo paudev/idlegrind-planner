@@ -1,0 +1,164 @@
+/* Costing hierarchy: keep vial + rack spend primary and move build investment behind a disclosure. */
+.cost-focus-card{
+  display:grid;
+  gap:12px;
+  margin-bottom:14px;
+  padding:14px;
+  border:1px solid #31513f;
+  border-radius:9px;
+  background:linear-gradient(145deg,rgba(24,241,154,.045),rgba(8,13,9,.96));
+}
+.cost-focus-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+}
+.cost-focus-copy{
+  display:grid;
+  gap:3px;
+  min-width:0;
+}
+.cost-focus-copy small,
+.cost-secondary-card summary small{
+  color:#6f8275;
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.1em;
+}
+.cost-focus-copy strong,
+.cost-secondary-card summary strong{
+  color:#e4ece6;
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:.025em;
+}
+.cost-focus-copy span,
+.cost-secondary-card summary em{
+  color:#78877c;
+  font-size:10px;
+  font-style:normal;
+  line-height:1.4;
+}
+.cost-focus-total{
+  display:grid;
+  flex:none;
+  gap:2px;
+  min-width:112px;
+  padding:10px 12px;
+  border:1px solid #2b3b31;
+  border-radius:7px;
+  background:#080d09;
+  text-align:right;
+}
+.cost-focus-total small{
+  color:#718077;
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.09em;
+}
+.cost-focus-total strong{
+  color:#cbd5cd;
+  font-size:18px;
+  font-weight:950;
+  font-variant-numeric:tabular-nums;
+}
+.cost-focus-total strong.negative{
+  color:var(--red);
+}
+.cost-focus-card .cost-table-scroll{
+  margin-top:0 !important;
+}
+
+.cost-secondary-card{
+  margin:0 0 16px;
+  border:1px solid #29362e;
+  border-radius:8px;
+  overflow:hidden;
+  background:#090e0a;
+}
+.cost-secondary-card summary{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:12px 14px;
+  cursor:pointer;
+  list-style:none;
+  user-select:none;
+}
+.cost-secondary-card summary::-webkit-details-marker{display:none}
+.cost-secondary-card summary::marker{content:''}
+.cost-secondary-card summary>span{
+  display:grid;
+  gap:3px;
+  min-width:0;
+}
+.cost-secondary-card summary>b{
+  flex:none;
+  color:#98a49b;
+  font-size:10px;
+  font-weight:850;
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+}
+.cost-secondary-card summary::after{
+  content:'＋';
+  flex:none;
+  color:#728078;
+  font-size:15px;
+  font-weight:700;
+}
+.cost-secondary-card[open] summary{
+  border-bottom:1px solid #243129;
+  background:#0c120e;
+}
+.cost-secondary-card[open] summary::after{
+  content:'−';
+}
+.cost-secondary-card summary:hover{
+  background:#0d1510;
+}
+.cost-secondary-card summary:focus-visible{
+  outline:2px solid var(--green);
+  outline-offset:-2px;
+}
+.cost-secondary-body{
+  padding:12px;
+}
+.cost-secondary-body .cost-table-scroll{
+  margin:0 !important;
+}
+
+@media(max-width:640px){
+  .cost-focus-card{
+    padding:11px;
+  }
+  .cost-focus-head{
+    align-items:stretch;
+    flex-direction:column;
+    gap:9px;
+  }
+  .cost-focus-total{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    width:100%;
+    min-width:0;
+    text-align:left;
+  }
+  .cost-secondary-card summary{
+    align-items:flex-start;
+    flex-wrap:wrap;
+    gap:8px;
+    padding:11px 12px;
+  }
+  .cost-secondary-card summary>span{
+    flex:1 1 calc(100% - 26px);
+  }
+  .cost-secondary-card summary>b{
+    order:3;
+    width:100%;
+    text-align:left;
+  }
+}

@@ -460,20 +460,20 @@ function costingView(scenario: DeckScenario): string {
   const vialCharge = hasVial && store.deck.baseline.includeVialCost ? vialPrice : 0;
   const rackTarget = scenario.slotCap > 0 ? Math.min(scenario.fullStats.slots, scenario.slotCap) : scenario.fullStats.slots;
   const rack = rackExpansion(capacity, rackTarget);
-  const totalGrind = rack.total + vialCharge;
+  const selectedCost = rack.total + vialCharge;
   const funding = scenario.progress;
 
-  const summary = `<div class="cost-badges">
-    <div><small>$GRIND</small><strong class="${totalGrind ? 'negative' : ''}">${totalGrind ? `−${compact(totalGrind)}` : '0'}</strong></div>
-    <div><small>GRIT</small><strong class="${qnCost ? 'negative' : ''}">${qnCost ? `−${compact(qnCost)}` : '0'}</strong></div>
-  </div>`;
-
-  const rows: CostRow[] = [
-    { item: 'QUANTUM NODES', detail: `+${scenario.addedQns} · ${scenario.currentQns} → ${scenario.targetQns}`, grit: qnCost, note: `QN pricing setting: ${compact(pricing.base)} × ${pricing.growth}^owned.` },
+  const selectedRows: CostRow[] = [
     { item: 'RACK SLOT EXPANSION', detail: rack.count ? `${rack.count} × +6 rack slots` : 'No expansion needed', grind: rack.total, note: scenario.fullFitsCap ? (rack.count ? `Starts from inferred ${capacity}-slot capacity; target uses ${scenario.fullStats.slots} slots.` : `Inferred ${capacity}-slot capacity fits the simulation.`) : `Costed only through the configured ${scenario.slotCap}-slot maximum; target uses ${scenario.fullStats.slots}.` },
     ...(!scenario.fullFitsCap ? [{ item: 'DECK SLOT CAP', detail: `${scenario.fullStats.slots} needed · ${scenario.slotCap} maximum`, note: 'The simulated build does not fit the configured maximum deck slots.' } as CostRow] : []),
     { item: 'VIAL ACQUISITION', detail: hasVial ? `${store.deck.vialHours}H market reference` : 'No vial', grind: vialCharge, note: hasVial ? (store.deck.baseline.includeVialCost ? 'Included using Settings market reference.' : 'Reference selected but not charged.') : 'No vial selected.' },
-    { item: 'TOTAL KNOWN COST', grind: totalGrind, grit: qnCost, note: scenario.fullFitsCap ? 'Currencies remain separate. Staking lock is not treated as an acquisition cost.' : 'Currencies remain separate. Rack cost stops at the configured slot cap. Staking lock is not treated as an acquisition cost.', total: true },
+    { item: 'VIAL + RACK TOTAL', grind: selectedCost, note: 'Headline costing intentionally includes only vial acquisition and rack-slot expansion.', total: true },
+  ];
+
+  const investmentRows: CostRow[] = [
+    { item: 'QUANTUM NODES', detail: `+${scenario.addedQns} · ${scenario.currentQns} → ${scenario.targetQns}`, grit: qnCost, note: `QN pricing setting: ${compact(pricing.base)} × ${pricing.growth}^owned.` },
+    { item: 'OTHER BUILD INVESTMENT', detail: 'Existing rigs and buffs', note: 'Deck Simulator assumes your current rigs, frames, coolant, and other permanent buffs are already owned, so they are not charged here.' },
+    { item: 'PERMANENT INVESTMENT TOTAL', grit: qnCost, note: 'Shown separately from the vial + rack headline total. Staking lock is not treated as an acquisition cost.', total: true },
   ];
 
   const fundingRows = [
@@ -486,9 +486,33 @@ function costingView(scenario: DeckScenario): string {
 
   return panel(
     '4 // COSTING',
-    'Known investment and funding impact for this exact simulation.',
+    'Vial and rack-slot costs are the headline spend. Permanent build investment stays available separately.',
     `${!scenario.fullFitsCap ? `<div class="warning">Simulated build requires ${compact(scenario.fullStats.slots)} slots, above the configured ${compact(scenario.slotCap)}-slot maximum.</div>` : ''}
-    ${summary}
+    <section class="cost-focus-card">
+      <div class="cost-focus-head">
+        <div class="cost-focus-copy">
+          <small>HEADLINE COST</small>
+          <strong>VIAL + RACK SLOTS</strong>
+          <span>Only the selected vial acquisition and required rack expansion are counted here.</span>
+        </div>
+        <div class="cost-focus-total">
+          <small>$GRIND</small>
+          <strong class="${selectedCost ? 'negative' : ''}">${selectedCost ? `−${compact(selectedCost)}` : '0'}</strong>
+        </div>
+      </div>
+      ${costRows(selectedRows)}
+    </section>
+    <details class="cost-secondary-card">
+      <summary>
+        <span>
+          <small>SEPARATE COSTS</small>
+          <strong>OTHER BUILD INVESTMENT</strong>
+          <em>QNs and already-owned permanent setup are kept out of the headline total.</em>
+        </span>
+        <b>${qnCost ? `${compact(qnCost)} GRIT` : '0 GRIT'}</b>
+      </summary>
+      <div class="cost-secondary-body">${costRows(investmentRows)}</div>
+    </details>
     ${scenario.addedQns ? info('QN purchases may exceed your current GRIT. That does not block the simulation; purchases are funded continuously as soon as they become affordable.') : ''}
     <div class="funding-grid">
       ${metric('QNs REQUESTED', scenario.addedQns)}
@@ -496,7 +520,6 @@ function costingView(scenario: DeckScenario): string {
       ${metric('BOUGHT BY NEXT CASHOUT', funding ? `${funding.bought} / ${scenario.addedQns}` : '—')}
       ${metric('SIMULATED BUILD READY', duration(scenario.fullBuildTime), '', 'Continuous funding')}
     </div>
-    ${costRows(rows)}
     <h3 class="section-label">FUNDING TIMELINE</h3>
     ${table(['METRIC', 'VALUE', 'MEANING'], fundingRows, 'funding-table')}`,
   );
