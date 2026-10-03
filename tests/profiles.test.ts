@@ -98,6 +98,19 @@ test('Solana legacy data is retained and Robinhood has a complete independently 
   saveCashoutCycle({ lastWithdrawalAt: 2_000_000 });
   saveAll();
 
+  for (const key of [
+    STORAGE_KEYS.app,
+    STORAGE_KEYS.deck,
+    STORAGE_KEYS.ui,
+    STORAGE_KEYS.market,
+    STORAGE_KEYS.vials,
+    STORAGE_KEYS.costingReference,
+    STORAGE_KEYS.snapshot,
+    STORAGE_KEYS.cashout,
+  ]) {
+    assert.ok(memory.has(profileStorageKey(key, 'robinhood')), `Robinhood should persist ${key} separately`);
+  }
+
   switchProfile('solana');
   assert.equal(store.state.settings.refineRate, 120_000);
   assert.equal(store.state.settings.holderTiers.operator.mult, 1.75);
