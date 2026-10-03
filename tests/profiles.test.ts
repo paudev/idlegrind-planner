@@ -154,6 +154,8 @@ test('Solana legacy data is retained and Robinhood has a complete independently 
 
   resetPlannerData();
   assert.equal(store.deck.qns, 0);
+  assert.equal(store.state.settings.holderTiers.operator.mult, 1.75);
+  assert.equal(store.state.settings.holderTiers.operator.refinePct, 5);
   switchProfile('solana');
   assert.equal(store.deck.qns, 20);
   assert.equal(JSON.parse(memory.get(STORAGE_KEYS.snapshot) ?? '{}').state.settings.refineRate, 120_000);
