@@ -62,9 +62,12 @@ test('Solana legacy data is retained and Robinhood has a complete independently 
   store.state.settings.refineRate = 150_000;
   store.state.settings.rigPresets.qdc.rate = 12_345;
   store.state.target.grindPerDay = 4_444;
+  store.state.target.tier = 1.75;
   store.state.reset.finalRate = 5_555;
+  store.state.reset.tier = 1.75;
   store.state.planner.targetGrindPerDay = 3_000;
   store.state.planner.buffs.layoutPct = 18;
+  store.state.planner.buffs.tier = 1.75;
   store.state.planner.rigs = [{
     id: 'rh-plan',
     name: 'RH PLAN',
@@ -77,6 +80,7 @@ test('Solana legacy data is retained and Robinhood has a complete independently 
   store.deck.qns = 40;
   store.deck.view = 'readiness';
   store.deck.buffs.layoutPct = 10;
+  store.deck.buffs.tier = 1.75;
   store.deck.rigs = [{
     id: 'rh-deck',
     name: 'RH DECK',
@@ -88,8 +92,6 @@ test('Solana legacy data is retained and Robinhood has a complete independently 
   }];
   updateInputPath('state.settings.holderTiers.operator.mult', 2.05);
   updateInputPath('state.settings.holderTiers.operator.refinePct', 12);
-  store.state.planner.buffs.tier = 2.05;
-  store.deck.buffs.tier = 2.05;
   store.market.qdc = 12_000;
   store.vials['3'] = 88;
   store.costingReference.coolantLevel = 7;
@@ -119,7 +121,9 @@ test('Solana legacy data is retained and Robinhood has a complete independently 
   assert.equal(store.state.settings.holderTiers.operator.refinePct, 12);
   assert.equal(store.state.settings.rigPresets.qdc.rate, 12_345);
   assert.equal(store.state.target.grindPerDay, 4_444);
+  assert.equal(store.state.target.tier, 2.05);
   assert.equal(store.state.reset.finalRate, 5_555);
+  assert.equal(store.state.reset.tier, 2.05);
   assert.equal(store.state.planner.targetGrindPerDay, 3_000);
   assert.equal(store.state.planner.buffs.layoutPct, 18);
   assert.equal(store.state.planner.buffs.tier, 2.05);
